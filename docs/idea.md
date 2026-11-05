@@ -39,7 +39,7 @@ When you answer correctly:
 
 ### Answering wrong
 
-You get two tries to answer correctly, so if the first attempt was wrong because of a typo, you can fix it on the second try and avoid frustration. Items are removed and the level drops only once, after both tries have failed. At level 0 there is no punishment, so the two tries do not matter there. There is also a "don't know" button, which fails immediately.
+You get two tries to answer correctly, so if the first attempt was wrong because of a typo, you can fix it on the second try and avoid frustration. Items are removed and the level drops only once, after both tries have failed. At level 0 there is no punishment, so the two tries do not matter there. There is also a "don't know" action, which fails immediately.
 
 Failing removes some of the item and puts a ban on it (see [The punishment system](#the-punishment-system)). The correct answer is displayed after the items have been deleted.
 
@@ -49,14 +49,29 @@ The first time an item is interacted with (level 0), the menu works as a lesson:
 
 - There is an option to display the correct answer. The player then types it to unlock the item at level 1.
 - Answering wrong or pressing "don't know" just shows the answer, without removing items or giving a ban.
-- There are two extra buttons, "Already known" and "Ignore" (see [Known and ignored items](#known-and-ignored-items)).
 
 ### Using the menu
 
+- The menu shows only a typing bar, with a hint line under it listing the key for each action (see [Keys](#keys)). A setting can also show clickable buttons for the actions.
 - The game does not pause while the menu is open, so the mod also works in multiplayer. Instead, the player should walk somewhere safe to do their unlockings.
 - Closing the menu with Esc gives no penalty, and the item stays locked.
 - Right-clicking a locked item in the inventory opens the menu, so items can be unlocked without using them.
 - The menu for an item shows its SRS level.
+- There are two extra actions, "Already known" and "Ignore", available at any level (see [Known and ignored items](#known-and-ignored-items)).
+
+### Keys
+
+| Action | Default key |
+|---|---|
+| Answer | Enter |
+| Don't know | Delete |
+| Already known | Ctrl+K |
+| Ignore | Ctrl+I |
+| Show answer (lessons only) | Ctrl+S |
+
+- Pressing Enter with an empty typing bar does nothing.
+- Don't know uses the forward Delete key, separate from Backspace, so fixing a typo never fails the review. On Mac laptops it is fn+delete.
+- All keys can be rebound in Minecraft's Controls screen.
 
 ## What counts as interacting
 
@@ -103,14 +118,12 @@ The levels and the time until an item is locked again are shown below. Both the 
 
 ## Known and ignored items
 
-In the lesson menu at level 0, there are two extra buttons:
+The answer menu has two extra actions, available at any level:
 
 - **Already known** is for items the player knows from before. It unlocks the item forever.
 - **Ignore** is for items the player is not interested in, like andesite. Ignored items are dropped on the ground from the inventory, not deleted, and can not be picked up, taken out of containers or crafted.
 
-These buttons are only available at level 0, so they can not be used to avoid the punishment.
-
-A word list screen, opened with a key bind, shows all known, ignored and mastered (level 9) items and lets the player revert them. Reverted items go back to level 0. Known and mastered items are kept separate in the list, since mastered items are earned through reviews.
+A word list screen, opened with a key bind, shows all known, ignored and mastered (level 9) items and lets the player revert them by right-clicking an item and choosing Revert. Reverted items go back to level 0. Known and mastered items are kept separate in the list, since mastered items are earned through reviews.
 
 ## The punishment system
 
@@ -135,7 +148,7 @@ A suitable `percentageFactor` depends on how many levels there are and the time 
 
 ### Crafting
 
-When you fail on a crafted item, the items removed are the ingredients. The number is based on each ingredient's part in the recipe and the SRS level of the crafted item. When crafting, the current view is the inventory and the crafting grid, so the ingredients are removed from both combined.
+When you fail on an item you are trying to craft, the items removed are the ingredients. The number is based on each ingredient's part in the recipe and the SRS level of the crafted item. When crafting, the current view is the inventory and the crafting grid, so the ingredients are removed from both combined.
 
 For example, say the player wants to craft a diamond pickaxe, which they have unlocked before and is now at level 1 and locked. They have 50 diamonds and 100 sticks, counting the ones in the crafting grid. To move the diamond pickaxe into the inventory after arranging the recipe, they have to answer the name for the pickaxe. The recipe uses 5 items in total, 3 diamonds and 2 sticks. If they fail at level 1, 3/5 of 50% of the diamonds and 2/5 of 50% of the sticks are removed, which is 15 diamonds and 20 sticks.
 
@@ -173,5 +186,6 @@ Some things should be controlled by settings:
 - The time ban on items when answering wrong
 - The SRS levels and the time until an item is locked again for each level
 - The `percentageFactor`
+- Whether the answer menu shows clickable buttons for the actions
 
-The values described in this document are the defaults. On multiplayer servers, the settings are controlled by the server owner.
+The values described in this document are the defaults. On multiplayer servers, the settings are controlled by the server owner, except the clickable buttons, which each player chooses.
