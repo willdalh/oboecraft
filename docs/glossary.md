@@ -7,7 +7,7 @@ A Minecraft mod for learning Japanese, using spaced repetition on the items in t
 ### Items
 
 **Item**:
-A kind of thing in Minecraft, like oak log or diamond pickaxe. Each item has its own SRS state per player.
+Anything in Minecraft with its own Japanese name, like oak log or potion of healing. Each item has its own SRS state per player.
 _Avoid_: item type, word, card
 
 **Stack**:
@@ -75,6 +75,10 @@ _Avoid_: translation, correct answer, word
 **Reading**:
 How a Japanese name is pronounced, written in kana, like おーくのげんぼく. Each Japanese name has one reading, and an answer counts as correct when its reading matches.
 _Avoid_: pronunciation, kana
+
+**Name list**:
+All items with their Japanese names and readings.
+_Avoid_: word list, dictionary, vocabulary
 
 ### Spaced repetition
 
