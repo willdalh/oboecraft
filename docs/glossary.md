@@ -73,7 +73,7 @@ The item's name in the Japanese translation of Minecraft, like オークの原�
 _Avoid_: translation, correct answer, word
 
 **Reading**:
-How a Japanese name is pronounced, written in kana, like おーくのげんぼく. Each Japanese name has one reading, and an answer counts as correct when its reading matches.
+How a Japanese name is pronounced, written in kana, like おーくのげんぼく. Each Japanese name has one reading.
 _Avoid_: pronunciation, kana
 
 **Name list**:
