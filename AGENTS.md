@@ -18,12 +18,13 @@ Oboecraft is a Minecraft mod for learning Japanese. It uses a spaced repetition 
 
 ## Architecture
 
-Follow clean architecture. Dependencies point inward.
+The code follows clean architecture, with a `core` module and a `fabric` adapter module. `docs/architecture/overview.md` describes the structure.
 
-- **Core (domain):** the game rules, such as SRS levels, lock timing, answer checking, punishment and the word list. Plain code with no Minecraft or mod loader imports.
-- **Adapters:** everything that touches Minecraft, the mod loader, the UI, saving data and text-to-speech. Adapters depend on the core. The core never depends on adapters.
-
-This keeps the core testable without starting the game.
+- Dependencies point inward: `fabric` depends on `core`, never the other way around.
+- `core` never imports Minecraft or Fabric code.
+- Put game rules (levels, intervals, answer checking, punishment, the name list) in `core`. Put everything that touches Minecraft or Fabric in `fabric`.
+- Keep the core thin. It takes simple inputs, like item ids, counts and timestamps, and returns decisions. Minecraft concepts like inventories and slots stay in `fabric`.
+- The server decides everything that matters. Client code only displays and never has the final say.
 
 ## Testing
 
