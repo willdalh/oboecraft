@@ -39,7 +39,7 @@ _Avoid_: active, equipped
 ### Reviews
 
 **Review**:
-One round in the answer menu for a locked item, ending in a pass or a fail.
+A round of answering for a player's locked item, ending in a pass or a fail. It can span multiple openings of the answer menu.
 _Avoid_: quiz, test, check
 
 **Pass**:
@@ -55,7 +55,7 @@ One submitted answer in a review. Two attempts are available initially and after
 _Avoid_: try, guess
 
 **Attempt reset**:
-Restoration of both attempts after five minutes for a review that has not failed.
+Restoration of both attempts five minutes after the first wrong answer in a review that has not failed, including while the answer menu is closed.
 _Avoid_: retry cooldown, ban reset
 
 **Don't know**:

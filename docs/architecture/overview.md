@@ -36,11 +36,13 @@ Locks are checked on both sides. The client checks first, since it knows the SRS
 
 For inventory and container slots, the lock check happens before picking up the stack or starting a drag. Ground pickup does not trigger a review. A pass unlocks the item but does not automatically repeat the interrupted action. Crafting ingredients and a locked result have separate review triggers. See the [confirmed gameplay rules](../design/README.md).
 
-Answers are checked on the server. The client sends the typed text, and the server replies with a pass or fail. The Japanese name is only sent to the client when it is needed: in lessons and after a fail.
+Answers are checked on the server. The client sends the typed text, and the server replies with a pass, a wrong answer with the remaining attempts, or a fail. A first wrong answer is not a fail. The Japanese name is only sent to the client when it is needed: in lessons and after a fail.
+
+The server retains remaining attempts for each player and reviewed item when the answer menu closes. Esc only closes the client window: it does not submit an answer, end the review, consume an attempt or restart the reset window. Reopening the menu resumes the same attempt state.
 
 ## Time
 
-Intervals, bans and the five-minute attempt reset run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. Time checks use timestamps rather than running timers. Attempts reset only for reviews that have not failed.
+Intervals, bans and the five-minute attempt reset run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. Time checks use timestamps rather than running timers. The first wrong answer sets the attempt-reset deadline five minutes ahead. Attempts reset only for reviews that have not failed, whether the answer menu is open or closed.
 
 ## Testing
 

@@ -1,13 +1,16 @@
 # Confirmed gameplay rules
 
-These are the agreed rules to implement. The repository has no playable mod yet. This document records later decisions that replace conflicting inventory and crafting rules in the frozen [original idea](../idea.md). The [implementation plan](../implementation-plan.md) describes the order of work.
+These are the agreed rules to implement. The repository has no playable mod yet. This document records later decisions that replace conflicting review, inventory and crafting rules in the frozen [original idea](../idea.md). The [implementation plan](../implementation-plan.md) describes the order of work.
 
 ## Reviews and attempts
 
-- A review starts with two attempts. The first wrong answer leaves one attempt.
-- After five minutes, attempts reset to two if the review has not already failed. A reset does not undo a fail or its punishment.
+- A review starts with two attempts. The first wrong answer leaves one attempt and starts a five-minute reset window.
+- Esc only closes the answer menu. It consumes no attempt, causes no punishment and leaves the item locked. Closing and reopening the menu for that item preserves the player's remaining attempts and does not restart the reset window.
+- Five minutes after the first wrong answer, attempts reset to two if the review has not already failed, even while the menu is closed. A reset does not undo a fail or its punishment.
 - A second wrong answer before the reset, or choosing Don't know, fails the review.
 - The attempt reset is separate from the ban after a fail. Lessons at level 0 retain their existing no-punishment rule.
+
+For example, a wrong answer at 12:00 leaves one attempt. Closing the menu with Esc and reopening it at 12:03 still leaves one attempt. At 12:05, both attempts are available again if the review has not failed. The next wrong answer then starts a new five-minute reset window.
 
 ## Inventory and chest slots
 
@@ -43,7 +46,9 @@ Normal, damaged and enchanted diamond swords are the same item for learning purp
 | Pass the review opened from a chest slot | Unlock the item; leave it in place until the player picks it up again. |
 | Walk over a locked ground item | Pick it up without opening a review. |
 | Move a locked ingredient, then take a locked crafting result | Review the ingredient and the result separately, repeating each action after passing. |
-| Submit one wrong answer | Leave one attempt; restore two after five minutes if the review has not failed. |
+| Press Esc without submitting an answer | Close the menu without consuming an attempt or applying punishment. |
+| Submit one wrong answer, press Esc and reopen before five minutes have passed | Keep one attempt; the original reset deadline is unchanged. |
+| Leave the menu closed until five minutes after the first wrong answer | Restore two attempts if the review has not failed. |
 | Submit a second wrong answer before the reset | Fail once and apply punishment; the attempt reset cannot undo it. |
 | Fail a diamond review with diamonds in the inventory and open chest | Include both locations in removal. |
 | Unlock a normal diamond sword | Apply the same SRS state to damaged and enchanted diamond swords. |

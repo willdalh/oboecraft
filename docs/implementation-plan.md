@@ -31,7 +31,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 - The client only displays: the answer menu, "???" names, timer bars, slot markers and the spoken reading.
 - The server sends each player their SRS states and pushes updates when they change.
 - Locks are checked on both sides. The client checks first and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
-- The client sends the typed answer, and the server replies with a pass or fail. The Japanese name is only sent to the client when needed: in lessons and after a fail.
+- The client sends the typed answer, and the server replies with a pass, a wrong answer with the remaining attempts, or a fail. A first wrong answer is not a fail. The Japanese name is only sent to the client when needed: in lessons and after a fail.
 - Time is real-world time from the server clock. The SRS state stores when the item locks next as a timestamp, and the item is locked when the current time is at or past it, so no timers need to run. Singleplayer uses the computer's clock, and changing it to cheat is left to the player.
 
 ### Dependencies and settings
@@ -179,7 +179,7 @@ Lessons at level 0 (show the answer, no punishment), the Already known and Ignor
 
 **Status:** not started
 
-Several PRs: the removal math in core, removing from the current view (including both inventory and open chest), removing crafting ingredients, protected items, demotion, and bans. Add the two-attempt rule and the five-minute attempt reset for reviews that have not failed; verify that the reset never undoes a fail.
+Several PRs: the removal math in core, removing from the current view (including both inventory and open chest), removing crafting ingredients, protected items, demotion, and bans. Add the two-attempt rule and the five-minute attempt reset for reviews that have not failed. Esc only closes the answer menu without consuming an attempt; remaining attempts survive closing and reopening. The reset window starts at the first wrong answer and continues while the menu is closed. Verify that reopening does not restore attempts or restart the window, and that the reset never undoes a fail.
 
 ### 10. Voice and notification
 
