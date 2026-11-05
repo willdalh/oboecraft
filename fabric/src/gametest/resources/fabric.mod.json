@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "oboecraft-gametest",
+  "version": "${version}",
+  "name": "Oboecraft game tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "io.github.willdalh.oboecraft.fabric.gametest.ModLoadedGameTest"
+    ]
+  },
+  "depends": {
+    "oboecraft": "*"
+  }
+}

@@ -27,11 +27,27 @@ The code follows clean architecture, with a `core` module and a `fabric` adapter
 - Keep the core thin. It takes simple inputs, like item ids, counts and timestamps, and returns decisions. Minecraft concepts like inventories and slots stay in `fabric`.
 - The server decides everything that matters. Client code only displays and never has the final say.
 
+## Commands
+
+Run these from the repository root. The first run downloads Gradle, Java 25 and Minecraft, so it takes a while.
+
+| Command | What it does |
+|---|---|
+| `./gradlew build` | Compiles, runs the core unit tests and the Fabric game tests, and builds the mod jar in `fabric/build/libs/` |
+| `./gradlew :core:test` | Runs only the core unit tests |
+| `./gradlew runGameTest` | Runs only the Fabric game tests, on a headless server |
+| `./gradlew runClient` | Starts the game with the mod |
+| `./gradlew runServer` | Starts a local dedicated server with the mod, in `fabric/run/` |
+
+The first `runServer` stops and asks you to accept Minecraft's EULA. Set `eula=true` in `fabric/run/eula.txt` to accept it, then run it again. That is the user's choice, so agents never accept the EULA for them.
+
+Versions of Minecraft, Fabric and libraries are in `gradle/libs.versions.toml`.
+
 ## Testing
 
 - Core logic comes with unit tests in the same PR.
 - Bug fixes come with a test that fails before the fix and passes after.
-- All tests pass before a PR is opened.
+- All tests pass before a PR is opened (`./gradlew build`).
 - After opening a PR, check its CI status with `gh pr checks` and fix any failing check. A PR with failing checks is not ready for review.
 - Never delete or weaken a test just to make it pass. If a test is wrong, explain the change in the PR.
 

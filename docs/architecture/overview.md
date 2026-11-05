@@ -1,6 +1,6 @@
 # Architecture overview
 
-This describes the planned structure, written before any code. Once code lands, this doc is kept in sync with it.
+This describes how the code is structured. It is kept in sync with the code.
 
 ## Core and adapters
 
@@ -16,6 +16,40 @@ The mod id is `oboecraft`. The code is split into two Gradle modules:
 | `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core`. |
 
 Minecraft is not on the classpath of `core`, so the compiler enforces the boundary. Support for another mod loader would be another adapter module next to `fabric`.
+
+The released mod is one jar, built by `fabric`. It contains `core`'s classes, so players install a single file.
+
+## Source layout
+
+```
+build.gradle.kts            Settings shared by both modules: group, version, Java 25 toolchain
+settings.gradle.kts         The two modules and the toolchain download plugin
+gradle/libs.versions.toml   All dependency and plugin versions
+core/
+  src/main/java             Game rules
+  src/test/java             Unit tests (JUnit)
+fabric/
+  src/main/java             Code for both sides, and code that only runs on the server
+  src/main/resources        fabric.mod.json
+  src/client/java           Code that only runs on the client
+  src/gametest/java         Fabric game tests, run on a headless server
+  src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
+```
+
+The `fabric` module splits its source sets by side. Code in `src/main` can't use client-only Minecraft classes, which don't exist on a dedicated server, so mistakes show up as compile errors instead of server crashes. Code in `src/client` can use everything in `src/main`.
+
+The mod has two entrypoints, listed in `fabric.mod.json`:
+
+| Entrypoint | Class | Runs on |
+|---|---|---|
+| `main` | `io.github.willdalh.oboecraft.fabric.OboecraftMod` | Server and client |
+| `client` | `io.github.willdalh.oboecraft.fabric.client.OboecraftClient` | Client only |
+
+The game tests are their own small mod, `oboecraft-gametest`, which is only loaded by `runGameTest` and is not part of the released jar.
+
+## Build
+
+The build uses Gradle through the wrapper and Fabric Loom's non-remapping plugin, `net.fabricmc.fabric-loom`, since Minecraft ships unobfuscated. Loom needs Gradle itself to run on Java 25. `gradle/gradle-daemon-jvm.properties` asks for that, and the compile toolchain asks for Java 25 too. If Java 25 isn't installed, Gradle downloads it.
 
 ## A thin core
 
@@ -42,7 +76,9 @@ Intervals and bans run in real-world time from the server clock. The SRS state s
 
 ## Testing
 
-Core rules get plain unit tests. The `fabric` module uses Fabric game tests where they pay off.
+Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` module uses Fabric game tests where they pay off, in `fabric/src/gametest`. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod.
+
+`./gradlew build` runs both kinds of tests. GitHub Actions runs it on every PR and on every push to `main` (`.github/workflows/build.yml`).
 
 ## Decisions
 
