@@ -17,7 +17,7 @@ The mod id is `oboecraft`. The code is split into two Gradle modules:
 
 Minecraft is not on the classpath of `core`, so the compiler enforces the boundary. Support for another mod loader would be another adapter module next to `fabric`.
 
-The released mod is one jar, built by `fabric`. It contains `core`'s classes, so players install a single file.
+The released mod is one jar, built by `fabric`. It contains `core`'s classes, so players install a single file. In dev runs (`runClient`, `runServer`, `runGameTest`), `core` belongs to the `oboecraft` mod too, so things like looking up resources through the mod work the same in dev and in the released jar. For this, `core` applies Loom's companion plugin, which only exports its classpath and adds no Minecraft or Fabric dependencies.
 
 ## Source layout
 
@@ -51,6 +51,8 @@ The game tests are their own small mod, `oboecraft-gametest`, which is only load
 
 The build uses Gradle through the wrapper and Fabric Loom's non-remapping plugin, `net.fabricmc.fabric-loom`, since Minecraft ships unobfuscated. Loom needs Gradle itself to run on Java 25. `gradle/gradle-daemon-jvm.properties` asks for that, and the compile toolchain asks for Java 25 too. If Java 25 isn't installed, Gradle downloads it.
 
+All versions live in `gradle/libs.versions.toml`. The mod version and the Minecraft and Fabric Loader versions in `fabric.mod.json` are filled in from there when the jar is built.
+
 ## A thin core
 
 The core makes decisions from simple inputs, like an item id, counts and timestamps, and returns results. The `fabric` module gathers the inputs from the game and carries out the results. Minecraft concepts like inventories, slots and containers are left out of the core.
@@ -78,7 +80,7 @@ Intervals and bans run in real-world time from the server clock. The SRS state s
 
 Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` module uses Fabric game tests where they pay off, in `fabric/src/gametest`. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod.
 
-`./gradlew build` runs both kinds of tests. GitHub Actions runs it on every PR and on every push to `main` (`.github/workflows/build.yml`).
+`./gradlew build` runs both kinds of tests. The game test results are written as a JUnit report to `fabric/build/test-results/gameTest/`, and the game test server's logs to `fabric/build/run/gameTest/logs/`. CI uploads both, along with any crash reports. GitHub Actions runs it on every PR and on every push to `main` (`.github/workflows/build.yml`).
 
 ## Decisions
 

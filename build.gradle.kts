@@ -8,11 +8,12 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "java")
-
-    extensions.configure<JavaPluginExtension> {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(25)
+    // Each module applies Java itself (java-library in core, Loom in fabric). Only the toolchain is shared.
+    plugins.withType<JavaPlugin> {
+        extensions.configure<JavaPluginExtension> {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(25)
+            }
         }
     }
 }

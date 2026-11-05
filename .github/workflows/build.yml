@@ -5,6 +5,14 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+# A new push to a PR cancels the run for the older push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,4 +36,6 @@ jobs:
           path: |
             */build/reports/
             */build/test-results/
+            fabric/build/run/*/logs/
+            fabric/build/run/*/crash-reports/
           if-no-files-found: ignore

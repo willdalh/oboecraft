@@ -9,16 +9,8 @@ import org.slf4j.LoggerFactory;
 public final class OboecraftMod implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(Oboecraft.MOD_ID);
 
-    private static boolean initialized;
-
     @Override
     public void onInitialize() {
-        initialized = true;
         LOGGER.info("Oboecraft initialized");
-    }
-
-    /** Whether {@link #onInitialize()} has run. */
-    public static boolean isInitialized() {
-        return initialized;
     }
 }

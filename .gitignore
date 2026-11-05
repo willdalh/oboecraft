@@ -1,16 +1,18 @@
 docs/original-prompt.md
 
 # Gradle
-.gradle/
-.kotlin/
-build/
+/.gradle/
+/.kotlin/
+/build/
+/*/build/
 
-# Minecraft run folders made by runClient and runServer
-run/
+# Minecraft run folder made by runClient and runServer
+/fabric/run/
 
 # IDEs
-.idea/
+/.idea/
 *.iml
-out/
-.vscode/
-bin/
+/out/
+/*/out/
+/.vscode/
+/*/bin/
