@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "oboecraft-test",
+  "version": "1.0.0",
+  "name": "Oboecraft game tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["io.github.willdalh.oboecraft.fabric.ProjectSetupGameTest"]
+  },
+  "depends": {
+    "oboecraft": "*"
+  }
+}

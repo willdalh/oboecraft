@@ -29,10 +29,14 @@ The code follows clean architecture, with a `core` module and a `fabric` adapter
 
 ## Testing
 
+- Use JDK 25 for both the Gradle JVM and compilation. The wrapper downloads Gradle, but Java must already be configured. On Windows x64, `./scripts/Use-Java25.ps1` selects a verified workspace-local JDK for the current PowerShell session.
+- Run `./gradlew build` for the build, core unit tests and headless server game tests. On Windows use `./gradlew.bat`. Use `./gradlew :core:test` for core tests alone and `./gradlew :fabric:runGameTest` for server game tests alone.
+- `./gradlew :fabric:runClient` starts the development client. `./gradlew :fabric:runServer --args=nogui` starts a dedicated development server; accept Minecraft's EULA in its generated `fabric/run/eula.txt` before running a normal server. The automated test server uses a separate disposable world and accepts the EULA in its test configuration.
+- `docs/development.md` lists setup, verification and artifact paths. Local toolchains, caches and development worlds are ignored by Git.
 - Core logic comes with unit tests in the same PR.
 - Bug fixes come with a test that fails before the fix and passes after.
 - All tests pass before a PR is opened.
-- After opening a PR, check its CI status with `gh pr checks` and fix any failing check. A PR with failing checks is not ready for review.
+- After opening a PR, check its CI status with `gh pr checks` or the connected GitHub workflow tools and fix any failing check. A PR with failing checks is not ready for review. Report any permission restriction that prevents checking CI.
 - Never delete or weaken a test just to make it pass. If a test is wrong, explain the change in the PR.
 
 ## Docs
@@ -43,6 +47,7 @@ Docs reflect code. Changes that touch game behavior, architecture, tools, or ter
 |---|---|---|
 | `docs/idea.md` | Original vision | No, frozen |
 | `docs/implementation-plan.md` | Decisions and milestones for building the mod | Yes, milestone status updated as PRs merge |
+| `docs/development.md` | Setup, build, tests and development run commands | Yes |
 | `docs/design/` | Game behavior as it actually works | Yes |
 | `docs/architecture/` | How the code is structured | Yes |
 | `docs/glossary.md` | Domain terms | Yes |

@@ -47,7 +47,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 - Build playable versions when player feedback can resolve uncertain gameplay. Use those sessions to check the [gameplay examples](design/README.md#examples-for-early-playtesting) and adjust the design before adding more features.
 - GitHub Actions runs on every PR: the build, the core tests and the Fabric game tests on a headless server. A PR with a failing check isn't merged. CI is set up in milestone 2.
 - `./gradlew runClient` starts the game with the mod, and `./gradlew runServer` starts a local dedicated server. Both commands are added to AGENTS.md in milestone 2.
-- The build uses the Gradle wrapper and a Java 25 Gradle toolchain, so Gradle and Java 25 are downloaded automatically, whatever Java version is installed.
+- JDK 25 must be configured before starting Gradle. The wrapper downloads Gradle 9.6.0, and both modules compile with a Java 25 toolchain. Windows x64 developers can use `scripts/Use-Java25.ps1` to download a verified workspace-local JDK and select it for the current PowerShell session. See [Development](development.md) for all commands.
 
 ### Name list
 
@@ -127,7 +127,7 @@ Added the [architecture overview](architecture/overview.md), the [stack](decisio
 
 ### 2. Project setup
 
-**Status:** not started
+**Status:** in progress; implementation and validation are on `chore/project-setup`, awaiting review and merge.
 
 Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-remapping Fabric Loom. An empty mod that starts with `./gradlew runClient` and on a dedicated server with `./gradlew runServer`. One sample core test and one Fabric game test. GitHub Actions runs the build and tests on every PR. AGENTS.md gets the run and test commands, and `docs/architecture/` is updated to match the real code.
 

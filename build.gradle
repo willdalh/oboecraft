@@ -1,0 +1,39 @@
+plugins {
+    id 'base'
+    id 'net.fabricmc.fabric-loom' version '1.17.21' apply false
+}
+
+allprojects {
+    group = providers.gradleProperty('maven_group').get()
+    version = providers.gradleProperty('mod_version').get()
+}
+
+subprojects {
+    apply plugin: 'java-library'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(25)
+        withSourcesJar()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 25
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn ':core:assemble', ':fabric:assemble'
+}
+
+tasks.named('check') {
+    dependsOn ':core:check', ':fabric:check'
+}

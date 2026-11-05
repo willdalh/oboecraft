@@ -1,1 +1,10 @@
 docs/original-prompt.md
+
+# Local toolchains, Gradle output and development worlds
+.tools/
+.gradle/
+**/build/
+**/run/
+**/run-*/
+.idea/
+*.iml

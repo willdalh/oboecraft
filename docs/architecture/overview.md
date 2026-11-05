@@ -1,6 +1,6 @@
 # Architecture overview
 
-This describes the planned structure, written before any code. Once code lands, this doc is kept in sync with it.
+The Gradle modules and mod entrypoint described here are implemented. The foundation contains an item-identifier value and setup tests; the gameplay rules and networking below are still planned. This doc is kept in sync as they are implemented.
 
 ## Core and adapters
 
@@ -16,6 +16,10 @@ The mod id is `oboecraft`. The code is split into two Gradle modules:
 | `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core`. |
 
 Minecraft is not on the classpath of `core`, so the compiler enforces the boundary. Support for another mod loader would be another adapter module next to `fabric`.
+
+The root Gradle project aggregates both modules. `fabric` declares a dependency on `core` and bundles its jar inside the mod, so players install one Oboecraft jar. `ItemId` carries a namespaced registry identifier into the core as plain Java data; it does not by itself identify potion effects or other variants in the name list.
+
+The common `Oboecraft` entrypoint runs on both client and dedicated server. Test-only registration and code live in a separate `gametest` source set and are excluded from the mod jar. [Development commands](../development.md) cover the build, tests and game runs.
 
 ## A thin core
 
