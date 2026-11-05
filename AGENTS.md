@@ -51,7 +51,13 @@ Code uses the terms from `docs/glossary.md` for names of classes, functions and 
 
 ### ADRs
 
-Write an ADR when a PR makes a decision that is hard to undo or had real alternatives, such as the stack, the save format or a layer boundary. The ADR goes in the same PR.
+Write an ADR when a PR makes a decision that is all three of these:
+
+1. **Hard to reverse:** changing your mind later has a real cost.
+2. **Surprising without context:** a future reader would wonder why it was done this way.
+3. **A real trade-off:** there were genuine alternatives, and one was picked for specific reasons.
+
+Examples are the stack, the save format or a layer boundary. If any of the three is missing, skip the ADR. The ADR goes in the same PR.
 
 ADRs are named `docs/decisions/YYYYMMDD-title.md`. Once accepted, an ADR is never edited, except for its status when a newer ADR replaces it.
 
