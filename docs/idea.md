@@ -34,12 +34,12 @@ The correct answer is the full name of the item in the Japanese translation of M
 When you answer correctly:
 
 - A sound is played with the reading of the item name.
-- You get a notification at the top of the screen with the correct name in kanji (in the case the name has kanji and you wrote it in romaji or kana).
+- You always get a notification at the top of the screen with the correct name, written with kanji if the name has kanji. This way you also see the kanji when you answered in romaji or kana.
 - The item is unlocked (see [SRS levels](#srs-levels) for how long it stays unlocked).
 
 ### Answering wrong
 
-You get two tries to answer correctly, so if the first attempt was wrong because of a typo, you can fix it on the second try and avoid frustration. There is also a "don't know" button, which fails immediately.
+You get two tries to answer correctly, so if the first attempt was wrong because of a typo, you can fix it on the second try and avoid frustration. Items are removed and the level drops only once, after both tries have failed. At level 0 there is no punishment, so the two tries do not matter there. There is also a "don't know" button, which fails immediately.
 
 Failing removes some of the item and puts a ban on it (see [The punishment system](#the-punishment-system)). The correct answer is displayed after the items have been deleted.
 
@@ -69,6 +69,7 @@ A lock only blocks the next interaction, so items already in use are not affecte
 
 - Worn armor keeps protecting until it is taken off.
 - Items in a furnace stay there until taken out.
+- A held tool or weapon does not count as in use, so if it gets locked, the next swing opens the menu.
 - Placed blocks are not affected, but breaking them gives the item in its current SRS state.
 
 ## How items are displayed
@@ -105,7 +106,7 @@ The levels and the time until an item is locked again are shown below. Both the 
 In the lesson menu at level 0, there are two extra buttons:
 
 - **Already known** is for items the player knows from before. It unlocks the item forever.
-- **Ignore** is for items the player is not interested in, like andesite. Ignored items are dropped from the inventory, and can not be picked up, taken out of containers or crafted.
+- **Ignore** is for items the player is not interested in, like andesite. Ignored items are dropped on the ground from the inventory, not deleted, and can not be picked up, taken out of containers or crafted.
 
 These buttons are only available at level 0, so they can not be used to avoid the punishment.
 
@@ -115,15 +116,15 @@ A word list screen, opened with a key bind, shows all known and ignored items an
 
 ### How much is removed
 
-When a player answers wrong, half of the quizzed item in the current view is removed.
+When a player answers wrong, part of the quizzed item in the current view is removed. How much depends on the item's SRS level (see [below](#the-srs-level-as-an-advantage)), and at level 1 it is half.
 
-- The current view is the inventory and any open container. So if you fail when taking an item from a chest, half of that item in the chest and inventory combined is removed.
+- The current view is the inventory and any open container. So if you fail when taking an item from a chest, the items are removed from that item in the chest and inventory combined.
 - With no menu open, only the inventory counts.
 - Items inside a closed shulker box or bundle are not counted, but an open shulker box counts as a container, like a chest.
 - The number of removed items is always rounded up.
 - Some items are never deleted when answering wrong: the dragon egg, shulker boxes and bundles.
 
-For example, if the player had 50 wooden planks in the inventory and they were locked, answering wrong two times deletes 25 of the planks.
+For example, if the player had 50 wooden planks at level 1 in the inventory and they were locked, answering wrong two times deletes 25 of the planks.
 
 ### The SRS level as an advantage
 
@@ -135,11 +136,11 @@ A suitable `percentageFactor` depends on how many levels there are and the time 
 
 When you fail on a crafted item, the items removed are the ingredients. The number is based on each ingredient's part in the recipe and the SRS level of the crafted item.
 
-For example, say the player wants to craft a diamond pickaxe and has 50 diamonds and 100 sticks in the inventory. To move the diamond pickaxe into the inventory after arranging the recipe, they have to answer the name for the pickaxe. The recipe uses 5 items in total, 3 diamonds and 2 sticks. If they fail at level 1, 3/5 of 50% of the diamonds and 2/5 of 50% of the sticks are removed, which is 15 diamonds and 20 sticks.
+For example, say the player wants to craft a diamond pickaxe, which they have unlocked before and is now at level 1 and locked. They have 50 diamonds and 100 sticks in the inventory. To move the diamond pickaxe into the inventory after arranging the recipe, they have to answer the name for the pickaxe. The recipe uses 5 items in total, 3 diamonds and 2 sticks. If they fail at level 1, 3/5 of 50% of the diamonds and 2/5 of 50% of the sticks are removed, which is 15 diamonds and 20 sticks.
 
 ### Bans
 
-Answering wrong also puts a ban on the item, meaning it cannot be unlocked for use for 5 minutes. You have to wait until the ban is over before you can open the menu to unlock the item again.
+Every failed review from level 1 and up also puts a ban on the item, meaning it cannot be unlocked for use for 5 minutes. You have to wait until the ban is over before you can open the menu to unlock the item again.
 
 The ban is there to stop a non-legit way of playing. Here is the scenario. The player wants to craft a diamond pickaxe, but doesn't remember the word for diamond. Lucky for them, they already put 49 of their diamonds in one chest and 1 in another chest. They walk up to the second chest, take the one diamond, answer wrong, and it is deleted. Now they know the answer. They then walk up to the first chest with 49 diamonds, answer correctly and craft the pickaxe. This way they only lose 1 diamond instead of 25.
 
