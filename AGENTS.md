@@ -11,6 +11,7 @@ Oboecraft is a Minecraft mod for learning Japanese. It uses a spaced repetition 
 ## Git and pull requests
 
 - Never push, force-push, or commit to `main`. Always work on a branch.
+- GitHub doesn't enforce these rules, since `main` has no branch protection. Follow them even when a command would succeed.
 - Every change goes in as a pull request. Agents open PRs but never merge them.
 - Branch names use a type prefix and a short kebab-case name: `feat/`, `fix/`, `docs/`, `refactor/` or `chore/`. If the work is based on an issue, put the issue number right after the prefix, like `feat/12-srs-levels`.
 - Commit messages have a short subject in the imperative mood, like "Add lock timer to items". No Conventional Commit prefixes (`feat:` and so on).
@@ -31,6 +32,7 @@ The code follows clean architecture, with a `core` module and a `fabric` adapter
 - Core logic comes with unit tests in the same PR.
 - Bug fixes come with a test that fails before the fix and passes after.
 - All tests pass before a PR is opened.
+- After opening a PR, check its CI status with `gh pr checks` and fix any failing check. A PR with failing checks is not ready for review.
 - Never delete or weaken a test just to make it pass. If a test is wrong, explain the change in the PR.
 
 ## Docs
