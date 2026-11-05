@@ -7,7 +7,7 @@ A Minecraft mod for learning Japanese, using spaced repetition on the items in t
 ### Items
 
 **Item**:
-Anything in Minecraft with its own Japanese name, like oak log or potion of healing. Each item has its own SRS state per player.
+Anything in Minecraft with its own Japanese name, like oak log or potion of healing. Variants with the same name, such as normal, damaged and enchanted diamond swords, share one SRS state per player.
 _Avoid_: item type, word, card
 
 **Stack**:
@@ -29,7 +29,7 @@ The state of an item where the player can interact with it freely.
 _Avoid_: open, free, available
 
 **Interaction**:
-Any action where an item does something, like placing, eating, equipping, or moving it into or out of a container. Moving it within the inventory is not an interaction.
+An action involving an item, such as placing, eating, equipping, crafting, or picking it up from an inventory or container slot, including movement within the inventory. Picking it up from the ground is not an interaction.
 _Avoid_: use, action
 
 **In use**:
@@ -47,12 +47,16 @@ A review that ends with a correct answer.
 _Avoid_: success, correct review
 
 **Fail**:
-A review that ends without a correct answer, after both attempts are wrong or the player chooses don't know.
+A review that ends without a correct answer, after wrong answers exhaust its available attempts or the player chooses don't know.
 _Avoid_: miss, wrong answer, failed review
 
 **Attempt**:
-One submitted answer in a review. A review has up to two attempts.
+One submitted answer in a review. Two attempts are available initially and after an attempt reset.
 _Avoid_: try, guess
+
+**Attempt reset**:
+Restoration of both attempts after five minutes for a review that has not failed.
+_Avoid_: retry cooldown, ban reset
 
 **Don't know**:
 The action that gives up a review and makes it a fail right away.

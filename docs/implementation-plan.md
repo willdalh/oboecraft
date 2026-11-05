@@ -1,6 +1,6 @@
 # Implementation plan
 
-This plan describes how Oboecraft is built: the decisions behind the code and the order of work. [`idea.md`](idea.md) describes what the mod should do. The decisions below are settled.
+This plan describes how Oboecraft is built: the decisions behind the code and the order of work. The [confirmed gameplay rules](design/README.md) record later decisions, including inventory movement, crafting and attempt resets; they replace conflicting rules in the frozen [`idea.md`](idea.md). The decisions below are settled.
 
 The plan is a living document. Each milestone's status is updated as its PRs merge.
 
@@ -11,6 +11,7 @@ The plan is a living document. Each milestone's status is updated as its PRs mer
 See [ADR: Fabric, Java 25 and only the latest Minecraft version](decisions/20261105-stack.md).
 
 - Mod loader: Fabric.
+- Edition and version policy: Minecraft: Java Edition, targeting the newest stable release supported by the selected mod loader.
 - Minecraft version: only the latest, 26.3 (released 2026-09-15). The mod moves to each new version once Fabric supports it. 26.4 is due in Q4 2026.
 - Language: Java 25, which Minecraft 26.3 needs.
 - Since 26.1, Minecraft ships unobfuscated, and Fabric uses Mojang's names only. The build uses Fabric Loom's non-remapping plugin `net.fabricmc.fabric-loom` (Loom 1.15 or newer, Gradle 9.4 or newer). Dependencies use `implementation`, not `modImplementation`, and the mod is built with `jar`, not `remapJar`.
@@ -25,8 +26,8 @@ See the [architecture overview](architecture/overview.md) for the details.
 
 ### Server and client
 
-- The mod is installed on both the server and the client. Singleplayer runs on Minecraft's built-in server, so it uses the same code.
-- The server decides everything that matters: SRS states, answer checking, levels, removing and bans.
+- The mod is installed on both the server and the client. Support dedicated servers and worlds hosted by a friend, including Open to LAN. Singleplayer runs on Minecraft's built-in server, so it uses the same code.
+- The server decides everything that matters: SRS states, answer checking, attempts and their reset, levels, removing and bans.
 - The client only displays: the answer menu, "???" names, timer bars, slot markers and the spoken reading.
 - The server sends each player their SRS states and pushes updates when they change.
 - Locks are checked on both sides. The client checks first and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
@@ -43,6 +44,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 
 - The repository is [willdalh/oboecraft](https://github.com/willdalh/oboecraft) on GitHub.
 - Core rules get plain unit tests. The `fabric` module uses Fabric game tests where they pay off.
+- Build playable versions when player feedback can resolve uncertain gameplay. Use those sessions to check the [gameplay examples](design/README.md#examples-for-early-playtesting) and adjust the design before adding more features.
 - GitHub Actions runs on every PR: the build, the core tests and the Fabric game tests on a headless server. A PR with a failing check isn't merged. CI is set up in milestone 2.
 - `./gradlew runClient` starts the game with the mod, and `./gradlew runServer` starts a local dedicated server. Both commands are added to AGENTS.md in milestone 2.
 - The build uses the Gradle wrapper and a Java 25 Gradle toolchain, so Gradle and Java 25 are downloaded automatically, whatever Java version is installed.
@@ -58,6 +60,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 ### Items
 
 - One item is one Japanese name. Each potion effect is its own item (治癒のポーション, 暗視のポーション), and the same goes for splash and lingering potions and tipped arrows, around 150 names in total. Healing I and II share a name, so they share an SRS state.
+- Normal, damaged and enchanted diamond swords share one SRS state per player; damage and enchantments do not create separate items for learning.
 - Enchanted books, music discs, goat horns and fireworks are one item each, since their name is the same for every variant.
 - Items not in the name list are never locked. This covers other mods' items and new vanilla items until the name list is updated. They work normally, show their normal name and have no SRS state.
 
@@ -132,7 +135,7 @@ Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-
 
 **Status:** not started
 
-Punch a tree → get a locked oak log → try to place it → the answer menu opens → answer correctly → the oak log is unlocked and can be placed → it locks again after 10 minutes. Progress is saved, and the loop works on a dedicated server. A hand-written name list of about 10 items and simple answer checking (exact kana or kanji).
+Punch a tree → pick up a locked oak log from the ground without a review → try to place it → the answer menu opens → answer correctly → repeat the placing action → the oak log is placed → it locks again after 10 minutes. Progress is saved, and the loop works on a dedicated server and in a world hosted by a friend. A hand-written name list of about 10 items and simple answer checking (exact kana or kanji). Use this playable version for early feedback.
 
 PRs:
 
@@ -158,7 +161,7 @@ A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with 
 
 **Status:** not started
 
-Several PRs: crafting; chests and other containers; using, eating, attacking and mining; fuel and trades; the drop setting.
+Several PRs: inventory and container slot pickup before dragging; crafting ingredient movement and a separate review for a locked result; using, eating, attacking and mining; fuel and trades; the drop setting. Ground pickup stays free of reviews. A pass unlocks the item, and the player repeats the interrupted action. Follow the [confirmed gameplay rules](design/README.md).
 
 ### 7. Display
 
@@ -176,7 +179,7 @@ Lessons at level 0 (show the answer, no punishment), the Already known and Ignor
 
 **Status:** not started
 
-Several PRs: the removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
+Several PRs: the removal math in core, removing from the current view (including both inventory and open chest), removing crafting ingredients, protected items, demotion, and bans. Add the two-attempt rule and the five-minute attempt reset for reviews that have not failed; verify that the reset never undoes a fail.
 
 ### 10. Voice and notification
 

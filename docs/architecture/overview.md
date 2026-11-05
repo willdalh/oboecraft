@@ -25,20 +25,22 @@ For example, on a fail when crafting a diamond pickaxe at level 1, `fabric` coun
 
 ## Server and client
 
-The mod is installed on both the server and the client. Singleplayer runs on Minecraft's built-in server, so it uses the same code as a dedicated server.
+The mod targets Minecraft: Java Edition and is installed on both the server and the client. Support includes dedicated servers and worlds hosted by a friend, including Open to LAN. Singleplayer runs on Minecraft's built-in server, so it uses the same code as a dedicated server.
 
-- **The server decides everything that matters:** SRS states, answer checking, levels, punishment and bans.
+- **The server decides everything that matters:** SRS states, answer checking, attempts and their reset, levels, punishment and bans.
 - **The client only displays:** the answer menu, "???" names, timer bars, slot markers and the spoken reading.
 
 The server sends each player their SRS states when they join and pushes updates when they change.
 
 Locks are checked on both sides. The client checks first, since it knows the SRS states, and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
 
+For inventory and container slots, the lock check happens before picking up the stack or starting a drag. Ground pickup does not trigger a review. A pass unlocks the item but does not automatically repeat the interrupted action. Crafting ingredients and a locked result have separate review triggers. See the [confirmed gameplay rules](../design/README.md).
+
 Answers are checked on the server. The client sends the typed text, and the server replies with a pass or fail. The Japanese name is only sent to the client when it is needed: in lessons and after a fail.
 
 ## Time
 
-Intervals and bans run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. No timers need to run.
+Intervals, bans and the five-minute attempt reset run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. Time checks use timestamps rather than running timers. Attempts reset only for reviews that have not failed.
 
 ## Testing
 
