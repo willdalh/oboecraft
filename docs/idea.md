@@ -1,6 +1,6 @@
 # Oboecraft idea
 
-I want to create a Minecraft mod for learning Japanese. The core idea is a spaced repetition system (SRS) for the items in the game.
+Oboecraft is a Minecraft mod for learning Japanese. The core idea is a spaced repetition system (SRS) for the items in the game.
 
 The mod is made for playing with the game language set to Japanese.
 
