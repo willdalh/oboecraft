@@ -146,9 +146,11 @@ Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't
 
 ## The notification
 
-`client.display.PassNotification` holds the Japanese name the notification shows and how many client ticks it has left. `ClientReviews` calls `show` with the name from `ReviewAnswered` after a pass, which replaces any name already shown. `ClientDisplayHooks` registers it as a HUD element with Fabric's `HudElementRegistry`, before the chat, and counts it down in Fabric's `ClientTickEvents.END_CLIENT_TICK`. The name is drawn with `GuiGraphicsExtractor.centeredText` at twice the normal scale, and its alpha comes from the ticks left and the frame's partial tick, so the fade is smooth. Disconnecting clears it. See [Display](../design/display.md#notification) for the visual rules.
+`client.display.PassNotification` holds the Japanese name the notification shows and when it was shown, from Minecraft's monotonic `Util.getMillis`. `ClientReviews` calls `show` with the name from `ReviewAnswered` after a pass, before it looks for the review's answer menu, and a new name replaces the old one. Core `NotificationTiming` says when it is over and how opaque it is, so the timing doesn't depend on client ticks.
 
-`AnswerMenuClientGameTest` checks that a pass shows オークの原木 in the notification, takes a screenshot of it, and checks that it is gone after its 3 seconds.
+`GuiMixin` draws it in `Gui.extractRenderState`, after the screen and before the saving indicator, the toasts and the debug overlay, so it is on top of a menu's screen. It is skipped while `Hud.isHidden()` or an `AnswerScreen` is open. The name is drawn with `GuiGraphicsExtractor.text`, scaled to twice the normal size or less so it fits the GUI width with a margin. Its top is below the boss bars: `BossHealthOverlayAccessor` gives the number of bars, and the layout follows vanilla's, 19 GUI pixels per bar from y 12 until a third of the screen's height. Disconnecting clears it. See [Display](../design/display.md#notification) for the visual rules.
+
+`NotificationTimingTest` checks the timing. `AnswerMenuClientGameTest` checks that a pass with a boss bar shown puts オークの原木 in the notification, that its white text is in the screenshot, and that it is gone again. `MenuClientGameTest` passes a review from the inventory and checks that the text is drawn at full brightness over the inventory screen.
 
 ## Networking
 

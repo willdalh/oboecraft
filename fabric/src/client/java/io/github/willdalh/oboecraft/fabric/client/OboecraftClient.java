@@ -32,7 +32,7 @@ public final class OboecraftClient implements ClientModInitializer {
         registerReceivers();
         ReviewKeys.register();
         ClientLockHooks.register(reviews);
-        ClientDisplayHooks.register(notification);
+        ClientDisplayHooks.register();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             progress.clear();
             notification.clear();
@@ -45,7 +45,7 @@ public final class OboecraftClient implements ClientModInitializer {
         return progress;
     }
 
-    /** The notification after a pass. Client game tests read it. */
+    /** The notification after a pass, which the GUI draws and client game tests read. */
     public static PassNotification notification() {
         return notification;
     }

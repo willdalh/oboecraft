@@ -157,6 +157,10 @@ public final class ClientReviews {
      * fail, the menu stays open and shows the Japanese name and reading, until the player closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
+        // The server passed the item even if the player closed the menu before the reply came, so the name is shown.
+        if (outcome == ReviewOutcome.PASS) {
+            answer.ifPresent(shown -> notification.show(shown.japaneseName()));
+        }
         AnswerScreen screen = answerScreen(reviewId);
         if (screen == null) {
             return;
@@ -165,10 +169,7 @@ public final class ClientReviews {
             case LESSON -> answer.ifPresent(screen::showAnswer);
             case WRONG -> screen.answeredWrong();
             case FAIL -> answer.ifPresent(screen::failed);
-            case PASS -> {
-                screen.end();
-                answer.ifPresent(shown -> notification.show(shown.japaneseName()));
-            }
+            case PASS -> screen.end();
         }
     }
 

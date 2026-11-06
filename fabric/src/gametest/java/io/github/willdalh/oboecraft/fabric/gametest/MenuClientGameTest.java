@@ -50,8 +50,12 @@ public class MenuClientGameTest implements FabricClientGameTest {
         }
     }
 
+    /**
+     * Right-clicking a locked stack in the inventory reviews it without splitting it. After the pass, the answer menu
+     * goes back to the inventory, and the notification is drawn over the inventory's dark background, not under it.
+     */
     private static void reviewingFromTheInventory(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
-        singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, new ItemStack(Items.OAK_LOG, 4)));
+        singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, new ItemStack(Items.DIRT, 4)));
         singleplayer.getConnection().waitForClientboundPackets();
         context.runOnClient(client -> client.gui.setScreen(new InventoryScreen(client.player)));
         click(context, InventoryMenu.USE_ROW_SLOT_START, SECONDARY, ContainerInput.PICKUP);
@@ -63,10 +67,14 @@ public class MenuClientGameTest implements FabricClientGameTest {
                 InputConstants.KEY_F9, 0, 0)));
         context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
         context.takeScreenshot("lesson-answer");
-        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.getInput().typeChars("つち");
+        context.getInput().pressKey(InputConstants.KEY_RETURN);
         context.waitForScreen(InventoryScreen.class);
+        context.waitFor(client -> OboecraftClient.notification().shown().isPresent());
+        NotificationPixels.assertShown(context, "pass-notification-over-inventory");
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
+        context.waitFor(client -> OboecraftClient.notification().shown().isEmpty());
         singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, ItemStack.EMPTY));
         singleplayer.getConnection().waitForClientboundPackets();
     }

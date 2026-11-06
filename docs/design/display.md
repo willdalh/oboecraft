@@ -24,9 +24,11 @@ The marker disappears when the item locks; its name is then hidden instead. Lock
 
 ## Notification
 
-After a pass, the item's Japanese name is shown at the top of the screen, so the player sees how it is written even when they answered in kana or romaji. It is written as in the name list, with kanji where the name has kanji, like オークの原木. There is no reading, icon, box or background: only the name as white text with Minecraft's usual text shadow, centered at twice the normal text size near the top edge.
+After a pass, the item's Japanese name is shown at the top of the screen, so the player sees how it is written even when they answered in kana or romaji. It is written as in the name list, with kanji where the name has kanji, like オークの原木. There is no reading, icon, box or background: only the name as white text with Minecraft's usual text shadow, centered near the top edge at twice the normal text size. A name too wide for the screen is drawn smaller, so it always fits with a small margin. When boss bars are shown, the name goes below the last one, so boss health is never covered.
 
-The notification is shown for 3 seconds and fades out during the last second. A new pass replaces it at once. It is part of the HUD, so it is hidden with the HUD (F1) and drawn under the chat. It is cleared when the player leaves the world or server. The server sends the name with the pass, so the client never needs the name list's names to show it.
+The notification is shown for 3 seconds of real time and fades out during the last second, also while the game is paused or ticks at another rate. A new pass replaces it at once. It is drawn on top of the HUD and of any open screen, so after a review from the inventory or a container it isn't dimmed by the screen's dark background. It is hidden with the HUD (F1), and while an answer menu is open, so the next review's menu never shows the last item's name. It is cleared when the player leaves the world or server.
+
+The server sends the name with the pass, and the client shows it even if the player closed the answer menu before the reply came, since the item was passed.
 
 Only a pass shows it. After a fail, the answer menu shows the Japanese name and reading instead, see [Reviews](reviews.md#outcomes).
 

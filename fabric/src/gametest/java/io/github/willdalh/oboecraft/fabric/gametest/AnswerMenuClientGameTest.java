@@ -6,7 +6,6 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.AnswerScreen;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
-import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -82,6 +81,10 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             singleplayer.getConnection().waitForServerboundPackets();
             assertStillReviewing(context, singleplayer);
 
+            // A boss bar is shown, so the notification after the pass must be drawn below it.
+            singleplayer.getServer().runCommand("bossbar add oboecraft:test \"Boss\"");
+            singleplayer.getServer().runCommand("bossbar set oboecraft:test players @a");
+
             // The conversion is cancelled, so numpad Enter now submits the answer, which passes.
             context.runOnClient(client -> client.keyboardHandler.textEditing(client.getWindow().handle(), null));
             context.getInput().pressKey(InputConstants.KEY_NUMPADENTER);
@@ -98,12 +101,11 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             if (!notified.equals(Optional.of("オークの原木"))) {
                 throw new AssertionError("A pass should show オークの原木 in the notification, not " + notified);
             }
-            context.takeScreenshot("pass-notification");
-            context.waitTicks(PassNotification.SHOWN_TICKS);
-            if (context.computeOnClient(client -> OboecraftClient.notification().shown().isPresent())) {
-                throw new AssertionError("The notification should be gone after " + PassNotification.SHOWN_TICKS
-                        + " ticks");
-            }
+            NotificationPixels.assertShown(context, "pass-notification");
+            singleplayer.getServer().runCommand("bossbar remove oboecraft:test");
+            singleplayer.getConnection().waitForClientboundPackets();
+            context.waitFor(client -> OboecraftClient.notification().shown().isEmpty());
+            NotificationPixels.assertNotShown(context, "pass-notification-gone");
 
             // The oak log is unlocked, so it is placed.
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
