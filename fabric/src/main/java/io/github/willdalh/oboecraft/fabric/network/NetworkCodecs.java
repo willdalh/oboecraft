@@ -2,8 +2,11 @@ package io.github.willdalh.oboecraft.fabric.network;
 
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.LevelSettings;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.netty.buffer.ByteBuf;
+import java.time.Duration;
 import java.time.Instant;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -42,6 +45,25 @@ final class NetworkCodecs {
                 case 2 -> StreamCodec.unit(new SrsState.Ignored());
                 default -> throw new IllegalArgumentException("Unknown state kind " + kind);
             });
+
+    private static final StreamCodec<ByteBuf, Duration> DURATION =
+            ByteBufCodecs.VAR_LONG.map(Duration::ofMillis, Duration::toMillis);
+
+    private static final StreamCodec<ByteBuf, LevelSettings> LEVEL_SETTINGS = StreamCodec.composite(
+            DURATION, LevelSettings::interval,
+            ByteBufCodecs.VAR_INT, LevelSettings::demotion,
+            LevelSettings::new);
+
+    /**
+     * The server settings. The list is read with at most {@link Settings#MAX_LEVELS} levels, and the records check
+     * every value, so invalid settings fail to decode and disconnect the sender.
+     */
+    static final StreamCodec<ByteBuf, Settings> SETTINGS = StreamCodec.composite(
+            LEVEL_SETTINGS.apply(ByteBufCodecs.list(Settings.MAX_LEVELS)), Settings::levels,
+            DURATION, Settings::banLength,
+            ByteBufCodecs.VAR_INT, Settings::percentageFactor,
+            ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
+            Settings::new);
 
     private NetworkCodecs() {
     }

@@ -65,7 +65,7 @@ public final class WordListScreen extends Screen {
     }
 
     private boolean inGroup(SrsState state) {
-        return SrsRules.canRevert(state, OboecraftMod.settings()) && switch (group) {
+        return SrsRules.canRevert(state, OboecraftClient.progress().settings()) && switch (group) {
             case 0 -> state instanceof SrsState.Known;
             case 1 -> state instanceof SrsState.Ignored;
             default -> state instanceof SrsState.Leveled;

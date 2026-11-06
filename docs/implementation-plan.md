@@ -116,15 +116,24 @@ Decided in milestone 7, see [Display](design/display.md):
 - Hidden names replace displayed tooltip titles, nested names in container and bundle previews, and the selected-item label above the hotbar. Other tooltip details and names elsewhere, including search indexes, stay as Minecraft shows them.
 - The hover bar shows the remaining fraction of the current level's interval, with a translated time label rounded up to seconds and limited to the two largest nonzero units. Mastered items have no timer.
 - Close to locking means the final 10% of the interval, including the boundary. The bar turns amber and a small amber marker appears at the top left of slots, including the hotbar. Both disappear at expiry, when the name becomes hidden.
-- Displays use the current connection's synced progress and estimated server time, with the same game-mode and connection guards as interactions. Displays and interactions read settings from the same `Locks` instance, which milestone 12 supplies with synced settings.
+- Displays use the current connection's synced progress and estimated server time, with the same game-mode and connection guards as interactions. Displays and interactions read the settings from the same `ProgressView`.
 
 ### Settings
 
-See [Settings](design/settings.md).
+See [Settings](design/settings.md) and [Settings files](architecture/settings-files.md).
 
-- Server settings are one immutable core `Settings` value, with the defaults in `Settings.DEFAULTS`. Core rules take it as a parameter. Until milestone 12, the defaults are the only values.
+- Server settings are one immutable core `Settings` value, with the defaults in `Settings.DEFAULTS`. Core rules take it as a parameter.
 - The levels setting is a list with an interval and a demotion per level, so the number of levels can change. The top level is one more than the list's length.
-- The client's lock check needs the server settings, so milestone 12 sends them to players. Client settings, like clickable buttons, live in `fabric`.
+- Client settings, like clickable buttons, live in `fabric`.
+
+Decided in milestone 12:
+
+- The server settings are in `config/oboecraft/server.json`, so in singleplayer every world uses the same settings, like the singleplayer progress. A dedicated server reads them when it starts. Every field must be in the file, and durations are written like `10m` or `1h 30m`.
+- A missing file is written with the defaults. An invalid file is logged and left untouched, and the defaults are used.
+- Settings have upper limits, so values from a file or the network can't overflow the rules: at most 100 levels, demotions up to 100, durations up to 1,000,000 days and `percentageFactor` up to 100.
+- The server sends its settings in `ProgressSync`, with the player's progress, and sends it again to every player when they change. Each side's `ProgressView` has the settings it uses, so the lock check, displays and reviews on both sides read the same value. The network protocol went to 5.
+- The settings screen edits this computer's server settings file and the client settings. Saved server settings apply at once to a running singleplayer world or world opened to LAN. On another server, it shows that server's settings without letting them change. Mod Menu opens it. Without Mod Menu, the files are edited by hand.
+- The Don't know button works with text in the typing bar, since only the key needs to tell a typo apart.
 
 ### Answer checking
 
@@ -365,7 +374,13 @@ Creative mode (no locks, SRS state kept), and anvil renaming removed for everyth
 
 ### 12. Settings
 
-**Status:** not started
+**Status:** done
+
+Built: the server settings file, read when the server starts, with `SettingsJson` in the `json` module and `DurationText` in the core; the server settings sent with `ProgressSync` and used through each side's `ProgressView`; the client settings file with clickable buttons; the answer menu's buttons; the settings screen, which Mod Menu opens as an optional dependency; and limits on every setting. Core and json unit tests cover the formats and limits, game tests cover the settings file and settings other than the defaults on the server, and a client game test saves settings through the screen in singleplayer and uses the answer menu's buttons.
+
+Where it differs from the plan: the settings travel inside `ProgressSync`, not a payload of their own, so the client never has progress without settings. `OboecraftMod.settings()` and the settings held by `Locks`, `ServerReviews` and `ClientReviews` are gone. A dedicated server only reads its file when it starts, and has no command to read it again.
+
+What later milestones should know: the release needs no settings work. Mod Menu 21.0.0 is only a compile-time dependency from `maven.terraformersmc.com`, and the jar doesn't include it. Game tests can now change the server's settings with `ServerProgress.useSettings`, and put the defaults back before the test ends. A dedicated server over the network, with settings sent to a real remote client, hasn't been run.
 
 Server settings JSON synced to players, the client setting for clickable buttons, and the optional Mod Menu screen.
 

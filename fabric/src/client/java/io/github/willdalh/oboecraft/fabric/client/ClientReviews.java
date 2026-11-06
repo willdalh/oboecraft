@@ -5,7 +5,6 @@ import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
@@ -39,16 +38,13 @@ public final class ClientReviews {
     private final ItemMapping itemMapping;
     private final Locks locks;
     private final ClientProgress progress;
-    private final Settings settings;
     private final PassNotification notification;
     private int lastReviewId;
 
-    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, Settings settings,
-            PassNotification notification) {
+    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, PassNotification notification) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
-        this.settings = Objects.requireNonNull(settings, "settings");
         this.notification = Objects.requireNonNull(notification, "notification");
     }
 
@@ -82,7 +78,7 @@ public final class ClientReviews {
         if (clicked.container != player.getInventory() || !player.containerMenu.getCarried().isEmpty()) return false;
         var entry = itemMapping.entryOf(clicked.getItem());
         if (entry.isEmpty()) return false;
-        switch (ReviewRules.start(progress.state(player, entry.get().id()), progress.now(), settings)) {
+        switch (ReviewRules.start(progress.state(player, entry.get().id()), progress.now(), progress.settings())) {
             case ReviewStart.Started started -> openAnswerMenu(player,
                     new StackLocation.MenuSlot(player.containerMenu.containerId, slot), entry.get(), clicked.getItem());
             case ReviewStart.Banned banned -> showBan(player, entry.get().id());
@@ -129,7 +125,7 @@ public final class ClientReviews {
         // The level and attempts the server will start the review with, by the client's own state, until the server
         // says. The server's stop wins over the client's state, so the menu opens whatever the client thinks.
         ReviewStart.Started expected =
-                ReviewRules.start(progress.state(player, entry.id()), progress.now(), settings)
+                ReviewRules.start(progress.state(player, entry.id()), progress.now(), progress.settings())
                         instanceof ReviewStart.Started started ? started : new ReviewStart.Started(0, ReviewRules.ATTEMPTS);
         int reviewId = ++lastReviewId;
         minecraft.gui.setScreen(new AnswerScreen(reviewId, entry.id(), stack.copy(), expected, menuScreen));

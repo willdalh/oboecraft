@@ -7,10 +7,11 @@ More detail on each part:
 - [Core](core.md): the packages and types of the game rules.
 - [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu, item displays, the notification and networking.
 - [Progress files](progress-files.md): where progress is saved and the file format.
+- [Settings files](settings-files.md): where the server and client settings are saved and their formats.
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, and milestone 11 the game mode and anvil rules.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, and milestone 12 the settings files, sync and screen.
 
 ## Core and adapters
 
@@ -23,7 +24,7 @@ The mod id is `oboecraft`. The code is split into four Gradle modules:
 | Module | Package | Contents |
 |---|---|---|
 | `core` | `io.github.willdalh.oboecraft.core` | The game rules: levels and intervals, when an item is locked, answer checking, punishment and the name list. Plain Java with no Minecraft or Fabric imports. |
-| `json` | `io.github.willdalh.oboecraft.json` | File formats in JSON that the mod and its tools share, so far the [name list file](name-list-file.md) (`NameListJson`). Plain Java and Gson, with no Minecraft or Fabric. Depends on `core`. It only compiles against Gson, so the mod uses the copy Minecraft ships, at the same version. |
+| `json` | `io.github.willdalh.oboecraft.json` | File formats in JSON that the mod and its tools share, the [name list file](name-list-file.md) (`NameListJson`) and the [server settings file](settings-files.md) (`SettingsJson`). Plain Java and Gson, with no Minecraft or Fabric. Depends on `core`. It only compiles against Gson, so the mod uses the copy Minecraft ships, at the same version. |
 | `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core` and `json`. |
 | `tools` | `io.github.willdalh.oboecraft.tools` | Tools run by hand to make the mod's data, like the [name list tool](name-list-tool.md). Depends on `core` and `json`, and isn't part of the mod. |
 
