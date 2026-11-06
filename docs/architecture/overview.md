@@ -87,7 +87,7 @@ For example, on a fail when crafting a diamond pickaxe at level 1, `fabric` coun
 The mod is installed on both the server and the client. Singleplayer runs on Minecraft's built-in server, so it uses the same code as a dedicated server.
 
 - **The server decides everything that matters:** SRS states, answer checking, levels, punishment and bans.
-- **The client only displays:** the answer menu, "???" names, timer bars, slot markers and the spoken reading.
+- **The client only displays:** the answer menu, "???" names, timer bars and slot markers.
 
 The server sends each player their SRS states when they join and pushes updates when they change.
 
