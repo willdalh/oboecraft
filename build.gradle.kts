@@ -4,7 +4,6 @@ plugins {
 
 allprojects {
     group = "io.github.willdalh"
-    version = "0.1.0"
 }
 
 subprojects {
