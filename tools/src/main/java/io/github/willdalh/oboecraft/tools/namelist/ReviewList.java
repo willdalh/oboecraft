@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,12 +19,19 @@ final class ReviewList {
     private ReviewList() {
     }
 
-    static void write(Path file, NameListGenerator.Result result, String sources) throws IOException {
+    /**
+     * @param keyNotes notes about the keys that were collected, which come before the notes about the entries
+     * @param sources  where the names and readings came from, like the Minecraft and dictionary versions
+     */
+    static void write(Path file, NameListGenerator.Result result, List<String> keyNotes, String sources)
+            throws IOException {
         Files.createDirectories(file.toAbsolutePath().getParent());
-        Files.writeString(file, format(result, sources), StandardCharsets.UTF_8);
+        Files.writeString(file, format(result, keyNotes, sources), StandardCharsets.UTF_8);
     }
 
-    static String format(NameListGenerator.Result result, String sources) {
+    static String format(NameListGenerator.Result result, List<String> keyNotes, String sources) {
+        List<String> notes = new ArrayList<>(keyNotes);
+        notes.addAll(result.notes());
         List<NameListGenerator.GeneratedEntry> toCheck = result.generated().stream()
                 .filter(entry -> !entry.notes().isEmpty())
                 .toList();
@@ -34,9 +42,9 @@ final class ReviewList {
                 .append(" were generated and need review. ").append(toCheck.size())
                 .append(" of them have words to check closely.\n");
 
-        if (!result.notes().isEmpty()) {
+        if (!notes.isEmpty()) {
             text.append("\n## Notes\n\n");
-            result.notes().forEach(note -> text.append("- ").append(note).append('\n'));
+            notes.forEach(note -> text.append("- ").append(note).append('\n'));
         }
 
         text.append("\n## Words to check closely\n");

@@ -14,8 +14,9 @@ loom {
         register("oboecraft") {
             sourceSet(sourceSets.main.get())
             sourceSet(sourceSets.getByName("client"))
-            // core is shipped inside the mod jar, so in dev it belongs to the same mod.
+            // core and json are shipped inside the mod jar, so in dev they belong to the same mod.
             sourceSet("main", ":core")
+            sourceSet("main", ":json")
         }
     }
 }
@@ -54,6 +55,8 @@ dependencies {
 
     implementation(project(":core"))
     bundled(project(":core"))
+    implementation(project(":json"))
+    bundled(project(":json"))
 }
 
 tasks.withType<ProcessResources>().configureEach {
@@ -70,7 +73,7 @@ tasks.withType<ProcessResources>().configureEach {
 }
 
 tasks.jar {
-    // Ship core's classes inside the mod jar, so the mod is one plain jar.
+    // Ship the classes of core and json inside the mod jar, so the mod is one plain jar.
     val archives = objects.newInstance<ArchiveServices>().archives
     from(bundled.elements.map { jars -> jars.map { archives.zipTree(it.asFile) } }) {
         exclude("META-INF/MANIFEST.MF")

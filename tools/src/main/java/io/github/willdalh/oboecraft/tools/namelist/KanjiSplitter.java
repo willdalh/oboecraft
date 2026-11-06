@@ -189,11 +189,7 @@ final class KanjiSplitter {
     }
 
     private static boolean canStartAPart(String reading, int position) {
-        if (position >= reading.length()) {
-            return false;
-        }
-        char first = reading.charAt(position);
-        return !JapaneseText.isSmallKana(first) && first != JapaneseText.LONG_VOWEL_MARK && first != 'ん';
+        return position < reading.length() && JapaneseText.canStartAPart(reading.charAt(position));
     }
 
     /**

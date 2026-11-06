@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.tools.namelist;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -106,6 +107,52 @@ class NameListGeneratorTest {
         assertEquals(List.of("ネコのレコード"), guessed);
         assertEquals("Split from item.minecraft.music_disc_13 (レコード), so it is a new item",
                 result.generated().getFirst().notes().getFirst());
+    }
+
+    @Test
+    void aKeyWhoseNameDidntChangeKeepsItsPartsWhenTheOtherKeysSplitOff() {
+        JapaneseName reviewed = new JapaneseName(List.of(NamePart.kana("レコード")));
+        NameListEntry discs = entry("item.minecraft.music_disc_13",
+                List.of("item.minecraft.music_disc_13", "item.minecraft.music_disc_cat"), reviewed);
+
+        NameListGenerator.Result result = NameListGenerator.generate(
+                List.of(key("item.minecraft.music_disc_13", "minecraft:music_disc_13"),
+                        key("item.minecraft.music_disc_cat", "minecraft:music_disc_cat")),
+                japanese("item.minecraft.music_disc_13", "サーティーンのレコード", "item.minecraft.music_disc_cat", "レコード"),
+                List.of(discs), guesser);
+
+        NameListEntry cat = result.entries().get(1);
+        assertEquals(new ItemId("item.minecraft.music_disc_cat"), cat.id());
+        assertSame(reviewed, cat.japaneseName());
+        assertEquals(List.of("サーティーンのレコード"), guessed);
+        assertTrue(result.notes().getFirst().contains("Split from item.minecraft.music_disc_13"));
+    }
+
+    @Test
+    void aDroppedIdKeyThatComesBackIsANewItemAndTheEntryKeepsItsId() {
+        // The entry's id key was dropped by Minecraft, so only its other key is left.
+        NameListEntry stew = entry("item.minecraft.a", List.of("item.minecraft.b"),
+                new JapaneseName(List.of(NamePart.kana("シチュー"))));
+
+        NameListGenerator.Result result = NameListGenerator.generate(
+                List.of(key("item.minecraft.a", "minecraft:a"), key("item.minecraft.c", "minecraft:a"),
+                        key("item.minecraft.b", "minecraft:b")),
+                japanese("item.minecraft.a", "スープ", "item.minecraft.c", "スープ", "item.minecraft.b", "シチュー"),
+                List.of(stew), guesser);
+
+        assertEquals(List.of(new ItemId("item.minecraft.c"), new ItemId("item.minecraft.a")),
+                result.entries().stream().map(NameListEntry::id).toList());
+        assertEquals(List.of("item.minecraft.b"), result.entries().get(1).translationKeys());
+    }
+
+    @Test
+    void aNewItemWhoseOnlyKeyIsAnotherItemsIdIsRefused() {
+        NameListEntry stew = entry("item.minecraft.a", List.of("item.minecraft.b"),
+                new JapaneseName(List.of(NamePart.kana("シチュー"))));
+
+        assertThrows(IllegalStateException.class, () -> NameListGenerator.generate(
+                List.of(key("item.minecraft.a", "minecraft:a"), key("item.minecraft.b", "minecraft:b")),
+                japanese("item.minecraft.a", "スープ", "item.minecraft.b", "シチュー"), List.of(stew), guesser));
     }
 
     @Test

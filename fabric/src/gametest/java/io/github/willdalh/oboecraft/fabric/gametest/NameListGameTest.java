@@ -1,13 +1,14 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
-import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameList;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.item.NamePart;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
-import io.github.willdalh.oboecraft.fabric.item.NameListFile;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,8 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.raid.Raid;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
@@ -27,6 +30,7 @@ import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.component.LodestoneTracker;
 import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 /** The name list that ships with the mod, as the server loaded it from its file. */
 public class NameListGameTest {
@@ -94,6 +98,52 @@ public class NameListGameTest {
         helper.succeed();
     }
 
+    /**
+     * Every item name that the game's loot tables give stacks, like the maps found in abandoned camps, is in the name
+     * list. The loot tables are encoded back to JSON and searched for the loot function that sets an item name, the
+     * same way the name list tool searches the data in the server jar.
+     */
+    @GameTest
+    public void everyItemNameALootTableGivesIsInTheNameList(GameTestHelper helper) {
+        MinecraftServer server = helper.getLevel().getServer();
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, server.registryAccess());
+        List<String> keys = new ArrayList<>();
+        server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).listElements().forEach(table ->
+                LootTable.DIRECT_CODEC.encodeStart(ops, table.value())
+                        .ifSuccess(json -> collectItemNameKeys(json, keys))
+                        .ifError(error -> helper.fail("couldn't encode " + table.key() + ": " + error.message())));
+
+        ItemMapping mapping = OboecraftMod.itemMapping();
+        List<String> missing = keys.stream()
+                .distinct()
+                .filter(key -> mapping.nameList().byTranslationKey(key).isEmpty())
+                .toList();
+        helper.assertTrue(keys.contains("filled_map.swamp_camp_map"), "the loot tables name the swamp camp map");
+        helper.assertTrue(missing.isEmpty(), "every item name in the loot tables is in the name list, but these "
+                + "aren't: " + missing);
+        helper.succeed();
+    }
+
+    /** Collects the keys of the loot functions that set a stack's item name. */
+    private static void collectItemNameKeys(JsonElement json, List<String> keys) {
+        if (json.isJsonArray()) {
+            json.getAsJsonArray().forEach(element -> collectItemNameKeys(element, keys));
+        } else if (json.isJsonObject()) {
+            JsonObject object = json.getAsJsonObject();
+            boolean setName = isString(object.get("type"), "minecraft:set_name")
+                    || isString(object.get("function"), "minecraft:set_name");
+            if (setName && isString(object.get("target"), "item_name")
+                    && object.get("name") instanceof JsonObject name && name.has("translate")) {
+                keys.add(name.get("translate").getAsString());
+            }
+            object.entrySet().forEach(entry -> collectItemNameKeys(entry.getValue(), keys));
+        }
+    }
+
+    private static boolean isString(JsonElement json, String value) {
+        return json != null && json.isJsonPrimitive() && json.getAsString().equals(value);
+    }
+
     @GameTest
     public void keysWithTheSameJapaneseNameAreOneItem(GameTestHelper helper) {
         ItemMapping mapping = OboecraftMod.itemMapping();
@@ -111,46 +161,6 @@ public class NameListGameTest {
 
         helper.assertValueEqual(OboecraftMod.itemMapping().entryOf(namedHead).map(NameListEntry::id),
                 Optional.of(new ItemId("block.minecraft.player_head")), "the item of a named player head");
-        helper.succeed();
-    }
-
-    /**
-     * Parses a name list that should be refused, and checks that the error says which entry is wrong. The JSON is
-     * written with single quotes, so it reads more easily here.
-     */
-    private static void assertRefusedNaming(GameTestHelper helper, String json, String expectedInMessage) {
-        String nameList = json.replace('\'', '"');
-        try {
-            NameListFile.parse(JsonParser.parseString(nameList));
-        } catch (IllegalArgumentException e) {
-            helper.assertTrue(e.getMessage().contains(expectedInMessage),
-                    "the error \"" + e.getMessage() + "\" names " + expectedInMessage);
-            return;
-        }
-        helper.fail("the name list " + nameList + " was accepted");
-    }
-
-    @GameTest
-    public void anInvalidEntryIsRefusedWithItsId(GameTestHelper helper) {
-        String oakLog = "{'id': 'block.minecraft.oak_log', 'translationKeys': ['block.minecraft.oak_log'], ";
-        String id = "block.minecraft.oak_log";
-
-        assertRefusedNaming(helper, "[" + oakLog + "'japaneseName': [['原', 'ゲン']]}]", id);
-        assertRefusedNaming(helper, "[" + oakLog + "'japaneseName': [['原']]}]", id);
-        assertRefusedNaming(helper, "[" + oakLog + "'japaneseName': []}]", id);
-        assertRefusedNaming(helper, "[" + oakLog + "'japaneseName': 'オークの原木'}]", id);
-        assertRefusedNaming(helper, "[" + oakLog + "'reading': 'おーくのげんぼく'}]", id);
-        helper.succeed();
-    }
-
-    @GameTest
-    public void anEntryWithoutAnIdIsRefusedWithItsPlace(GameTestHelper helper) {
-        String dirt = "{'id': 'block.minecraft.dirt', 'translationKeys': ['block.minecraft.dirt'], "
-                + "'japaneseName': [['土', 'つち']]}";
-        String place = "entry 1 without an id";
-
-        assertRefusedNaming(helper, "[" + dirt + ", {'translationKeys': ['block.minecraft.sand']}]", place);
-        assertRefusedNaming(helper, "[" + dirt + ", 'block.minecraft.sand']", place);
         helper.succeed();
     }
 }

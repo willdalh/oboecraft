@@ -30,6 +30,35 @@ class GameDataTest {
     }
 
     @Test
+    void findsANameWhenTheLootFunctionIsNamedByItsType() {
+        String lootTable = """
+                {"pools": [{"entries": [{"type": "minecraft:item", "name": "minecraft:abandoned_camp_map",
+                  "modifier": [{"type": "minecraft:set_name", "target": "item_name",
+                    "name": {"translate": "filled_map.swamp_camp_map"}},
+                    {"type": "minecraft:exploration_map", "decoration": "minecraft:abandoned_camp"}]}]}]}
+                """;
+        SequencedSet<ItemNameKey> names = new LinkedHashSet<>();
+
+        GameData.collectItemNames(JsonParser.parseString(lootTable), null, names);
+
+        assertEquals(List.of(new ItemNameKey("filled_map.swamp_camp_map", "minecraft:abandoned_camp_map")),
+                List.copyOf(names));
+    }
+
+    @Test
+    void anIdThatIsntAStacksIsNotAnItem() {
+        String data = """
+                {"id": "minecraft:some_effect", "values": [{"type": "minecraft:set_name", "target": "item_name",
+                  "name": {"translate": "item.minecraft.named"}}]}
+                """;
+        SequencedSet<ItemNameKey> names = new LinkedHashSet<>();
+
+        GameData.collectItemNames(JsonParser.parseString(data), null, names);
+
+        assertEquals(List.of(new ItemNameKey("item.minecraft.named", null)), List.copyOf(names));
+    }
+
+    @Test
     void findsTheItemNameComponentOfAStack() {
         String advancement = """
                 {"display": {"icon": {"id": "minecraft:white_banner",

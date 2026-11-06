@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedSet;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -32,18 +34,20 @@ import java.util.zip.ZipInputStream;
 record GameData(List<ItemNameKey> defaultNames, List<ItemNameKey> dataNames) {
     /** Air is the empty stack, which is never an item. */
     static final String AIR = "minecraft:air";
+    private static final String SET_NAME = "minecraft:set_name";
 
     /**
-     * Runs Minecraft's data generator on a server jar, unless its reports are in the work folder already, and reads the
-     * reports and the jar's data.
+     * Runs Minecraft's data generator on a server jar, unless its output from a run that finished is in the work folder
+     * already, and reads the reports and the jar's data.
      *
      * @throws IOException if the data generator fails or its reports can't be read
      */
     static GameData read(Path serverJar, Path workFolder) throws IOException {
-        Path reports = workFolder.resolve("generated/reports");
-        if (!Files.exists(reports.resolve("registries.json"))) {
-            runDataGenerator(serverJar, workFolder);
+        Path generated = workFolder.resolve("generated");
+        if (!Files.isDirectory(generated)) {
+            runDataGenerator(serverJar, workFolder, generated);
         }
+        Path reports = generated.resolve("reports");
         return new GameData(readDefaultNames(reports), readDataNames(serverJar));
     }
 
@@ -51,15 +55,21 @@ record GameData(List<ItemNameKey> defaultNames, List<ItemNameKey> dataNames) {
      * Runs Minecraft's data generator with {@code --reports}. It writes a report of every item's default components,
      * which hold the item's name, and of every registry, which gives the order of the items. The data generator is
      * part of the server jar and needs no EULA.
+     *
+     * <p>It writes into a folder of its own, which is only moved to {@code generated} once the data generator has
+     * finished without an error, so a run that was cut short is never taken for a finished one. A folder left by such a
+     * run is deleted first.
      */
-    private static void runDataGenerator(Path serverJar, Path workFolder) throws IOException {
+    private static void runDataGenerator(Path serverJar, Path workFolder, Path generated) throws IOException {
         Files.createDirectories(workFolder);
+        Path partial = workFolder.resolve("generated.part");
+        deleteFolder(partial);
         String java = ProcessHandle.current().info().command().orElse("java");
         Path log = workFolder.resolve("data-generator.log");
         System.out.println("Running Minecraft's data generator, see " + log);
         Process process = new ProcessBuilder(
                 java, "-DbundlerMainClass=net.minecraft.data.Main", "-jar", serverJar.toAbsolutePath().toString(),
-                "--reports", "--output", "generated")
+                "--reports", "--output", partial.getFileName().toString())
                 .directory(workFolder.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(log.toFile())
@@ -73,6 +83,18 @@ record GameData(List<ItemNameKey> defaultNames, List<ItemNameKey> dataNames) {
             process.destroy();
             Thread.currentThread().interrupt();
             throw new IOException("Minecraft's data generator was interrupted", e);
+        }
+        Files.move(partial, generated, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    private static void deleteFolder(Path folder) throws IOException {
+        if (!Files.exists(folder)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(folder)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                Files.delete(path);
+            }
         }
     }
 
@@ -156,7 +178,7 @@ record GameData(List<ItemNameKey> defaultNames, List<ItemNameKey> dataNames) {
         }
         JsonObject object = json.getAsJsonObject();
         String itemHere = itemOf(object).orElse(item);
-        if (isString(object.get("function"), "minecraft:set_name") && isString(object.get("target"), "item_name")) {
+        if (isSetName(object) && isString(object.get("target"), "item_name")) {
             translationKeyOf(object.get("name")).ifPresent(key -> names.add(new ItemNameKey(key, itemHere)));
         }
         translationKeyOf(object.get("minecraft:item_name"))
@@ -164,14 +186,32 @@ record GameData(List<ItemNameKey> defaultNames, List<ItemNameKey> dataNames) {
         object.entrySet().forEach(entry -> collectItemNames(entry.getValue(), itemHere, names));
     }
 
-    /** The item of a stack, which has an {@code id}, or of a loot entry, which has a {@code name}. */
+    /**
+     * Whether an object is the loot function that sets a stack's name. Loot tables name their functions with
+     * {@code type} since 26.1, and with {@code function} before.
+     */
+    private static boolean isSetName(JsonObject object) {
+        return isString(object.get("type"), SET_NAME) || isString(object.get("function"), SET_NAME);
+    }
+
+    /**
+     * The item whose stacks the names inside an object get, if the object says: a loot entry has it as its
+     * {@code name}, a trade as the {@code id} of the stack it {@code gives}, and a stack as its {@code id}. Other
+     * objects have {@code id} fields that aren't items, so an object only counts as a stack if it also has a
+     * {@code count} or {@code components}.
+     */
     private static Optional<String> itemOf(JsonObject object) {
-        if (object.get("id") instanceof JsonElement id && id.isJsonPrimitive()) {
-            return Optional.of(id.getAsString());
-        }
         if (isString(object.get("type"), "minecraft:item") && object.get("name") instanceof JsonElement name
                 && name.isJsonPrimitive()) {
             return Optional.of(name.getAsString());
+        }
+        if (object.get("gives") instanceof JsonObject gives && gives.get("id") instanceof JsonElement id
+                && id.isJsonPrimitive()) {
+            return Optional.of(id.getAsString());
+        }
+        boolean stack = object.has("count") || object.has("components");
+        if (stack && object.get("id") instanceof JsonElement id && id.isJsonPrimitive()) {
+            return Optional.of(id.getAsString());
         }
         return Optional.empty();
     }

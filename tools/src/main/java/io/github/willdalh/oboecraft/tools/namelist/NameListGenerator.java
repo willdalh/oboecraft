@@ -5,11 +5,13 @@ import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SequencedMap;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -94,11 +96,14 @@ final class NameListGenerator {
         Map<String, NameListEntry> existingByKey = new HashMap<>();
         existing.forEach(entry -> entry.translationKeys().forEach(key -> existingByKey.put(key, entry)));
         Map<ItemId, String> keeperOf = keepers(existing, keysByName);
+        Set<ItemId> existingIds = new HashSet<>();
+        existing.forEach(entry -> existingIds.add(entry.id()));
 
         List<Draft> drafts = new ArrayList<>();
         Map<String, Draft> draftByKey = new HashMap<>();
         for (Map.Entry<String, List<String>> group : keysByName.entrySet()) {
-            Draft draft = draftFor(group.getKey(), group.getValue(), existingByKey, keeperOf, guesser);
+            Draft draft = draftFor(
+                    group.getKey(), group.getValue(), existingByKey, keeperOf, existingIds, guesser, notes);
             drafts.add(draft);
             group.getValue().forEach(key -> draftByKey.put(key, draft));
         }
@@ -136,9 +141,10 @@ final class NameListGenerator {
     }
 
     /**
-     * For each existing entry, the name whose entry keeps its item id: the name of its item id's key, or if Minecraft
-     * no longer has that key, the first name of its other keys. When an entry's keys get different names, the other
-     * names become new items.
+     * For each existing entry, the name whose entry keeps its item id: the name of its item id's key, or if the entry
+     * no longer has that key, because Minecraft dropped it, the first name of its other keys. A dropped key that comes
+     * back belongs to a new item, not to the entry, since the entry's item lives on in its other keys. When an entry's
+     * keys get different names, the other names become new items.
      */
     private static Map<ItemId, String> keepers(
             List<NameListEntry> existing, SequencedMap<String, List<String>> keysByName) {
@@ -146,7 +152,9 @@ final class NameListGenerator {
         keysByName.forEach((name, keys) -> keys.forEach(key -> nameByKey.put(key, name)));
         Map<ItemId, String> keeperOf = new HashMap<>();
         for (NameListEntry entry : existing) {
-            String keeper = nameByKey.get(entry.id().value());
+            String keeper = entry.translationKeys().contains(entry.id().value())
+                    ? nameByKey.get(entry.id().value())
+                    : null;
             for (int i = 0; keeper == null && i < entry.translationKeys().size(); i++) {
                 keeper = nameByKey.get(entry.translationKeys().get(i));
             }
@@ -157,8 +165,12 @@ final class NameListGenerator {
         return keeperOf;
     }
 
+    /**
+     * The entry for a group of keys with the same name. A name that is unchanged keeps its reviewed parts, even when it
+     * split off from its entry and becomes a new item. Only a new or changed name is guessed.
+     */
     private static Draft draftFor(String name, List<String> keys, Map<String, NameListEntry> existingByKey,
-            Map<ItemId, String> keeperOf, NameGuesser guesser) {
+            Map<ItemId, String> keeperOf, Set<ItemId> existingIds, NameGuesser guesser, List<String> listNotes) {
         List<NameListEntry> touched = keys.stream()
                 .map(existingByKey::get)
                 .filter(Objects::nonNull)
@@ -171,24 +183,41 @@ final class NameListGenerator {
         }
         NameListEntry previous = touched.isEmpty() ? null : touched.getFirst();
         boolean keepsId = previous != null && name.equals(keeperOf.get(previous.id()));
-        if (keepsId && previous.japaneseName().text().equals(name)) {
-            return new Draft(previous.id(), keys, previous.japaneseName(), List.of(), false);
-        }
+        boolean nameUnchanged = previous != null && previous.japaneseName().text().equals(name);
+        ItemId id = keepsId ? previous.id() : newId(name, keys, existingIds);
+        String splitFrom = previous != null && !keepsId
+                ? "Split from " + previous.id() + " (" + previous.japaneseName().text() + "), so it is a new item"
+                : null;
 
+        if (nameUnchanged) {
+            if (splitFrom != null) {
+                listNotes.add(id + " (" + name + "): " + splitFrom + ". Its name is unchanged, so it keeps its parts");
+            }
+            return new Draft(id, keys, previous.japaneseName(), List.of(), false);
+        }
         GuessedName guess = guesser.guess(name);
         List<String> notes = new ArrayList<>();
-        ItemId id;
         if (keepsId) {
-            id = previous.id();
             notes.add("The Japanese name changed from " + previous.japaneseName().text());
-        } else {
-            id = new ItemId(keys.getFirst());
-            if (previous != null) {
-                notes.add("Split from " + previous.id() + " (" + previous.japaneseName().text() + "), so it is a new "
-                        + "item");
-            }
+        } else if (splitFrom != null) {
+            notes.add(splitFrom);
         }
         notes.addAll(guess.notes());
         return new Draft(id, keys, guess.name(), notes, true);
+    }
+
+    /**
+     * The id of a new item: its first key that isn't already an item id. An item id is never given to another item,
+     * even when Minecraft brings back a key it dropped.
+     *
+     * @throws IllegalStateException if every key is already an item id
+     */
+    private static ItemId newId(String name, List<String> keys, Set<ItemId> existingIds) {
+        return keys.stream()
+                .map(ItemId::new)
+                .filter(id -> !existingIds.contains(id))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("The new item " + name + " has only the keys " + keys
+                        + ", which are already item ids of other entries, so it has no id it can take"));
     }
 }

@@ -2,9 +2,15 @@ package io.github.willdalh.oboecraft.tools.namelist;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.json.NameListJson;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,19 +47,19 @@ public final class NameListTool {
         GameData gameData = GameData.read(
                 minecraft.serverJar(), downloads.cacheFolder().resolve("minecraft/" + version + "/data-generator"));
         Map<String, String> japanese = readLanguageFile(minecraft.japaneseLanguageFile());
-        List<ItemNameKey> keys = ItemNameKeys.collect(gameData, japanese.keySet(), ItemNameKeys.CODE_NAMES);
+        ItemNameKeys.Collected keys = ItemNameKeys.collect(gameData, japanese.keySet(), ItemNameKeys.CODE_NAMES);
         Dictionaries dictionaries = Dictionaries.download(downloads);
-        List<NameListEntry> existing = NameListJson.read(nameListFile);
+        List<NameListEntry> existing = readNameList(nameListFile);
 
         NameListGenerator.Result result;
         try (SudachiWordSplitter words = new SudachiWordSplitter(dictionaries.sudachiDictionary())) {
             NameGuesser guesser = new DictionaryNameGuesser(
                     words, dictionaries.jmdict(), new KanjiSplitter(dictionaries.kanjidic()));
-            result = NameListGenerator.generate(keys, japanese, existing, guesser);
+            result = NameListGenerator.generate(keys.keys(), japanese, existing, guesser);
         }
 
-        NameListJson.write(nameListFile, result.entries());
-        ReviewList.write(reviewListFile, result, "Minecraft " + version + ", " + dictionaries.describe());
+        writeNameList(nameListFile, result.entries());
+        ReviewList.write(reviewListFile, result, keys.notes(), "Minecraft " + version + ", " + dictionaries.describe());
         System.out.println("Wrote " + result.entries().size() + " entries to " + nameListFile + ". "
                 + result.generated().size() + " were generated and need review, see " + reviewListFile);
     }
@@ -72,6 +78,27 @@ public final class NameListTool {
             }
         }
         return arguments;
+    }
+
+    /**
+     * The name list as it is now, or none if there is no file yet.
+     *
+     * @throws IllegalArgumentException if the file isn't a valid name list, saying which entry is wrong
+     */
+    private static List<NameListEntry> readNameList(Path file) throws IOException {
+        if (!Files.exists(file)) {
+            return List.of();
+        }
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            return NameListJson.parse(JsonParser.parseReader(reader)).entries();
+        }
+    }
+
+    /** Writes the name list, replacing the old file only once the new one is written in full. */
+    private static void writeNameList(Path file, List<NameListEntry> entries) throws IOException {
+        Path partial = file.resolveSibling(file.getFileName() + ".part");
+        Files.writeString(partial, NameListJson.format(entries), StandardCharsets.UTF_8);
+        Files.move(partial, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     /** Minecraft's language file: one JSON object from each translation key to its text, in the file's order. */
