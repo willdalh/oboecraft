@@ -2,6 +2,14 @@
 
 This describes how the code is structured. It is kept in sync with the code.
 
+More detail on each part:
+
+- [Core](core.md): the packages and types of the game rules.
+- [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu and networking.
+- [Progress files](progress-files.md): where progress is saved and the file format.
+
+The parts on those pages were designed in milestone 3a. Until milestone 3b is merged, they describe what 3b builds.
+
 ## Core and adapters
 
 The code follows clean architecture. The core holds the game rules as plain Java. Adapters connect the core to Minecraft and the mod loader. Dependencies point inward: adapters depend on the core, and the core never depends on adapters. This keeps the core testable without starting the game.
@@ -57,6 +65,8 @@ All versions live in `gradle/libs.versions.toml`. The mod version and the Minecr
 
 The core makes decisions from simple inputs, like an item id, counts and timestamps, and returns results. The `fabric` module gathers the inputs from the game and carries out the results. Minecraft concepts like inventories, slots and containers are left out of the core.
 
+Every action the mod may stop goes through one lock check in the core, on both sides, so rules like creative mode, ignored items and bans are decided in one place. See [Lock check](../design/lock-check.md).
+
 For example, on a fail when crafting a diamond pickaxe at level 1, `fabric` counts 50 diamonds and 100 sticks in the current view and passes the counts and the recipe (3 diamonds, 2 sticks) to the core. The core answers: remove 15 diamonds and 20 sticks. `fabric` then removes them from the inventory and crafting grid.
 
 ## Server and client
@@ -76,6 +86,8 @@ Answers are checked on the server. The client sends the typed text, and the serv
 
 Intervals and bans run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. No timers need to run.
 
+The core never reads a clock: its rules take the current time as an input. In `fabric`, all code reads the time from one clock, which game tests replace with one they control. The client adds the difference between the server's clock and its own. See [Time](../design/time.md).
+
 ## Testing
 
 Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` module uses Fabric game tests where they pay off, in `fabric/src/gametest`. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod.
@@ -86,3 +98,4 @@ Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` mod
 
 - [Stack](../decisions/20261105-stack.md)
 - [Progress save format](../decisions/20261105-progress-save-format.md)
+- [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
