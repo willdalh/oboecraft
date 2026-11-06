@@ -83,6 +83,25 @@ class AnswerCheckerTest {
     }
 
     @Test
+    void aVowelThatStartsAPartIsntALongVowel() {
+        NameListEntry retail = entry(part("小", "こ"), part("売", "うり"));
+        NameListEntry care = entry(part("手", "て"), part("入", "い"), kana("れ"));
+
+        assertPasses(retail, "kouri", "こうり", "小売");
+        assertFails(retail, "koori", "ko-ri", "こおり", "こーり");
+        assertPasses(care, "teire", "ていれ");
+        assertFails(care, "teere", "て-れ", "てーれ");
+    }
+
+    @Test
+    void aLeftOutParticleDoesntMakeTheNextVowelLong() {
+        NameListEntry netherDepths = entry(kana("ネザー"), kana("の"), part("奥", "おく"));
+
+        assertPasses(netherDepths, "neza- no oku", "neza-oku", "ネザー奥");
+        assertFails(netherDepths, "neza-uku", "nezaa-ku");
+    }
+
+    @Test
     void aMissingLongVowelFails() {
         assertFails(OAK_LOG, "おくのげんぼく", "oku no genboku");
         assertFails(CRAFTING_TABLE, "さぎょだい", "sagyodai");
@@ -207,6 +226,11 @@ class AnswerCheckerTest {
 
         assertPasses(jackOLantern, "ジャックオランタン", "jakku o rantan", "Jakku O Rantan");
         assertPasses(OAK_LOG, " オークの原木　", "オーク・の・原木", "ｵｰｸの原木");
+    }
+
+    @Test
+    void theParticleIsOptionalWhenTheNameWritesItInKatakana() {
+        assertPasses(entry(kana("オーク"), kana("ノ"), part("原", "げん")), "オーク原", "オークの原", "ooku gen");
     }
 
     @Test

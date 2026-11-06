@@ -20,6 +20,25 @@ class JapaneseNameTest {
     }
 
     @Test
+    void eachPositionInTheReadingKnowsItsPart() {
+        JapaneseName name = new JapaneseName(OAK_LOG);
+
+        assertEquals(new JapaneseName.PlacedPart(NamePart.kana("オーク"), "おーく", 0, 3), name.partAt(2));
+        assertEquals(new JapaneseName.PlacedPart(new NamePart("原", "げん"), "原", 4, 6), name.partAt(5));
+    }
+
+    @Test
+    void theVowelBeforeAPositionIsOnlyInTheSamePart() {
+        JapaneseName name = new JapaneseName(OAK_LOG);
+
+        assertEquals('o', name.vowelBefore(1), "after お");
+        assertEquals('o', name.vowelBefore(2), "after ー, which carries the お");
+        assertEquals(0, name.vowelBefore(3), "the start of の");
+        assertEquals(0, name.vowelBefore(4), "the start of 原");
+        assertEquals('e', name.vowelBefore(5), "after げ");
+    }
+
+    @Test
     void namesWithTheSamePartsAreEqual() {
         assertEquals(new JapaneseName(OAK_LOG), new JapaneseName(OAK_LOG));
         assertEquals(new JapaneseName(OAK_LOG).hashCode(), new JapaneseName(OAK_LOG).hashCode());

@@ -10,13 +10,30 @@ import java.util.Locale;
 public final class JapaneseText {
     /** The long vowel mark, which is the same in hiragana and katakana text. */
     public static final char LONG_VOWEL_MARK = 'ー';
+    /** The five vowels as romaji, in the order of the kana in each row. */
+    public static final String VOWELS = "aiueo";
 
     private static final char FIRST_HIRAGANA = 'ぁ';
     private static final char LAST_HIRAGANA = 'ゖ';
     private static final char FIRST_KATAKANA = 'ァ';
-    private static final char LAST_KATAKANA = 'ヶ';
+    /**
+     * The last katakana that is turned into hiragana. The small ヵ and ヶ after it are left as they are, since in names
+     * they are counters read か, が or こ, not the small kana ゕ and ゖ.
+     */
+    private static final char LAST_KATAKANA = 'ヴ';
     private static final int KATAKANA_TO_HIRAGANA = FIRST_KATAKANA - FIRST_HIRAGANA;
     private static final String SMALL_KANA = "ぁぃぅぇぉゃゅょゎゕゖ";
+    /**
+     * The hiragana that end in each vowel, in the order of {@link #VOWELS}. Each starts with the vowel's own kana, like
+     * あ.
+     */
+    private static final String[] KANA_BY_VOWEL = {
+        "あぁかがさざただなはばぱまやゃらわゎゕ",
+        "いぃきぎしじちぢにひびぴみりゐ",
+        "うぅくぐすずつづぬふぶぷむゆゅるゔ",
+        "えぇけげせぜてでねへべぺめれゑゖ",
+        "おぉこごそぞとどのほぼぽもよょろを",
+    };
     private static final String DASHES = "-‐‑‒–—―−";
     private static final String APOSTROPHES = "'‘’ʼ";
 
@@ -79,22 +96,22 @@ public final class JapaneseText {
      * {@code ん}, {@code っ} and characters that aren't hiragana. The long vowel mark has no vowel of its own.
      */
     public static char vowelOf(char c) {
-        if ("あぁかがさざただなはばぱまやゃらわゎゕ".indexOf(c) >= 0) {
-            return 'a';
-        }
-        if ("いぃきぎしじちぢにひびぴみりゐ".indexOf(c) >= 0) {
-            return 'i';
-        }
-        if ("うぅくぐすずつづぬふぶぷむゆゅるゔ".indexOf(c) >= 0) {
-            return 'u';
-        }
-        if ("えぇけげせぜてでねへべぺめれゑゖ".indexOf(c) >= 0) {
-            return 'e';
-        }
-        if ("おぉこごそぞとどのほぼぽもよょろを".indexOf(c) >= 0) {
-            return 'o';
+        for (int vowel = 0; vowel < VOWELS.length(); vowel++) {
+            if (KANA_BY_VOWEL[vowel].indexOf(c) >= 0) {
+                return VOWELS.charAt(vowel);
+            }
         }
         return 0;
+    }
+
+    /** The kana of a vowel on its own, like あ for {@code a}. */
+    public static char kanaOfVowel(char vowel) {
+        return KANA_BY_VOWEL[VOWELS.indexOf(vowel)].charAt(0);
+    }
+
+    /** Whether a romaji letter is one of the five vowels. */
+    public static boolean isVowel(char letter) {
+        return VOWELS.indexOf(letter) >= 0;
     }
 
     private static int toHiragana(int codePoint) {

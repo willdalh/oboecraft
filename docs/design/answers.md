@@ -35,7 +35,7 @@ Letters and digits in a name, like TNT, are a part with a reading too, so `TNT` 
 
 ## The particle の
 
-A part that is the particle の may be left out, or written as の, ノ or `no`. Only the particle is optional. The の in a word, like キノコ, is part of a run of kana and can't be left out, so `kiko` fails.
+A part that is the particle の, whether the name writes it の or ノ, may be left out, or written as の, ノ or `no`. Only the particle is optional. The の in a word, like キノコ, is part of a run of kana and can't be left out, so `kiko` fails.
 
 An answer can't add a の that the name doesn't have: `作業の台` fails for 作業台.
 
@@ -46,7 +46,9 @@ These are ignored in both the answer and the name:
 - Spaces, and punctuation like ・, 、 and !.
 - Upper and lower case.
 - Full-width and half-width letters and kana: `ＴＮＴ` is `TNT`, and `ｵｰｸ` is `オーク`.
-- Hiragana and katakana.
+- Hiragana and katakana. The small ヵ and ヶ are the exception: in names they are counters, read か, が or こ, so they are a part with their own reading, not the small kana ゕ and ゖ.
+
+An answer with nothing left after this, like `。` or `・`, isn't an attempt, see [Reviews](reviews.md#attempts).
 
 An apostrophe is only kept after an `n`, where it ends ん in romaji. A dash, like `-`, is the long vowel mark ー, as when typing on a Japanese keyboard.
 
@@ -65,6 +67,8 @@ A long vowel can be written in any of these ways, in kana or romaji, whatever wa
 So オーク passes as `おおく`, `おうく`, `ooku`, `ouku` and `ōku`, and 作業台 (さぎょうだい) passes as `さぎょーだい` and `sagyoodai`. A long e can also be written with an い or an え, since えい is said as a long e: えいが passes as `ええが` and `eega`.
 
 A missing long vowel fails: `oku` for オーク, and `sagyodai` for 作業台.
+
+A long vowel is only ever inside a part. Vowels in different parts are said separately, so a vowel that starts a part must be written as that vowel. 小売 is 小 (こ) and 売 (うり): `kouri` passes, and `koori`, `ko-ri` and `こおり` fail, since こおり is 氷, another word. The same goes for 手入れ (て, い, れ), where `teere` fails. When the answer leaves out the particle の, the part after it starts fresh too: for ネザーの奥, `neza-oku` passes and `neza-uku` fails.
 
 ## Romaji
 

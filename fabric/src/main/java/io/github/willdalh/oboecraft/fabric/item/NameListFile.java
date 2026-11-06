@@ -51,20 +51,37 @@ public final class NameListFile {
      * Parses a name list: an array of entries, each with an {@code id}, its {@code translationKeys} and the
      * {@code japaneseName} as an array of parts. A part in kana is a string, like {@code "オーク"}, and any other part is
      * an array of its text and its reading, like {@code ["原", "げん"]}. See the name list file doc.
+     *
+     * @throws IllegalArgumentException if the name list is invalid, saying which entry is wrong: its id, or its place
+     *     in the list if it has no id
      */
-    static NameList parse(JsonElement json) {
+    public static NameList parse(JsonElement json) {
+        JsonArray array = requireArray(json, "The name list");
         List<NameListEntry> entries = new ArrayList<>();
-        for (JsonElement element : json.getAsJsonArray()) {
-            JsonObject entry = element.getAsJsonObject();
-            List<String> translationKeys = new ArrayList<>();
-            JsonArray keys = entry.getAsJsonArray("translationKeys");
-            keys.forEach(key -> translationKeys.add(key.getAsString()));
-            entries.add(new NameListEntry(
-                    new ItemId(entry.get("id").getAsString()),
-                    translationKeys,
-                    parseJapaneseName(entry.getAsJsonArray("japaneseName"))));
+        for (int index = 0; index < array.size(); index++) {
+            JsonElement entry = array.get(index);
+            try {
+                entries.add(parseEntry(entry));
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(describe(entry, index) + " is invalid: " + e.getMessage(), e);
+            }
         }
         return new NameList(entries);
+    }
+
+    private static NameListEntry parseEntry(JsonElement json) {
+        if (!json.isJsonObject()) {
+            throw new IllegalArgumentException("it isn't a JSON object");
+        }
+        JsonObject entry = json.getAsJsonObject();
+        List<String> translationKeys = new ArrayList<>();
+        for (JsonElement key : requireArray(entry.get("translationKeys"), "translationKeys")) {
+            translationKeys.add(requireString(key, "A translation key"));
+        }
+        return new NameListEntry(
+                new ItemId(requireString(entry.get("id"), "id")),
+                translationKeys,
+                parseJapaneseName(requireArray(entry.get("japaneseName"), "japaneseName")));
     }
 
     private static JapaneseName parseJapaneseName(JsonArray json) {
@@ -77,12 +94,39 @@ public final class NameListFile {
 
     private static NamePart parsePart(JsonElement json) {
         if (json.isJsonPrimitive()) {
-            return NamePart.kana(json.getAsString());
+            return NamePart.kana(requireString(json, "A part"));
         }
-        JsonArray textAndReading = json.getAsJsonArray();
+        JsonArray textAndReading = requireArray(json, "A part");
         if (textAndReading.size() != 2) {
             throw new IllegalArgumentException("A part with a reading is an array of its text and reading: " + json);
         }
-        return new NamePart(textAndReading.get(0).getAsString(), textAndReading.get(1).getAsString());
+        return new NamePart(
+                requireString(textAndReading.get(0), "A part's text"),
+                requireString(textAndReading.get(1), "A part's reading"));
+    }
+
+    /** The entry's id if it has one, so a mistake can be found in the file, or else its place in the list. */
+    private static String describe(JsonElement entry, int index) {
+        if (entry.isJsonObject()) {
+            JsonElement id = entry.getAsJsonObject().get("id");
+            if (id != null && id.isJsonPrimitive() && id.getAsJsonPrimitive().isString()) {
+                return "The entry " + id.getAsString();
+            }
+        }
+        return "The entry " + index + " without an id";
+    }
+
+    private static String requireString(JsonElement json, String what) {
+        if (json == null || !json.isJsonPrimitive() || !json.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException(what + " is missing or isn't a string");
+        }
+        return json.getAsString();
+    }
+
+    private static JsonArray requireArray(JsonElement json, String what) {
+        if (json == null || !json.isJsonArray()) {
+            throw new IllegalArgumentException(what + " is missing or isn't an array");
+        }
+        return json.getAsJsonArray();
     }
 }

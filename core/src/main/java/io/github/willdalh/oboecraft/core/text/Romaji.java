@@ -18,13 +18,11 @@ public final class Romaji {
     public record Spelling(String romaji, String kana) {
     }
 
-    /** The five vowels in the order of the kana in each row of {@link #ROWS}. */
-    private static final String VOWELS = "aiueo";
     private static final String SMALL_Y_KANA = "ゃぃゅぇょ";
 
     /**
-     * Each consonant and its kana for the vowels a, i, u, e and o. A row with more than one kana for a vowel separates
-     * them with {@code ,}.
+     * Each consonant and its kana for the vowels, in the order of {@link JapaneseText#VOWELS}. The kana are separated
+     * with {@code ,}.
      */
     private static final String[][] ROWS = {
         {"", "あ,い,う,え,お"},
@@ -93,13 +91,14 @@ public final class Romaji {
         Map<String, String> kanaByRomaji = new HashMap<>();
         for (String[] row : ROWS) {
             String[] kana = row[1].split(",");
-            for (int vowel = 0; vowel < VOWELS.length(); vowel++) {
-                add(kanaByRomaji, row[0] + VOWELS.charAt(vowel), kana[vowel]);
+            for (int vowel = 0; vowel < JapaneseText.VOWELS.length(); vowel++) {
+                add(kanaByRomaji, row[0] + JapaneseText.VOWELS.charAt(vowel), kana[vowel]);
             }
         }
         for (String[] row : Y_ROWS) {
-            for (int vowel = 0; vowel < VOWELS.length(); vowel++) {
-                add(kanaByRomaji, row[0] + "y" + VOWELS.charAt(vowel), row[1] + SMALL_Y_KANA.charAt(vowel));
+            for (int vowel = 0; vowel < JapaneseText.VOWELS.length(); vowel++) {
+                String romaji = row[0] + "y" + JapaneseText.VOWELS.charAt(vowel);
+                add(kanaByRomaji, romaji, row[1] + SMALL_Y_KANA.charAt(vowel));
             }
         }
         for (String[] other : OTHERS) {

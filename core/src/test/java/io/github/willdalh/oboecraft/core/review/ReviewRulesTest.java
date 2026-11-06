@@ -68,9 +68,12 @@ class ReviewRulesTest {
     }
 
     @Test
-    void aBlankAnswerIsntAnAttempt() {
+    void anAnswerWithoutLettersOrDigitsIsntAnAttempt() {
         assertFalse(ReviewRules.isAttempt(""));
         assertFalse(ReviewRules.isAttempt("  "));
+        assertFalse(ReviewRules.isAttempt("。"));
+        assertFalse(ReviewRules.isAttempt("・、!"));
+        assertFalse(ReviewRules.isAttempt("'"));
         assertTrue(ReviewRules.isAttempt("つち"));
         assertThrows(IllegalArgumentException.class,
                 () -> ReviewRules.answer(OAK_LOG, SrsState.Leveled.NEW, " ", NOW, SETTINGS));

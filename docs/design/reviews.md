@@ -50,7 +50,7 @@ A review has up to two attempts. An attempt is one submitted answer:
 
 A wrong attempt is saved in the item's [SRS state](srs-state.md), so it isn't lost when the player closes the menu. Closing the menu after a wrong attempt and opening it again gives one attempt, not two. Otherwise closing and reopening the menu would give unlimited attempts without punishment. Wrong attempts are cleared by a pass or a fail.
 
-Pressing Enter with an empty typing bar does nothing and isn't an attempt. Neither does the Enter that confirms the keyboard's kanji conversion: while the conversion has text that isn't confirmed, every key belongs to the conversion, so Esc doesn't close the menu either.
+Pressing Enter with an empty typing bar does nothing and isn't an attempt, and neither does text with no letter or digit, like a stray `。`, since [answer checking](answers.md#ignored-differences) ignores everything else. Neither does the Enter that confirms the keyboard's kanji conversion: while the conversion has text that isn't confirmed, every key belongs to the conversion, so Esc doesn't close the menu either.
 
 The server checks the answer, with the rules in [Answers](answers.md). The client sends the typed text and gets back pass, wrong with one attempt left, or fail.
 

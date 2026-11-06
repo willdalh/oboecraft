@@ -36,6 +36,19 @@ class NamePartTest {
     }
 
     @Test
+    void theReadingDoesntStartWithTheLongVowelMarkOrN() {
+        assertThrows(IllegalArgumentException.class, () -> new NamePart("長", "ーい"));
+        assertThrows(IllegalArgumentException.class, () -> new NamePart("円", "んえ"));
+    }
+
+    @Test
+    void aSmallKeOrKaInKatakanaNeedsItsReading() {
+        assertThrows(IllegalArgumentException.class, () -> NamePart.kana("ヶ"));
+        assertEquals("か", new NamePart("ヶ", "か").reading());
+        assertEquals("が", new NamePart("ヵ", "が").reading());
+    }
+
+    @Test
     void aSmallTsuCanStartAPart() {
         assertEquals("っ", NamePart.kana("っ").reading());
     }

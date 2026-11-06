@@ -33,14 +33,15 @@ Former ids are added with the first name list update that merges two entries, se
 
 ## Checks
 
-The core checks each entry when it is built, so a broken file stops the mod from starting with a message saying which entry is wrong, instead of failing answers later:
+`NameListFile` and the core check each entry when the file is loaded, so a broken file stops the mod from starting instead of failing answers later. The error names the entry by its id, or by its place in the list if it has no id, and says what is wrong with it:
 
+- The file is an array of objects, and each has an `id` string, a `translationKeys` array of strings and a `japaneseName` array of parts. Each part is a string, or an array of exactly two strings.
 - An entry has at least one translation key, and none is blank.
 - No item id or translation key belongs to two entries.
 - A name has at least one part.
 - A part's text has at least one letter or digit.
-- A reading is hiragana and ー only, and doesn't start with a small kana like ゃ.
-- A string part is only kana and punctuation. A part with a kanji, a letter or a digit needs its reading.
+- A reading is hiragana and ー only, and doesn't start with a small kana like ゃ, with ー or with ん.
+- A string part is only kana and punctuation. A part with a kanji, a letter, a digit or the counters ヵ and ヶ needs its reading.
 - A part in kana can't be given another reading than its kana.
 
 Parts must be split as [Items](../design/items.md#name-parts) describes, with the particle の as its own part. The checks can't tell whether a kanji's reading is right or whether kanji were split correctly. That is what the review in milestone 5 is for.

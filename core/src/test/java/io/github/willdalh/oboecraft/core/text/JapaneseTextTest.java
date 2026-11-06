@@ -14,6 +14,11 @@ class JapaneseTextTest {
     }
 
     @Test
+    void aSmallKeOrKaInKatakanaStaysAsItIs() {
+        assertEquals("ヶヵ", JapaneseText.normalize("ヶヵ"));
+    }
+
+    @Test
     void halfWidthKatakanaAndFullWidthLettersBecomeNormal() {
         assertEquals("おーく", JapaneseText.normalize("ｵｰｸ"));
         assertEquals("tnt", JapaneseText.normalize("ＴＮＴ"));
@@ -75,5 +80,13 @@ class JapaneseTextTest {
         assertEquals(0, JapaneseText.vowelOf('ん'));
         assertEquals(0, JapaneseText.vowelOf('っ'));
         assertEquals(0, JapaneseText.vowelOf('ー'));
+    }
+
+    @Test
+    void eachVowelHasItsOwnKana() {
+        assertEquals('あ', JapaneseText.kanaOfVowel('a'));
+        assertEquals('お', JapaneseText.kanaOfVowel('o'));
+        assertTrue(JapaneseText.isVowel('e'));
+        assertFalse(JapaneseText.isVowel('n'));
     }
 }

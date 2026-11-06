@@ -66,7 +66,9 @@ The Japanese name is stored split into name parts, so that each part has its own
 - Kanji that can't be split, because the word's reading doesn't come from each kanji, like 今日 (きょう), 松明 (たいまつ) and 砂利 (じゃり), are one part.
 - Kana between kanji, like the き in 焼き鳥, is its own part. Kana is always read as it is written.
 - The particle の is its own part, since an answer may leave it out. A の inside a word, like キノコ, stays in that word's part.
-- Readings are in hiragana, with ー for a long vowel where the name has one. A reading never starts with a small kana like ゃ, since that belongs to the kana before it.
+- Readings are in hiragana, with ー for a long vowel where the name has one. A reading never starts with a small kana like ゃ or with ー, since those belong to the kana before them, or with ん, which ends the syllable before it.
+- Where a part ends matters for long vowels: a long vowel is only ever inside a part, see [Answers](answers.md#long-vowels). So parts are split where the name's sounds are separate, like 小 (こ) and 売 (うり), and a long vowel is never split between two parts.
+- The small ヵ and ヶ, which are counters in names, like 三ヶ月, need their reading given, since it is か, が or こ.
 - Punctuation, like the ・ in ジャック・オ・ランタン, stays in the part's text and is left out of its reading.
 
 The Japanese name is the text of its parts joined, like オークの原木, and its reading is their readings joined, like おーくのげんぼく. The reading is what is shown after a pass, and what milestone 10 speaks.
