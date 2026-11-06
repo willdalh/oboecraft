@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "oboecraft",
+  "version": "${version}",
+  "name": "Oboecraft",
+  "description": "Learn Japanese with spaced repetition on the items in the game.",
+  "authors": [
+    "willdalh"
+  ],
+  "contact": {
+    "homepage": "https://github.com/willdalh/oboecraft",
+    "sources": "https://github.com/willdalh/oboecraft"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.willdalh.oboecraft.fabric.OboecraftMod"
+    ],
+    "client": [
+      "io.github.willdalh.oboecraft.fabric.client.OboecraftClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
