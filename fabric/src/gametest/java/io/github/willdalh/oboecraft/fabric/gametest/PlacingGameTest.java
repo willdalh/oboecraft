@@ -61,13 +61,13 @@ public class PlacingGameTest {
             helper.assertBlockNotPresent(Blocks.OAK_LOG, new BlockPos(0, 1, 0));
             helper.assertValueEqual(player.getMainHandItem().getCount(), 4, "oak logs in hand");
 
-            // The client asks for the review. A wrong answer keeps it going, the right one passes.
+            // The client asks for the review. A wrong answer keeps it going, the right one, in romaji, passes.
             reviews.start(player, 1, InteractionHand.MAIN_HAND);
             helper.assertValueEqual(reviews.activeItem(player), Optional.of(OAK_LOG), "item under review");
             reviews.answer(player, 1, "オークの減木");
             helper.assertValueEqual(reviews.activeItem(player), Optional.of(OAK_LOG), "item under review");
             helper.assertValueEqual(progress.state(player, OAK_LOG), SrsState.Leveled.NEW, "state after wrong");
-            reviews.answer(player, 1, "おーくのげんぼく");
+            reviews.answer(player, 1, "ooku no genboku");
             helper.assertValueEqual(reviews.activeItem(player), Optional.empty(), "item under review");
             helper.assertValueEqual(progress.state(player, OAK_LOG),
                     new SrsState.Leveled(1, Optional.of(start.plus(Duration.ofMinutes(10)))), "state after pass");

@@ -102,7 +102,8 @@ public final class ServerReviews {
         if (result.outcome() == ReviewOutcome.PASS) {
             active.remove(player.getUUID());
             progress.update(player, entry.id(), result.newState());
-            shownAnswer = Optional.of(new ReviewAnswered.Answer(entry.japaneseName(), entry.reading()));
+            shownAnswer = Optional.of(new ReviewAnswered.Answer(
+                    entry.japaneseName().text(), entry.japaneseName().reading()));
         }
         ServerPlayNetworking.send(
                 player, new ReviewAnswered(progress.now(), reviewId, result.outcome(), shownAnswer));
