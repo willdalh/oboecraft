@@ -44,6 +44,7 @@ Run these from the repository root. The first run downloads Gradle, Java 25 and 
 | `./gradlew build` | Compiles, runs the core unit tests and the Fabric game tests, and builds the mod jar in `fabric/build/libs/` |
 | `./gradlew :core:test` | Runs only the core unit tests |
 | `./gradlew runGameTest` | Runs only the Fabric game tests, on a headless server |
+| `./gradlew runClientGameTest` | Runs the Fabric client game tests in a real client. Not part of `build`. It needs a display: without one, install `xvfb` and `mesa-vulkan-drivers` and run `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClientGameTest`, as CI does |
 | `./gradlew runClient` | Starts the game with the mod |
 | `./gradlew runServer` | Starts a local dedicated server with the mod, in `fabric/run/` |
 

@@ -18,6 +18,8 @@ So a translation key is what one Japanese name hangs on, and the mod maps stacks
 2. The item name is a translatable text, and its translation key is looked up in the name list.
 3. If the name list has an entry with that key, the stack is that item. If not, the stack is not an item: it is never locked, shows its normal name and has no SRS state. This covers other mods' items and new vanilla items until the name list is updated.
 
+A few Minecraft items get a different key from their components, so they are several items, like the potions. A shield with a base color is named through `item.minecraft.shield.<color>`, like `item.minecraft.shield.red` (赤色の盾), and a lodestone compass through `item.minecraft.lodestone_compass` (ロードストーンコンパス). The name list gives these keys entries, or adds them to another entry, like any other key.
+
 Only the translation key is used, not the arguments filled into the name. Some keys exist only to fill in such arguments. A player head with a player's profile is named through `block.minecraft.player_head.named`, which is `%sの頭` in Japanese. A key whose Japanese text has format arguments, like `%s`, is never its own entry, since `%sの頭` can't be an answer. Instead it is added to the entry of the item it names, so a named player head is still the player head, プレイヤーの頭. If that item has no entry, the key is left out. The name list script in milestone 5 lists these keys for review.
 
 ## Name list entries
@@ -28,7 +30,7 @@ The name list has one entry per item. Each entry has:
 |---|---|---|
 | Item id | `block.minecraft.oak_log` | The item's id. It is saved in progress and sent between server and client, so it never changes once released. |
 | Translation keys | `block.minecraft.oak_log` | Every translation key that maps to this item. Most items have one. |
-| Former ids | | Item ids of entries that were merged into this one. Usually empty. |
+| Former ids | | Item ids of entries that were merged into this one. Usually empty. Added with the first name list update that merges entries. |
 | Japanese name | オークの原木 | The correct answer |
 | Reading | おーくのげんぼく | How the Japanese name is said |
 
@@ -45,7 +47,9 @@ An item id or former id belongs to at most one entry, and is never reused for an
 
 A translation key belongs to at most one entry.
 
-Milestone 4 decides how readings are stored, per kanji and with units like 今日 = きょう. Milestone 3b uses a hand-written list of about 10 items with the reading as one string. Milestone 5 generates the full list from `ja_jp.json`.
+Milestone 4 decides how readings are stored, per kanji and with units like 今日 = きょう. Milestone 3b uses a hand-written list of 10 blocks from the first minutes of play, with the reading as one string: the oak, birch and spruce logs, oak planks, the crafting table, the torch, dirt, cobblestone, sand and gravel. Milestone 5 generates the full list from `ja_jp.json`.
+
+The hand-written list has no merges, so 3b doesn't build former ids or the merge of states on load yet. They come with the first name list update that merges two entries, before any release that needs them.
 
 ## Protected items
 

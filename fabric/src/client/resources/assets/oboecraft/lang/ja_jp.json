@@ -1,0 +1,12 @@
+{
+  "oboecraft.answer_menu.title": "解答メニュー",
+  "oboecraft.answer_menu.input": "日本語名",
+  "oboecraft.answer_menu.level": "レベル %s",
+  "oboecraft.answer_menu.hint": "Enter: 解答   Esc: 閉じる",
+  "oboecraft.answer_menu.wrong": "不正解です。もう一度どうぞ。",
+  "oboecraft.review.passed": "正解: %s（%s）",
+  "oboecraft.progress.broken": "Oboecraftの進行状況ファイルを読み込めなかったため、進行状況は空から始まります。壊れたファイルは %s として保存されています。",
+  "oboecraft.progress.too_new": "Oboecraftの進行状況は新しいバージョンのOboecraftで保存されています。ここで遊ぶにはOboecraftを更新してください。",
+  "oboecraft.progress.unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。サーバーの管理者にサーバーのログを確認してもらってください。",
+  "oboecraft.protocol.mismatch": "このサーバーにはネットワークプロトコルバージョン %s のOboecraft MODが必要です。サーバーと同じバージョンのOboecraftを導入してください。"
+}
