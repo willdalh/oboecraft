@@ -1,6 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.mixin;
 
-import io.github.willdalh.oboecraft.fabric.lock.IgnoredItems;
+import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
@@ -18,7 +18,8 @@ abstract class ArrowPickupMixin {
 
     @Inject(method = "playerTouch", at = @At("HEAD"), cancellable = true)
     private void oboecraft$checkPickup(Player player, CallbackInfo ci) {
-        if (player instanceof ServerPlayer serverPlayer && !IgnoredItems.mayPickUp(serverPlayer, getPickupItem())) {
+        if (player instanceof ServerPlayer serverPlayer
+                && !OboecraftMod.locks().mayPickUp(OboecraftMod.serverProgress(), serverPlayer, getPickupItem())) {
             ci.cancel();
         }
     }

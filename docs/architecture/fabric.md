@@ -81,7 +81,7 @@ Placing is checked in `ItemStack.useOn`, which is where a stack is used on a blo
 
 The client returns a failed result before it predicts placing or using, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while an answer menu or any screen other than the open menu's is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
 
-`IgnoredItems.mayPickUp` asks the shared lock check with `PICK_UP`. Item entity and arrow pickup mixins leave denied pickups on the ground. `StoppedStack` carries its decision so a denial never opens a review.
+`Locks.mayPickUp` asks the shared lock check with `PICK_UP`. Item entity and arrow pickup mixins leave denied pickups on the ground. `StoppedStack` carries its decision so a denial never opens a review.
 
 ## Progress on the server
 
@@ -172,7 +172,7 @@ Client to server:
 
 Protocol 3 adds tagged SRS states and the lesson result. `ReviewAnswered` carries the Japanese name and reading after a pass or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
-`ReviewKeys` registers Controls bindings. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. It sends Revert requests and never edits progress locally.
+`ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 
 A `StackLocation` is sent as its kind and its numbers. Decoding refuses a kind that doesn't exist, which disconnects the sender.
 

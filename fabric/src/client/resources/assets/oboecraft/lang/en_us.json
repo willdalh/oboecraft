@@ -2,7 +2,6 @@
   "oboecraft.answer_menu.title": "Answer menu",
   "oboecraft.answer_menu.input": "Japanese name",
   "oboecraft.answer_menu.level": "Level %s",
-  "oboecraft.answer_menu.hint": "Enter: Answer   Esc: Close",
   "oboecraft.answer_menu.wrong": "Wrong. Try again.",
   "oboecraft.review.passed": "Correct: %s (%s)",
   "oboecraft.progress.broken": "Your Oboecraft progress file couldn't be read, so you start with empty progress. The broken file was kept as %s.",

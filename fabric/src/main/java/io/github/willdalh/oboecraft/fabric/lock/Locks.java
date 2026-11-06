@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.lock;
 
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.lock.LockCheck;
+import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.DisplayRules;
@@ -45,6 +46,17 @@ public final class Locks {
         return !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
     }
 
+    /** Pickup shares the mapping, game-mode guards and settings of every other lock check. */
+    public boolean mayPickUp(ProgressView view, Player player, ItemStack stack) {
+        return activeEntry(view, player, stack)
+                .map(entry -> decision(view, player, entry, Interaction.PICK_UP) == LockDecision.ALLOW)
+                .orElse(true);
+    }
+
+    private LockDecision decision(ProgressView view, Player player, NameListEntry entry, Interaction interaction) {
+        return LockCheck.check(view.state(player, entry.id()), interaction, view.now(), true, settings);
+    }
+
     /** Uses exactly the same mapping, game-mode guards and settings as interactions. */
     public DisplayState display(ProgressView view, Player player, ItemStack stack) {
         return activeEntry(view, player, stack)
@@ -69,8 +81,7 @@ public final class Locks {
         if (entry.isEmpty()) {
             return Optional.empty();
         }
-        LockDecision decision = LockCheck.check(
-                view.state(player, entry.get().id()), checked.interaction(), view.now(), true, settings);
+        LockDecision decision = decision(view, player, entry.get(), checked.interaction());
         return decision == LockDecision.ALLOW
                 ? Optional.empty()
                 : Optional.of(new StoppedStack(checked, entry.get(), decision));

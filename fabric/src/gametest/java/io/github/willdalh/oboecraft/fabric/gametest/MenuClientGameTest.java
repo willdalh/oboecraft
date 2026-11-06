@@ -60,7 +60,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
         check(singleplayer, player -> player.getInventory().getItem(0).getCount() == 4
                 && player.containerMenu.getCarried().isEmpty(), "right-click reviews without splitting the stack");
         context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
-                InputConstants.KEY_S, 's', InputConstants.MOD_CONTROL)));
+                InputConstants.KEY_F9, 0, 0)));
         context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
         context.takeScreenshot("lesson-answer");
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);

@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 /** Three separate lists. Revert is confirmed through a context action and waits for the server's update. */
 public final class WordListScreen extends Screen {
     private int group;
+    private int cachedGroup = -1;
     private int page;
     private int pageSize;
     private Progress snapshot = Progress.EMPTY;
@@ -30,10 +31,14 @@ public final class WordListScreen extends Screen {
 
     @Override protected void init() {
         pageSize = Math.max(1, (height - 120) / 24);
-        snapshot = OboecraftClient.progress().progress();
-        entries = OboecraftMod.itemMapping().nameList().entries().stream()
-                .filter(entry -> inGroup(snapshot.state(entry.id())))
-                .sorted(Comparator.comparing(entry -> entry.japaneseName().text())).toList();
+        Progress current = OboecraftClient.progress().progress();
+        if (snapshot != current || cachedGroup != group) {
+            snapshot = current;
+            cachedGroup = group;
+            entries = OboecraftMod.itemMapping().nameList().entries().stream()
+                    .filter(entry -> inGroup(snapshot.state(entry.id())))
+                    .sorted(Comparator.comparing(entry -> entry.japaneseName().text())).toList();
+        }
         page = Math.min(page, Math.max(0, (entries.size() - 1) / pageSize));
         for (int tab = 0; tab < 3; tab++) {
             int chosen = tab;

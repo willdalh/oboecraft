@@ -4,7 +4,6 @@ import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
-import io.github.willdalh.oboecraft.fabric.lock.IgnoredItems;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -66,10 +65,10 @@ public class LessonsGameTest {
             entity.setNoPickUpDelay();
             entity.playerTouch(player);
             helper.assertFalse(entity.isRemoved(), "ignored pickup leaves entity");
-            helper.assertFalse(IgnoredItems.mayPickUp(player, entity.getItem()), "pickup denied");
-            helper.assertTrue(IgnoredItems.mayPickUp(player, new ItemStack(Items.DIRT)), "new items may be picked up");
+            helper.assertFalse(OboecraftMod.locks().mayPickUp(OboecraftMod.serverProgress(), player, entity.getItem()), "pickup denied");
+            helper.assertTrue(OboecraftMod.locks().mayPickUp(OboecraftMod.serverProgress(), player, new ItemStack(Items.DIRT)), "new items may be picked up");
             reviews.revert(player, OAK);
-            helper.assertTrue(IgnoredItems.mayPickUp(player, entity.getItem()), "reverted item may be picked up");
+            helper.assertTrue(OboecraftMod.locks().mayPickUp(OboecraftMod.serverProgress(), player, entity.getItem()), "reverted item may be picked up");
         } finally { TestPlayers.leave(player); }
         helper.succeed();
     }
@@ -112,6 +111,31 @@ public class LessonsGameTest {
             reviews.revert(player, OAK);
             helper.assertValueEqual(progress.state(player, OAK), SrsState.Leveled.NEW, "mastered state reset");
         } finally { TestPlayers.leave(player); TestPlayers.leave(other); }
+        helper.succeed();
+    }
+
+    @GameTest public void ignoreDropsPersonalCraftingInputsBeforeClosingInventory(GameTestHelper helper) {
+        var player = TestPlayers.join(helper, UUID.randomUUID());
+        try {
+            var position = helper.absolutePos(new net.minecraft.core.BlockPos(1, 2, 1));
+            player.snapTo(position.getX(), position.getY(), position.getZ());
+            player.getInventory().setItem(0, new ItemStack(Items.OAK_LOG, 1));
+            var crafting = player.inventoryMenu.getCraftSlots();
+            crafting.setItem(0, new ItemStack(Items.OAK_LOG, 3));
+            crafting.setItem(1, new ItemStack(Items.DIRT, 2));
+            var reviews = OboecraftMod.serverReviews();
+            reviews.start(player, 1, new StackLocation.InventorySlot(0));
+            reviews.action(player, 1, ReviewAction.Action.IGNORE);
+            helper.assertTrue(crafting.getItem(0).isEmpty(), "ignored crafting input is dropped");
+            helper.assertValueEqual(crafting.getItem(1).getCount(), 2, "other crafting input is preserved");
+            player.inventoryMenu.removed(player);
+            for (int slot = 0; slot < net.minecraft.world.entity.player.Inventory.INVENTORY_SIZE; slot++) {
+                helper.assertFalse(player.getInventory().getItem(slot).is(Items.OAK_LOG), "no ignored input returns to inventory");
+            }
+            int dropped = player.level().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(4)).stream()
+                    .filter(entity -> entity.getItem().is(Items.OAK_LOG)).mapToInt(entity -> entity.getItem().getCount()).sum();
+            helper.assertValueEqual(dropped, 4, "inventory and grid stacks are on the ground");
+        } finally { TestPlayers.leave(player); }
         helper.succeed();
     }
 

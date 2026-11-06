@@ -7,6 +7,8 @@ import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import java.util.List;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -40,6 +42,7 @@ public final class AnswerScreen extends Screen {
     private final ItemStack icon;
     private final @Nullable AbstractContainerScreen<?> menuScreen;
     private int level;
+    private List<FormattedCharSequence> hintLines = List.of();
     private @Nullable EditBox input;
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
@@ -89,6 +92,7 @@ public final class AnswerScreen extends Screen {
         input.setValue(typed);
         input.setResponder(value -> wrong = false);
         addRenderableWidget(input);
+        updateHint();
     }
 
     @Override
@@ -114,15 +118,19 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.IGNORE);
             return true;
         }
-        if (level == 0 && (ReviewKeys.SHOW.matches(event) || ReviewKeys.DONT_KNOW.matches(event))) {
+        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             action(ReviewAction.Action.SHOW_ANSWER);
+            return true;
+        }
+        if (level == 0 && ReviewKeys.DONT_KNOW.matches(event)) {
+            action(ReviewAction.Action.DONT_KNOW);
             return true;
         }
         if (ReviewKeys.CLOSE.matches(event)) {
             onClose();
             return true;
         }
-        if (ReviewKeys.ANSWER.matches(event)) {
+        if (ReviewKeys.ANSWER.matches(event) || (ReviewKeys.ANSWER.mapping().isDefault() && event.isConfirmation())) {
             submit();
             return true;
         }
@@ -134,8 +142,11 @@ public final class AnswerScreen extends Screen {
         if (composing) return true;
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
-        if (level == 0 && (ReviewKeys.SHOW.matches(event) || ReviewKeys.DONT_KNOW.matches(event))) {
+        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             action(ReviewAction.Action.SHOW_ANSWER); return true;
+        }
+        if (level == 0 && ReviewKeys.DONT_KNOW.matches(event)) {
+            action(ReviewAction.Action.DONT_KNOW); return true;
         }
         if (ReviewKeys.ANSWER.matches(event)) { submit(); return true; }
         if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
@@ -173,6 +184,11 @@ public final class AnswerScreen extends Screen {
     /** The server started the review, at this level. */
     void started(int level) {
         this.level = level;
+        updateHint();
+    }
+
+    private void updateHint() {
+        hintLines = font.split(ReviewKeys.hint(level == 0), Math.max(100, width - 24));
     }
 
     /** The server said the answer was wrong. The typing bar is cleared, and the review goes on. */
@@ -219,7 +235,7 @@ public final class AnswerScreen extends Screen {
         graphics.fakeItem(icon, centerX - 8, top - 44);
         graphics.centeredText(font, Component.translatable("oboecraft.answer_menu.level", level), centerX, top - 20, -1);
         int hintY = top + INPUT_HEIGHT + 8;
-        for (var line : font.split(ReviewKeys.hint(level == 0), Math.max(100, width - 24))) {
+        for (var line : hintLines) {
             graphics.text(font, line, centerX - font.width(line) / 2, hintY, 0xFFA0A0A0);
             hintY += 12;
         }

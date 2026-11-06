@@ -23,6 +23,18 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            for (var binding : new io.github.willdalh.oboecraft.fabric.client.ReviewKeys.Binding[]{
+                    io.github.willdalh.oboecraft.fabric.client.ReviewKeys.KNOWN,
+                    io.github.willdalh.oboecraft.fabric.client.ReviewKeys.IGNORE,
+                    io.github.willdalh.oboecraft.fabric.client.ReviewKeys.SHOW}) {
+                for (var other : client.options.keyMappings) {
+                    if (other != binding.mapping() && binding.mapping().same(other)) {
+                        throw new AssertionError("Default review binding conflicts with " + other.getName());
+                    }
+                }
+            }
+        });
         SingleplayerProgress.delete();
         try (TestSingleplayerContext singleplayer = context.worldBuilder()
                 .adjustSettings(settings -> settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL))
@@ -64,11 +76,13 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.getInput().pressKey(InputConstants.KEY_RETURN);
             singleplayer.getConnection().waitForServerboundPackets();
             context.waitTicks(2);
+            context.getInput().pressKey(InputConstants.KEY_NUMPADENTER);
+            singleplayer.getConnection().waitForServerboundPackets();
             assertStillReviewing(context, singleplayer);
 
-            // The conversion is cancelled, so Enter now submits the answer, which passes.
+            // The conversion is cancelled, so numpad Enter now submits the answer, which passes.
             context.runOnClient(client -> client.keyboardHandler.textEditing(client.getWindow().handle(), null));
-            context.getInput().pressKey(InputConstants.KEY_RETURN);
+            context.getInput().pressKey(InputConstants.KEY_NUMPADENTER);
             context.waitFor(client -> !(client.gui.screen() instanceof AnswerScreen));
             singleplayer.getConnection().waitForClientboundPackets();
             SrsState clientState = context.computeOnClient(
@@ -91,7 +105,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.waitForScreen(AnswerScreen.class);
             singleplayer.getConnection().waitForServerboundPackets();
             context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
-                    InputConstants.KEY_K, 'k', InputConstants.MOD_CONTROL)));
+                    InputConstants.KEY_F7, 0, 0)));
             context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Known
                     && !(client.gui.screen() instanceof AnswerScreen));
             context.getInput().pressKey(InputConstants.KEY_J);
@@ -113,7 +127,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.waitForScreen(AnswerScreen.class);
             singleplayer.getConnection().waitForServerboundPackets();
             context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
-                    InputConstants.KEY_I, 'i', InputConstants.MOD_CONTROL)));
+                    InputConstants.KEY_F8, 0, 0)));
             context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Ignored
                     && !(client.gui.screen() instanceof AnswerScreen));
             singleplayer.getConnection().waitForClientboundPackets();

@@ -298,7 +298,7 @@ What later milestones should know: `ItemDisplay` uses the shared `Locks` service
 
 Built: lesson answer reveal and unlimited unpunished attempts at level 0; Already known and Ignore; dropping ignored loose inventory stacks and blocking their interactions and pickups; inventory right-click reviews; Controls bindings; and a paginated word list with separate known, ignored and mastered tabs and server-validated Revert.
 
-Differences: Don't know is available in lessons now, with higher-level fails left to milestone 9. The word list defaults to J (O is Minecraft's Friends key). Default Ctrl shortcuts use Ctrl only while on their default letter; rebound keys or mouse buttons act alone, matching vanilla's single-key binding storage. Worn armor and container contents stay in use when ignoring an item.
+Differences: Don't know is available in lessons now, with higher-level fails left to milestone 9. The word list defaults to J (O is Minecraft's Friends key). Already known, Ignore and Show answer default to F7, F8 and F9 instead of Ctrl shortcuts, because vanilla stores single-key bindings and reports Ctrl+S as conflicting with walking backwards. Worn armor and container contents stay in use when ignoring an item.
 
 Later milestones: protocol 3 carries tagged states and lesson results. Progress format 2 reads format 1 unchanged, but prevents older mods from treating known/ignored states as corrupt and overwriting progress. Settings still use defaults until milestone 12. See [Word list](design/word-list.md).
 
