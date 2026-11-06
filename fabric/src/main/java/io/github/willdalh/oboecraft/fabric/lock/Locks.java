@@ -37,13 +37,18 @@ public final class Locks {
         return Optional.empty();
     }
 
+    /** Whether locks and their displays apply to this player on this side of the connection. */
+    public static boolean active(ProgressView view, Player player) {
+        return !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
+    }
+
     /** The stack, if the lock check stops the player's interaction with it on {@code view}'s side. */
     private Optional<StoppedStack> stopped(ProgressView view, Player player, CheckedStack checked) {
         Optional<NameListEntry> entry = itemMapping.entryOf(checked.stack());
         if (entry.isEmpty()) {
             return Optional.empty();
         }
-        boolean locksActive = !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
+        boolean locksActive = active(view, player);
         LockDecision decision = LockCheck.check(
                 view.state(player, entry.get().id()), checked.interaction(), view.now(), locksActive, settings);
         return decision == LockDecision.ALLOW

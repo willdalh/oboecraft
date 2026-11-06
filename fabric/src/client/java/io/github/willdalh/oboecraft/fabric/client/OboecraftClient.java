@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
+import io.github.willdalh.oboecraft.fabric.client.display.ItemDisplay;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
 import io.github.willdalh.oboecraft.fabric.network.ProtocolCheck;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
@@ -26,6 +27,7 @@ public final class OboecraftClient implements ClientModInitializer {
         reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings());
         registerReceivers();
         ClientLockHooks.register(reviews);
+        ItemDisplay.register();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progress.clear());
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
     }

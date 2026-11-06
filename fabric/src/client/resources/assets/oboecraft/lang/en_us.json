@@ -8,5 +8,10 @@
   "oboecraft.progress.broken": "Your Oboecraft progress file couldn't be read, so you start with empty progress. The broken file was kept as %s.",
   "oboecraft.progress.too_new": "Your Oboecraft progress was saved by a newer version of Oboecraft. Update Oboecraft to play here.",
   "oboecraft.progress.unreadable": "Oboecraft couldn't read your progress file. Ask the server owner to check the server log.",
-  "oboecraft.protocol.mismatch": "This server needs the Oboecraft mod, with network protocol version %s. Install the same version of Oboecraft as the server."
+  "oboecraft.protocol.mismatch": "This server needs the Oboecraft mod, with network protocol version %s. Install the same version of Oboecraft as the server.",
+  "oboecraft.display.locks_in": "Locks in %s",
+  "oboecraft.display.days": "%sd",
+  "oboecraft.display.hours": "%sh",
+  "oboecraft.display.minutes": "%sm",
+  "oboecraft.display.seconds": "%ss"
 }

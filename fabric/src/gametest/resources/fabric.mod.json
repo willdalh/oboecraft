@@ -19,7 +19,8 @@
     ],
     "fabric-client-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest"
     ]
   },
   "depends": {

@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -99,6 +99,21 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 ## Progress on the client
 
 `ClientProgress` holds what the server sent on the current connection: the SRS states, the server's time from the latest message, and the `System.nanoTime` value when it arrived. It keeps these in one immutable snapshot that also records the connection it came from. States from an earlier connection are never used, so the client's locks are off on a new connection until its `ProgressSync` arrives, even if a message from the old connection is handled late. The snapshot is also cleared when the player leaves a world or server. It never changes a state on its own: only messages from the server do.
+
+## Item displays
+
+`client.display.ItemDisplay` reads the current connection's progress and estimated server time for a stack, and returns whether to hide its name and its optional core `LockTimer`. It uses `Locks.active(view, player)`, which the interaction checks also use, and asks `LockCheck` for a normal use interaction. So disabling locks, untracked stacks and expired intervals agree with interactions. Nothing is cached by stack or item: a new sync, game mode or elapsed interval is reflected on the next frame. No payloads or saved fields were added.
+
+The client hooks are local to display calls:
+
+- `ClientItemStackMixin` wraps `getStyledHoverName` inside `ItemStack.getTooltipLines`, replacing only the tooltip title with `???` while keeping its style. `getHoverName` and `getItemName` themselves are unchanged.
+- `HudMixin` wraps `getHoverName` inside `Hud.extractSelectedItemName`, so the selected-item label uses the current lock state on every frame.
+- `ClientItemStackMixin` adds the timer to `ItemStack.getTooltipImage`, which both menu screens and direct item hovers read. For timed items, it adds a `LockTimerTooltip` that also holds the original image. Fabric's `ClientTooltipComponentCallback` builds a `ClientLockTimerTooltip`, which draws the translated time and bar and delegates the original image below them. The normal tooltip layout handles size, positioning and style.
+- Fabric's `ExtractItemDecorationsCallback` draws the slot marker in the top-left corner. This covers menu slots and the hotbar without replacing Minecraft's count, durability or cooldown drawing.
+
+All rendering classes are in `src/client`. Core tests check the timer boundaries and configured intervals. `ItemDisplayClientGameTest` runs the real rendering hooks in a client, captures extracted text and rectangles, and checks synced state/time changes, normal and custom names, timer and marker presence, creative/spectator/adventure modes, missing progress, untracked stacks, and a bundle's original tooltip. It also checks the inventory screen's actual rendering path and saves inventory screenshots.
+
+See [Display](../design/display.md) for the visual rules. Milestone 8 extends the core timer switch for Known and Ignored, and milestone 12 supplies the display with synced settings.
 
 ## Reviews on the server
 

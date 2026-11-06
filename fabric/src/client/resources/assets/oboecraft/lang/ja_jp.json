@@ -8,5 +8,10 @@
   "oboecraft.progress.broken": "Oboecraftの進行状況ファイルを読み込めなかったため、進行状況は空から始まります。壊れたファイルは %s として保存されています。",
   "oboecraft.progress.too_new": "Oboecraftの進行状況は新しいバージョンのOboecraftで保存されています。ここで遊ぶにはOboecraftを更新してください。",
   "oboecraft.progress.unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。サーバーの管理者にサーバーのログを確認してもらってください。",
-  "oboecraft.protocol.mismatch": "このサーバーにはネットワークプロトコルバージョン %s のOboecraft MODが必要です。サーバーと同じバージョンのOboecraftを導入してください。"
+  "oboecraft.protocol.mismatch": "このサーバーにはネットワークプロトコルバージョン %s のOboecraft MODが必要です。サーバーと同じバージョンのOboecraftを導入してください。",
+  "oboecraft.display.locks_in": "ロックまで %s",
+  "oboecraft.display.days": "%s日",
+  "oboecraft.display.hours": "%s時間",
+  "oboecraft.display.minutes": "%s分",
+  "oboecraft.display.seconds": "%s秒"
 }
