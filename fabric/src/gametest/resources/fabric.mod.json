@@ -19,12 +19,14 @@
       "io.github.willdalh.oboecraft.fabric.gametest.DisplayGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.LessonsGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.GameModeGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.AnvilGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.AnvilGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.SettingsGameTest"
     ],
     "fabric-client-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.SettingsClientGameTest"
     ]
   },
   "depends": {

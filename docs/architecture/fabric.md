@@ -13,7 +13,7 @@ The parts were designed in milestone 3a and built in milestone 3b, for placing b
 | Name list | `NameListFile` loads `oboecraft/name_list.json` once from the mod's own resources, through Fabric's mod container, so it works the same on a dedicated server, which has no client assets. `NameListJson` in the `json` module parses it into a core `NameList`. Its format is in [Name list file](name-list-file.md). |
 | Item mapping | `ItemMapping` maps an `ItemStack` to its name list entry, see [below](#item-mapping). |
 | Clock | `ModClock`, the one `InstantSource` that all game code reads the time from, to the millisecond. It reads the system clock, and game tests swap in a clock they control with `setSource`. |
-| Settings | The current core `Settings`. It is `Settings.DEFAULTS` until milestone 12 loads the file on the server and sends it to the client. |
+| Settings | No service of its own: each side's `ProgressView` has the server settings it uses, `ServerProgress` the server's own, read from the [settings file](settings-files.md) when the server starts, and `ClientProgress` the ones the server sent. `OboecraftClient` holds the client settings. |
 | Locks | `Locks`, the lock check entry point, see [below](#the-lock-check-entry-point). |
 | Server progress and reviews | `ServerProgress` and `ServerReviews`, see below. They are only used on the server thread. |
 
@@ -104,7 +104,7 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 ## Item displays
 
-`client.display.ItemDisplay` gathers the player and progress inputs and calls `Locks.display` or `Locks.closeToLocking`. The `Locks` instance owns item mapping, the game-mode/connection guards and settings for both displays and interactions. Display decisions come from core `DisplayRules`, independently of interaction permissions. Milestone 12 therefore changes one settings source for both paths.
+`client.display.ItemDisplay` gathers the player and progress inputs and calls `Locks.display` or `Locks.closeToLocking`. The `Locks` instance owns item mapping and the game-mode/connection guards for both displays and interactions, and both read the settings from the same `ProgressView`. Display decisions come from core `DisplayRules`, independently of interaction permissions.
 
 `GuiMixin` captures one immutable `ProgressView` from `ClientProgress.capture()` around each GUI frame. This reads the current connection and volatile snapshot once and estimates server time once. Every display call in that frame reuses it. Calls outside normal frame extraction capture a view for that call. The slot marker asks only for the boolean threshold, without building a full display result or timer. Nothing survives the frame, so sync, connection and time changes are reflected on the next frame.
 
@@ -116,7 +116,7 @@ Tooltip masking is scoped to drawing on the client thread, using `TooltipDisplay
 - `HudMixin` masks only the selected-item label in `Hud.extractSelectedItemName`.
 - `ClientDisplayHooks` registers Fabric's `ExtractItemDecorationsCallback` to draw the marker without replacing count, durability or cooldown drawing. `TimerText` formats two nonzero units with a translated separator.
 
-All rendering classes are in `src/client`. Core tests check display classification, intervals and marker boundaries. `DisplayGameTest` checks that display and interactions use the same custom settings instance. `ItemDisplayClientGameTest` checks actual tooltip, HUD and inventory rendering, nested container and bundle names, unchanged raw tooltip/image getters, background search indexing, scope cleanup, captured frame inputs, and English/Japanese labels. It also checks state/time updates, modes and missing sync and saves inventory screenshots.
+All rendering classes are in `src/client`. Core tests check display classification, intervals and marker boundaries. `DisplayGameTest` checks that display and interactions use the same custom settings from the view. `ItemDisplayClientGameTest` checks actual tooltip, HUD and inventory rendering, nested container and bundle names, unchanged raw tooltip/image getters, background search indexing, scope cleanup, captured frame inputs, and English/Japanese labels. It also checks state/time updates, modes and missing sync and saves inventory screenshots.
 
 See [Display](../design/display.md) for the visual rules. No payloads or saved fields were added.
 
@@ -146,6 +146,8 @@ Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't
 
 `ClientReviews` opens the answer menu and handles the server's review messages. After a pass it closes the answer menu and hands the Japanese name to the notification, see [below](#the-notification). After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
 
+The answer menu reads the client settings when it builds its widgets. With clickable buttons on, it adds a button for each action it can do now, labeled with the action's name from the Controls screen, and builds its widgets again when the server's level arrives or the review fails, since the buttons depend on them. A button runs the same code as its key and gives the typing bar its focus back. The buttons are as wide as the longest label, in one row, or more rows on a narrow screen.
+
 ## The notification
 
 `client.display.PassNotification` holds the Japanese name the notification shows and when it was shown, from Minecraft's monotonic `Util.getMillis`. `ClientReviews` calls `show` with the name from `ReviewAnswered` after a pass, before it looks for the review's answer menu, and a new name replaces the old one. Core `NotificationTiming` says when it is over and how opaque it is, so the timing doesn't depend on client ticks.
@@ -158,6 +160,14 @@ Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't
 
 An anvil only renames name tags, see [Items](../design/items.md#renaming). `AnvilMenuMixin`, in `src/main` so both sides work out the same result, changes how `AnvilMenu.createResult` reads the typed name. It asks `AnvilRenaming.mayRename` once for each result, which goes by the Minecraft item, `Items.NAME_TAG`, not the name list entry, since a data pack or command can give any stack a name tag's item name. For an input it refuses, the typed name reads as the input's own name and never as blank, so the result neither gets a new name nor loses its custom name, and no level is added for naming. Every way a name reaches the anvil, including the client's rename packet, ends in `createResult`, so a modified client can't rename anything else. On the client, `AnvilScreenMixin` shows a locked item's name in the name field as `???`, through `ItemDisplay.name`, and makes the field editable only for a name tag whose name isn't hidden. `AnvilGameTest` checks the server's results, and `MenuClientGameTest` checks the name field in a real anvil screen and sends a rename packet for a sword, as a modified client could.
 
+## Settings
+
+`ServerProgress.useSettings` replaces the server settings and sends every online player a `ProgressSync` with their progress and the new settings, and `OboecraftMod` calls it with `ServerSettingsFile.load` in Fabric's `SERVER_STARTING`. Every rule on the server reads `ServerProgress.settings()`, and on the client `ClientProgress.settings()`, which is the defaults until a `ProgressSync` arrives for this connection, while locks aren't active anyway. The files are in [Settings files](settings-files.md).
+
+`client.settings.SettingsScreen` is the settings screen. Mod Menu opens it through `ModMenuIntegration`, the `modmenu` entrypoint in `fabric.mod.json`. The mod only compiles against Mod Menu's API (`clientCompileOnly`), so Fabric only loads that class when Mod Menu is installed, and `fabric.mod.json` suggests Mod Menu. The screen edits the server settings file when the player isn't on another server (`Minecraft.getConnection()` is null or a singleplayer server runs), and on a running built-in server it calls `useSettings` on the server thread after saving. On another server it shows `ClientProgress.settings()` without letting them change. The levels are edited as two lists separated by commas, read and written by core `LevelsText`.
+
+`SettingsGameTest` checks the server settings file, missing, invalid and saved, and that the drop setting and the ban length change the rules on the server. `SettingsClientGameTest` saves invalid and valid settings through the screen in singleplayer, checks that the built-in server and the client use the saved settings and that the files hold them, and uses the answer menu's buttons.
+
 ## Networking
 
 The mod uses Fabric's networking API with custom payloads, in `fabric.network`. Every payload is in `src/main`, so both sides know it. Fabric runs the receivers on the main thread of each side, and the server's receivers only act for the player who sent the payload.
@@ -166,7 +176,7 @@ Server to client:
 
 | Payload | When | Contents |
 |---|---|---|
-| `ProgressSync` | The player joins | Every SRS state that isn't `Leveled.NEW` |
+| `ProgressSync` | The player joins, and the server settings change | Every SRS state that isn't `Leveled.NEW`, and the server settings. A settings value that fails the core checks fails to decode. |
 | `StateUpdate` | An SRS state changes, or before `ReviewRefused` because the item isn't locked | The item id and its state |
 | `ShowReview` | The server stopped an action because the item is locked | The stack's location. The client opens the answer menu for it, unless an answer menu or another screen than the open menu's is open. |
 | `ReviewStarted` | A review starts | The review id, item id, level and attempts left. Level 0 is a lesson. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
@@ -184,9 +194,9 @@ Client to server:
 | `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
 | `CloseReview` | The player closes the answer menu | The review id |
 
-`ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer only reveals the answer at level 0. Don't know reveals it at level 0, and is a fail from level 1. `RevertItem` carries an item id, checked against the sender's progress and the name list. The server sends its settings in milestone 12.
+`ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer only reveals the answer at level 0. Don't know reveals it at level 0, and is a fail from level 1. `RevertItem` carries an item id, checked against the sender's progress and the name list.
 
-Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
+Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
 `ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 

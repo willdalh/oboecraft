@@ -1,7 +1,6 @@
 package io.github.willdalh.oboecraft.fabric;
 
 import io.github.willdalh.oboecraft.core.Oboecraft;
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.item.NameListFile;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
@@ -9,6 +8,7 @@ import io.github.willdalh.oboecraft.fabric.lock.ServerLockHooks;
 import io.github.willdalh.oboecraft.fabric.network.ServerNetworking;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
+import io.github.willdalh.oboecraft.fabric.settings.ServerSettingsFile;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -29,7 +29,6 @@ public final class OboecraftMod implements ModInitializer {
     /** The services both sides share. The server's are only used on the server thread. */
     private record Services(
             ModClock clock,
-            Settings settings,
             ItemMapping itemMapping,
             Locks locks,
             ServerProgress serverProgress,
@@ -39,12 +38,11 @@ public final class OboecraftMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModClock clock = new ModClock();
-        Settings settings = Settings.DEFAULTS;
         ItemMapping itemMapping = new ItemMapping(NameListFile.load());
         ServerProgress serverProgress = new ServerProgress(clock);
-        Locks locks = new Locks(itemMapping, settings);
-        ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress, settings);
-        services = new Services(clock, settings, itemMapping, locks, serverProgress, serverReviews);
+        Locks locks = new Locks(itemMapping);
+        ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress);
+        services = new Services(clock, itemMapping, locks, serverProgress, serverReviews);
 
         ServerNetworking.registerPayloadTypes();
         ServerNetworking.registerReceivers(serverReviews);
@@ -56,6 +54,9 @@ public final class OboecraftMod implements ModInitializer {
     }
 
     private static void registerProgressEvents(ServerProgress serverProgress, ServerReviews serverReviews) {
+        // Read before any player joins, so every player gets the server's settings with their progress.
+        ServerLifecycleEvents.SERVER_STARTING.register(server ->
+                serverProgress.useSettings(ServerSettingsFile.load(ServerSettingsFile.path())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> serverProgress.load(handler.player));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             serverReviews.forget(handler.player.getUUID());
@@ -72,10 +73,6 @@ public final class OboecraftMod implements ModInitializer {
 
     public static ModClock clock() {
         return services.clock();
-    }
-
-    public static Settings settings() {
-        return services.settings();
     }
 
     public static ItemMapping itemMapping() {

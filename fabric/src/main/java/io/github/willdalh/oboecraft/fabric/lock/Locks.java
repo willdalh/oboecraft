@@ -4,7 +4,6 @@ import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.lock.LockCheck;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.DisplayRules;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
@@ -20,11 +19,9 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class Locks {
     private final ItemMapping itemMapping;
-    private final Settings settings;
 
-    public Locks(ItemMapping itemMapping, Settings settings) {
+    public Locks(ItemMapping itemMapping) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
-        this.settings = Objects.requireNonNull(settings, "settings");
     }
 
     /**
@@ -46,7 +43,7 @@ public final class Locks {
         return !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
     }
 
-    /** Pickup shares the mapping, game-mode guards and settings of every other lock check. */
+    /** Pickup shares the mapping, game-mode guards and the view's settings with every other lock check. */
     public boolean mayPickUp(ProgressView view, Player player, ItemStack stack) {
         return activeEntry(view, player, stack)
                 .map(entry -> decision(view, player, entry, Interaction.PICK_UP) == LockDecision.ALLOW)
@@ -54,20 +51,20 @@ public final class Locks {
     }
 
     private LockDecision decision(ProgressView view, Player player, NameListEntry entry, Interaction interaction) {
-        return LockCheck.check(view.state(player, entry.id()), interaction, view.now(), true, settings);
+        return LockCheck.check(view.state(player, entry.id()), interaction, view.now(), true, view.settings());
     }
 
-    /** Uses exactly the same mapping, game-mode guards and settings as interactions. */
+    /** Uses exactly the same mapping, game-mode guards and the view's settings as interactions. */
     public DisplayState display(ProgressView view, Player player, ItemStack stack) {
         return activeEntry(view, player, stack)
-                .map(entry -> DisplayRules.of(view.state(player, entry.id()), view.now(), settings))
+                .map(entry -> DisplayRules.of(view.state(player, entry.id()), view.now(), view.settings()))
                 .orElse(DisplayState.Normal.INSTANCE);
     }
 
     /** The hot path for slot decorations: no timer or full display result is built. */
     public boolean closeToLocking(ProgressView view, Player player, ItemStack stack) {
         return activeEntry(view, player, stack)
-                .map(entry -> DisplayRules.closeToLocking(view.state(player, entry.id()), view.now(), settings))
+                .map(entry -> DisplayRules.closeToLocking(view.state(player, entry.id()), view.now(), view.settings()))
                 .orElse(false);
     }
 

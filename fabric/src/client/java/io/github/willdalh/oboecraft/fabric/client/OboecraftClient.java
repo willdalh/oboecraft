@@ -3,6 +3,8 @@ package io.github.willdalh.oboecraft.fabric.client;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.display.ClientDisplayHooks;
 import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
+import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettings;
+import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettingsFile;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
 import io.github.willdalh.oboecraft.fabric.network.ProtocolCheck;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
@@ -22,13 +24,14 @@ public final class OboecraftClient implements ClientModInitializer {
     private static ClientProgress progress;
     private static ClientReviews reviews;
     private static PassNotification notification;
+    private static ClientSettings clientSettings;
 
     @Override
     public void onInitializeClient() {
         progress = new ClientProgress();
+        clientSettings = ClientSettingsFile.read(ClientSettingsFile.path());
         notification = new PassNotification();
-        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings(),
-                notification);
+        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification);
         registerReceivers();
         ReviewKeys.register();
         ClientLockHooks.register(reviews);
@@ -43,6 +46,16 @@ public final class OboecraftClient implements ClientModInitializer {
     /** The SRS states the server sent. Client game tests read them. */
     public static ClientProgress progress() {
         return progress;
+    }
+
+    /** The client settings, which the answer menu reads. Only used on the client thread. */
+    public static ClientSettings clientSettings() {
+        return clientSettings;
+    }
+
+    /** Uses new client settings from now on. The settings screen saves them first. */
+    public static void useClientSettings(ClientSettings settings) {
+        clientSettings = java.util.Objects.requireNonNull(settings, "settings");
     }
 
     /** The notification after a pass, which the GUI draws and client game tests read. */
@@ -61,7 +74,8 @@ public final class OboecraftClient implements ClientModInitializer {
         ClientConfigurationNetworking.registerGlobalReceiver(ProtocolCheck.TYPE, (payload, context) -> {
         });
         ClientPlayNetworking.registerGlobalReceiver(ProgressSync.TYPE, (payload, context) ->
-                progress.sync(context.player().connection, payload.progress(), payload.serverTime()));
+                progress.sync(context.player().connection, payload.progress(), payload.settings(),
+                        payload.serverTime()));
         ClientPlayNetworking.registerGlobalReceiver(StateUpdate.TYPE, (payload, context) ->
                 progress.update(context.player().connection, payload.item(), payload.state(), payload.serverTime()));
         ClientPlayNetworking.registerGlobalReceiver(ShowReview.TYPE, (payload, context) -> {

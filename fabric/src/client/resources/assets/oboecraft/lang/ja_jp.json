@@ -31,5 +31,15 @@
   "oboecraft.word_list.mastered": "習得済み",
   "oboecraft.word_list.revert": "レベル0に戻す",
   "oboecraft.word_list.empty": "単語はまだありません",
-  "oboecraft.word_list.hint": "%s/%sページ · 右クリックで元に戻す"
+  "oboecraft.word_list.hint": "%s/%sページ · 右クリックで元に戻す",
+  "oboecraft.settings.title": "Oboecraftの設定",
+  "oboecraft.settings.clickable_buttons": "回答メニューにボタンを表示",
+  "oboecraft.settings.server": "シングルプレイとLANに公開したワールドの設定",
+  "oboecraft.settings.server_remote": "このサーバーの設定（サーバーの管理者だけが変更できます）",
+  "oboecraft.settings.intervals": "各レベルの間隔（例: 10m, 1h, 1d）",
+  "oboecraft.settings.demotions": "失敗で下がるレベル（レベルごとに1つ）",
+  "oboecraft.settings.ban_length": "失敗後の禁止時間",
+  "oboecraft.settings.percentage_factor": "レベルごとの削除率の減少（%）",
+  "oboecraft.settings.drop": "捨てる操作もやり取りに含める",
+  "oboecraft.settings.save_failed": "設定を保存できませんでした。ゲームのログを確認してください。"
 }

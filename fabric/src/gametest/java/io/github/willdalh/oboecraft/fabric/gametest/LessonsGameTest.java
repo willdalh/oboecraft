@@ -107,7 +107,7 @@ public class LessonsGameTest {
             reviews.revert(player, OAK);
             helper.assertValueEqual(progress.state(player, OAK), learning, "learning state cannot be reset");
             helper.assertValueEqual(progress.state(other, OAK), new SrsState.Known(), "another player's state unchanged");
-            progress.update(player, OAK, new SrsState.Leveled(OboecraftMod.settings().topLevel(), java.util.Optional.empty()));
+            progress.update(player, OAK, new SrsState.Leveled(OboecraftMod.serverProgress().settings().topLevel(), java.util.Optional.empty()));
             reviews.revert(player, OAK);
             helper.assertValueEqual(progress.state(player, OAK), SrsState.Leveled.NEW, "mastered state reset");
         } finally { TestPlayers.leave(player); TestPlayers.leave(other); }

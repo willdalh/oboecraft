@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.lock.ProgressView;
@@ -11,8 +12,8 @@ import net.minecraft.world.entity.player.Player;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The local player's SRS states, as the server sent them, and the client's estimate of the server's time. It never
- * changes a state on its own: only messages from the server do.
+ * The local player's SRS states and the server settings, as the server sent them, and the client's estimate of the
+ * server's time. It never changes a state or a setting on its own: only messages from the server do.
  */
 public final class ClientProgress implements ProgressView {
     /**
@@ -21,28 +22,35 @@ public final class ClientProgress implements ProgressView {
      *
      * @param connection     the connection the states came over
      * @param progress       the states
+     * @param settings       the server settings
      * @param serverTime     the server's time in the latest message
      * @param receivedNanos  {@link System#nanoTime} when that message arrived, which ignores changes to the
      *                       computer's clock
      */
-    private record Snapshot(ClientPacketListener connection, Progress progress, Instant serverTime, long receivedNanos) {
+    private record Snapshot(
+            ClientPacketListener connection, Progress progress, Settings settings, Instant serverTime,
+            long receivedNanos) {
         Snapshot withServerTime(Instant time) {
-            return new Snapshot(connection, progress, time, System.nanoTime());
+            return new Snapshot(connection, progress, settings, time, System.nanoTime());
         }
     }
 
     private volatile @Nullable Snapshot snapshot;
 
-    /** Replaces all states with the ones the server sent when the player joined. */
-    public void sync(ClientPacketListener connection, Progress progress, Instant serverTime) {
-        snapshot = new Snapshot(connection, progress, serverTime, System.nanoTime());
+    /**
+     * Replaces all states and the settings with the ones the server sent when the player joined, or when its settings
+     * changed.
+     */
+    public void sync(ClientPacketListener connection, Progress progress, Settings settings, Instant serverTime) {
+        snapshot = new Snapshot(connection, progress, settings, serverTime, System.nanoTime());
     }
 
     /** Stores a state the server sent. Ignored before the server sent all states for this connection. */
     public void update(ClientPacketListener connection, ItemId item, SrsState state, Instant serverTime) {
         Snapshot current = current(connection);
         if (current != null) {
-            snapshot = new Snapshot(connection, current.progress().with(item, state), serverTime, System.nanoTime());
+            snapshot = new Snapshot(connection, current.progress().with(item, state), current.settings(), serverTime,
+                    System.nanoTime());
         }
     }
 
@@ -78,11 +86,11 @@ public final class ClientProgress implements ProgressView {
     public ProgressView capture() {
         Snapshot current = current();
         return current == null ? Captured.EMPTY : new Captured(current.progress(),
-                current.serverTime().plusNanos(System.nanoTime() - current.receivedNanos()));
+                current.serverTime().plusNanos(System.nanoTime() - current.receivedNanos()), current.settings());
     }
 
-    private record Captured(@Nullable Progress progress, Instant now) implements ProgressView {
-        private static final Captured EMPTY = new Captured(null, Instant.EPOCH);
+    private record Captured(@Nullable Progress progress, Instant now, Settings settings) implements ProgressView {
+        private static final Captured EMPTY = new Captured(null, Instant.EPOCH, Settings.DEFAULTS);
 
         @Override
         public boolean hasProgress(Player player) {
@@ -117,5 +125,15 @@ public final class ClientProgress implements ProgressView {
             return Instant.EPOCH;
         }
         return current.serverTime().plusNanos(System.nanoTime() - current.receivedNanos());
+    }
+
+    /**
+     * The server settings sent on this connection. Before the server sent them, the defaults, which no lock check
+     * uses, since locks aren't active then.
+     */
+    @Override
+    public Settings settings() {
+        Snapshot current = current();
+        return current == null ? Settings.DEFAULTS : current.settings();
     }
 }

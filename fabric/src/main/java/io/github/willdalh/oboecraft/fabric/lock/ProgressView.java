@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.lock;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import java.time.Instant;
 import net.minecraft.world.entity.player.Player;
@@ -18,4 +19,10 @@ public interface ProgressView {
 
     /** The current time: the clock on the server, and the client's estimate of the server's time on the client. */
     Instant now();
+
+    /**
+     * The server settings that apply: the server's own on the server, and the ones the server sent on the client. The
+     * lock check and the displays read them here, so both sides use the same settings.
+     */
+    Settings settings();
 }

@@ -1,0 +1,166 @@
+package io.github.willdalh.oboecraft.fabric.client.settings;
+
+import io.github.willdalh.oboecraft.core.settings.DurationText;
+import io.github.willdalh.oboecraft.core.settings.LevelsText;
+import io.github.willdalh.oboecraft.core.settings.Settings;
+import io.github.willdalh.oboecraft.fabric.OboecraftMod;
+import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
+import io.github.willdalh.oboecraft.fabric.settings.ServerSettingsFile;
+import java.io.IOException;
+import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * The mod's settings screen, which Mod Menu opens. The client settings are the player's own. The server settings are
+ * the ones in this computer's settings file, which singleplayer worlds and worlds opened to LAN use, and can only be
+ * changed while the player isn't on another server. On another server, the screen shows that server's settings and
+ * can't change them.
+ */
+public final class SettingsScreen extends Screen {
+    private static final int FIELD_WIDTH = 260;
+    private static final int GAP = 4;
+    private static final int CLIENT_TOP = 22;
+    private static final int SERVER_TOP = 46;
+    /** A label and its field. */
+    private static final int ROW_HEIGHT = 34;
+    private static final int LABEL_COLOR = 0xFFA0A0A0;
+
+    private final @Nullable Screen parent;
+    private final boolean serverEditable;
+    private ClientSettings clientSettings;
+    private Settings serverSettings;
+    private @Nullable CycleButton<Boolean> clickableButtons;
+    private @Nullable EditBox intervals;
+    private @Nullable EditBox demotions;
+    private @Nullable EditBox banLength;
+    private @Nullable EditBox percentageFactor;
+    private @Nullable CycleButton<Boolean> dropCountsAsInteraction;
+    private Component error = Component.empty();
+
+    public SettingsScreen(@Nullable Screen parent) {
+        super(Component.translatable("oboecraft.settings.title"));
+        this.parent = parent;
+        var minecraft = net.minecraft.client.Minecraft.getInstance();
+        serverEditable = minecraft.getConnection() == null || minecraft.hasSingleplayerServer();
+        clientSettings = OboecraftClient.clientSettings();
+        serverSettings = serverEditable
+                ? ServerSettingsFile.read(ServerSettingsFile.path())
+                : OboecraftClient.progress().settings();
+    }
+
+    @Override
+    protected void init() {
+        int x = (width - FIELD_WIDTH) / 2;
+        int halfWidth = (FIELD_WIDTH - GAP) / 2;
+        clickableButtons = addRenderableWidget(CycleButton.onOffBuilder(clientSettings.clickableButtons())
+                .create(x, CLIENT_TOP, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.clickable_buttons")));
+        int y = SERVER_TOP + 10;
+        intervals = field(x, y, FIELD_WIDTH, LevelsText.intervals(serverSettings.levels()),
+                "oboecraft.settings.intervals");
+        y += ROW_HEIGHT;
+        demotions = field(x, y, FIELD_WIDTH, LevelsText.demotions(serverSettings.levels()),
+                "oboecraft.settings.demotions");
+        y += ROW_HEIGHT;
+        banLength = field(x, y, halfWidth, DurationText.format(serverSettings.banLength()),
+                "oboecraft.settings.ban_length");
+        percentageFactor = field(x + halfWidth + GAP, y, halfWidth, Integer.toString(serverSettings.percentageFactor()),
+                "oboecraft.settings.percentage_factor");
+        y += ROW_HEIGHT;
+        dropCountsAsInteraction = addRenderableWidget(CycleButton.onOffBuilder(serverSettings.dropCountsAsInteraction())
+                .create(x, y, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.drop")));
+        dropCountsAsInteraction.active = serverEditable;
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> save())
+                .bounds(x, height - 24, halfWidth, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> onClose())
+                .bounds(x + halfWidth + GAP, height - 24, halfWidth, 20).build());
+    }
+
+    /** A text field for a server setting, with its label above it, which can't be typed in on another server. */
+    private EditBox field(int x, int labelY, int fieldWidth, String value, String label) {
+        EditBox box = new EditBox(font, x, labelY + 10, fieldWidth, 20, Component.translatable(label));
+        box.setMaxLength(Settings.MAX_LEVELS * 12);
+        box.setValue(value);
+        box.setEditable(serverEditable);
+        return addRenderableWidget(box);
+    }
+
+    /**
+     * Saves both kinds of settings and closes the screen. Server settings that aren't valid aren't saved: the screen
+     * stays open and says what is wrong. Saved server settings are used at once by a singleplayer world or a world
+     * opened to LAN that is running.
+     */
+    private void save() {
+        Settings newServerSettings = serverSettings;
+        if (serverEditable) {
+            try {
+                newServerSettings = new Settings(LevelsText.parse(intervals.getValue(), demotions.getValue()),
+                        DurationText.parse(banLength.getValue()), parsePercentageFactor(percentageFactor.getValue()),
+                        dropCountsAsInteraction.getValue());
+            } catch (IllegalArgumentException e) {
+                error = Component.literal(e.getMessage()).withStyle(ChatFormatting.RED);
+                return;
+            }
+        }
+        ClientSettings newClientSettings = new ClientSettings(clickableButtons.getValue());
+        try {
+            ClientSettingsFile.write(ClientSettingsFile.path(), newClientSettings);
+            if (serverEditable) {
+                ServerSettingsFile.write(ServerSettingsFile.path(), newServerSettings);
+            }
+        } catch (IOException e) {
+            OboecraftMod.LOGGER.error("Couldn't save the settings", e);
+            error = Component.translatable("oboecraft.settings.save_failed").withStyle(ChatFormatting.RED);
+            return;
+        }
+        OboecraftClient.useClientSettings(newClientSettings);
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (serverEditable && server != null) {
+            Settings applied = newServerSettings;
+            server.execute(() -> OboecraftMod.serverProgress().useSettings(applied));
+        }
+        onClose();
+    }
+
+    private static int parsePercentageFactor(String text) {
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("\"" + text.trim() + "\" isn't a whole number of percentage points", e);
+        }
+    }
+
+    @Override
+    public void onClose() {
+        minecraft.gui.setScreen(parent);
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        super.extractRenderState(graphics, mouseX, mouseY, a);
+        int x = (width - FIELD_WIDTH) / 2;
+        graphics.centeredText(font, title, width / 2, 8, -1);
+        graphics.text(font, Component.translatable(serverEditable
+                ? "oboecraft.settings.server" : "oboecraft.settings.server_remote"), x, SERVER_TOP, -1);
+        for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor)) {
+            graphics.text(font, box.getMessage(), box.getX(), box.getY() - 10, LABEL_COLOR);
+        }
+        int errorY = dropCountsAsInteraction.getY() + 24;
+        for (var line : font.split(error, FIELD_WIDTH)) {
+            graphics.text(font, line, x, errorY, -1);
+            errorY += 10;
+        }
+    }
+
+    /** The error shown after a save that failed, empty if none. Client game tests read it. */
+    public Component error() {
+        return error;
+    }
+}

@@ -3,6 +3,7 @@ package io.github.willdalh.oboecraft.fabric.gametest;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
@@ -110,7 +111,7 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
             // Only server time changes: the next frame expires the timer, name and marker without a new SRS state.
             sync(context, singleplayer, unlocked, NOW.plusSeconds(600));
             context.runOnClient(client -> checkDisplay(client, new ItemStack(Items.OAK_LOG), true, false, false));
-            sync(context, singleplayer, new SrsState.Leveled(OboecraftMod.settings().topLevel(), Optional.empty()), NOW);
+            sync(context, singleplayer, new SrsState.Leveled(Settings.DEFAULTS.topLevel(), Optional.empty()), NOW);
             context.runOnClient(client -> checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false));
 
             sync(context, singleplayer, SrsState.Leveled.NEW, NOW);
@@ -132,12 +133,12 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
                 });
                 check(captured.hasProgress(client.player) && captured.now() == time, "captured view keeps its state and time");
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false);
-                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, NOW);
+                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, Settings.DEFAULTS, NOW);
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), true, false, false);
                 // A snapshot with no connection must never activate this connection's display.
-                OboecraftClient.progress().sync(null, Progress.EMPTY, NOW);
+                OboecraftClient.progress().sync(null, Progress.EMPTY, Settings.DEFAULTS, NOW);
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false);
-                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, NOW);
+                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, Settings.DEFAULTS, NOW);
             });
             bundleTooltip(context, singleplayer);
         } finally {
