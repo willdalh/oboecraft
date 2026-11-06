@@ -29,6 +29,16 @@ jobs:
       # build runs the core unit tests and the Fabric game tests on a headless server.
       - run: ./gradlew build
 
+      # The client game tests run a real client in a virtual display. Minecraft can't get an OpenGL context from
+      # Xvfb's software GLX, so it falls back to Vulkan, which Mesa's lavapipe driver runs on the CPU.
+      - name: Install a virtual display and a software Vulkan driver
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb mesa-vulkan-drivers
+
+      - name: Run the client game tests
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+        run: xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClientGameTest
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -38,4 +48,5 @@ jobs:
             */build/test-results/
             fabric/build/run/*/logs/
             fabric/build/run/*/crash-reports/
+            fabric/build/run/*/screenshots/
           if-no-files-found: ignore

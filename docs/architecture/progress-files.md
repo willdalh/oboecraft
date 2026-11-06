@@ -2,7 +2,7 @@
 
 Progress is saved as JSON files with a format version, see [ADR: Progress saved as versioned JSON files](../decisions/20261105-progress-save-format.md). `ProgressFiles` in `fabric` reads and writes them and turns them into core `Progress` values.
 
-The format was designed in milestone 3a. Until milestone 3b is merged, this page describes what 3b builds, and 3b updates it where the code ends up different.
+The format was designed in milestone 3a and built in milestone 3b. So far only leveled states with a level and a locks-at time are written. The other fields and kinds in the example below are added by milestones 8 and 9. They are left out when unset, so adding them needs no new format version.
 
 ## Where the files are
 
@@ -41,10 +41,11 @@ The server tells the host apart from LAN guests by whether the player owns the s
 ```
 
 - `items` is keyed by item id. Items at `Leveled.NEW` are left out.
-- `kind` is `leveled`, `known` or `ignored`.
+- `kind` is `leveled`, `known` or `ignored`. A kind this version of the mod doesn't know makes the file broken, see below.
 - Fields that are unset, false or 0 are left out.
 - Times are ISO 8601 in UTC, to the millisecond, so they can be read and fixed by hand.
-- Items whose ids aren't in the current name list are read and written back unchanged. States saved under a former id are moved to the current item id when the file is read, see [Items](../design/items.md#name-list-entries).
+- Items are written in the order of their ids, so a file changes little between saves.
+- Items whose ids aren't in the current name list are read and written back unchanged. Once the name list has former ids, states saved under a former id are moved to the current item id when the file is read, see [Items](../design/items.md#name-list-entries).
 
 ## Versions
 
@@ -54,4 +55,10 @@ A file with a newer version than the mod knows was saved by a newer version of t
 
 ## Writing safely
 
-A file is written to a temporary file next to it and then moved into place, so a crash while saving never leaves half a file. A file that can't be read is renamed to `<uuid>.json.broken` and kept, and the error is logged. The player starts with empty progress and is told in chat, when they join, that their progress file couldn't be read and where the broken file was kept, so they can fix it by hand or ask the server owner to.
+A file is written to a temporary file next to it, flushed to disk and then moved into place, so a crash or power loss while saving never leaves half a file.
+
+A file that isn't valid progress is renamed to `<uuid>.json.broken` and kept, or `<uuid>.json.broken.1` and so on if that name is taken, so an earlier broken file is never overwritten. The error is logged. The player starts with empty progress and is told in chat, when they join, that their progress file couldn't be read and the name the broken file was kept under, so they can fix it by hand or ask the server owner to.
+
+If the file can't be read at all, for example because of its permissions, or a broken file can't be moved, the player is disconnected with a message asking them to have the server owner check the log, and the file is left alone. Playing on would save over a file whose contents are unknown.
+
+The server only reads and writes the files on the server thread, so two saves of one file never race.

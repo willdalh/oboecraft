@@ -30,7 +30,7 @@ A leveled state has these fields:
 | Wrong attempts | Wrong attempts so far in the current review, 0 or 1. Cleared by a pass or a fail. |
 | Banned until | When the current ban ends. Empty if there has never been a ban. |
 
-Demoted, wrong attempts and bans are used from milestone 9. Until then they are always unset.
+Milestone 3b builds the level and locks-at time. Demoted, wrong attempts and banned until are added in milestone 9, which uses them. Progress files leave out unset fields, so adding them needs no upgrade of saved progress.
 
 ## Levels and intervals
 

@@ -16,7 +16,7 @@ Either way, the server starts the review only if:
 - the stack is in the player's current view, or in the result slot of the open menu, and
 - the player has no other review going.
 
-A player has at most one review at a time. Reviewing an item that isn't locked, to top up its timer early, isn't possible.
+A player has at most one review at a time. The client only asks to start a review when it has no answer menu open, so if a review is still going on the server, the player has left it, and the new review replaces it. Reviewing an item that isn't locked, to top up its timer early, isn't possible.
 
 If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it. A refusal because the item isn't locked also sends the item's state and the server's time, so the client's next check allows the action. See [Time](time.md#the-client).
 
@@ -32,7 +32,7 @@ The server works the trigger out itself, from the menu the player has open on th
 | Container | A stack in an open container, or in the inventory while a container is open, including a furnace's output | The inventory and the open container | The reviewed item |
 | Crafting | The result slot of a menu that makes its result from input slots, like the crafting grid, a stonecutter or a smithing table | The inventory and the menu's input slots | The recipe's ingredients |
 
-The answer menu opens on top of the open container's screen and goes back to it when the review ends. The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, the review is cancelled.
+The answer menu opens on top of the open container's screen and goes back to it when the review ends. Milestone 3b only opens it when no other screen is open, see [Fabric adapter](../architecture/fabric.md#the-answer-menu). The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, the review is cancelled.
 
 For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then.
 
@@ -50,7 +50,7 @@ A review has up to two attempts. An attempt is one submitted answer:
 
 A wrong attempt is saved in the item's [SRS state](srs-state.md), so it isn't lost when the player closes the menu. Closing the menu after a wrong attempt and opening it again gives one attempt, not two. Otherwise closing and reopening the menu would give unlimited attempts without punishment. Wrong attempts are cleared by a pass or a fail.
 
-Pressing Enter with an empty typing bar does nothing and isn't an attempt.
+Pressing Enter with an empty typing bar does nothing and isn't an attempt. Neither does the Enter that confirms the keyboard's kanji conversion: while the conversion has text that isn't confirmed, every key belongs to the conversion, so Esc doesn't close the menu either.
 
 The server checks the answer. The client sends the typed text and gets back pass, wrong with one attempt left, or fail.
 
@@ -94,9 +94,9 @@ The Japanese name and reading are only sent to the client when it shows them: af
 
 ## What is built when
 
-- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted. Answers pass only when they match the Japanese name or the reading exactly. The trigger is always inventory.
+- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. Answers pass only when they match the Japanese name or the reading exactly, apart from spaces at the start and end. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading are shown above the hotbar. Dying cancels the review.
 - Milestone 4: full answer checking.
 - Milestone 6: the other triggers.
-- Milestone 8: lessons, Already known, Ignore and right-clicking in the inventory.
+- Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
 - Milestone 9: two attempts, Don't know, fails and punishment.
-- Milestone 10: the reading and the notification on a pass.
+- Milestone 10: the reading and the notification on a pass, in place of the text above the hotbar.

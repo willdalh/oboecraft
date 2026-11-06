@@ -2,6 +2,8 @@
 
 Values that the [idea](../idea.md) says should be settings are read from one place, which holds the defaults. Until milestone 12, the defaults are the only values. Milestone 12 adds the settings files, sends the server settings to players, and adds the screens, without changing the code that reads the values.
 
+Each server setting is added to that place by the milestone that first uses it: the levels and their intervals in 3b, the drop setting in 6, and the demotions, the ban length and `percentageFactor` in 9.
+
 ## Server settings
 
 On a server, the server owner controls these. In singleplayer they belong to the built-in server, and the player controls them.
@@ -19,7 +21,7 @@ The top level, mastered, is always one more than the number of levels in the set
 
 The server sends its settings to each player when they join, since the client's lock check needs them too. Until milestone 12, both sides use the defaults.
 
-Settings are checked when they are read. A level must have an interval longer than zero and a demotion of at least 0, there must be at least one level, the ban length must be at least 0, and `percentageFactor` must be at least 0. Invalid settings are rejected as a whole, and the defaults are used instead.
+Settings are checked when they are read. A level must have an interval longer than zero and a demotion of at least 0, there must be at least one level, the ban length must be at least 0, and `percentageFactor` must be at least 0. Invalid settings are rejected as a whole, and the defaults are used instead. Milestone 3b checks the levels and intervals, and each later setting is checked when it is added.
 
 ## Client settings
 
