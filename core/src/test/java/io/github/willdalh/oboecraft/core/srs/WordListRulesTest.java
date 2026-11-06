@@ -24,7 +24,7 @@ class WordListRulesTest {
     @Test void ignoredDeniesEveryInteractionExceptDroppingEvenWithDropLocksEnabled() {
         for (Interaction interaction : Interaction.values()) {
             assertEquals(interaction == Interaction.DROP ? LockDecision.ALLOW : LockDecision.DENY,
-                    LockCheck.check(new SrsState.Ignored(), interaction, NOW, true, new Settings(SETTINGS.levels(), true)));
+                    LockCheck.check(new SrsState.Ignored(), interaction, NOW, true, Settings.DEFAULTS.withDropCountsAsInteraction(true)));
             assertEquals(interaction == Interaction.DROP ? LockDecision.ALLOW : LockDecision.DENY,
                     LockCheck.check(new SrsState.Ignored(), interaction, NOW, true, SETTINGS));
             assertEquals(LockDecision.ALLOW,

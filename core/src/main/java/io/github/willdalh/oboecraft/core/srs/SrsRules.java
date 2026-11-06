@@ -4,7 +4,7 @@ import io.github.willdalh.oboecraft.core.settings.Settings;
 import java.time.Instant;
 import java.util.Optional;
 
-/** When an item is locked, and how a pass changes its SRS state. */
+/** When an item is locked, and how a pass or a fail changes its SRS state. */
 public final class SrsRules {
     private SrsRules() {
     }
@@ -24,26 +24,54 @@ public final class SrsRules {
         };
     }
 
+    /**
+     * Whether the item is locked and banned at {@code now}, so it can't be reviewed. Only a fail bans an item, and it
+     * leaves the item locked.
+     */
+    public static boolean isBanned(SrsState state, Instant now, Settings settings) {
+        return state instanceof SrsState.Leveled leveled && leveled.isBannedAt(now) && isLocked(state, now, settings);
+    }
+
     /** Only these states appear in the word list and can be reverted. */
     public static boolean canRevert(SrsState state, Settings settings) {
         return !(state instanceof SrsState.Leveled leveled) || leveled.level() >= settings.topLevel();
     }
 
     /**
-     * The state after a pass at {@code now}: the item is promoted one level and stays unlocked for that level's
-     * interval, or is mastered when it reaches the top level.
+     * The state after a pass at {@code now}. The item is promoted one level and stays unlocked for that level's
+     * interval, or is mastered when it reaches the top level. A demoted item instead stays at its level, for that
+     * level's interval, and is no longer demoted. Wrong attempts are cleared.
      */
     public static SrsState pass(SrsState state, Instant now, Settings settings) {
         return switch (state) {
             case SrsState.Known known -> known;
             case SrsState.Ignored ignored -> ignored;
             case SrsState.Leveled leveled -> {
-                int level = Math.min(leveled.level() + 1, settings.topLevel());
+                boolean staysAtLevel = leveled.demoted() && leveled.level() >= 1 && leveled.level() < settings.topLevel();
+                int level = staysAtLevel ? leveled.level() : Math.min(leveled.level() + 1, settings.topLevel());
                 Optional<Instant> locksAt = level == settings.topLevel()
                         ? Optional.empty()
                         : Optional.of(now.plus(settings.interval(level)));
-                yield new SrsState.Leveled(level, locksAt);
+                yield new SrsState.Leveled(level, locksAt, false, 0, leveled.bannedUntil());
             }
         };
+    }
+
+    /**
+     * The state after a fail at {@code now}. The item drops by its level's demotion, but never below level 1, is
+     * demoted, and is banned for the ban length. Wrong attempts are cleared. Its locks-at time is unchanged: it is in
+     * the past, so the item stays locked.
+     *
+     * @throws IllegalArgumentException if the state isn't leveled from level 1 up to, but not including, the top
+     *                                  level. Level 0 is a lesson, which can't fail, and a mastered item is never
+     *                                  reviewed.
+     */
+    public static SrsState.Leveled fail(SrsState state, Instant now, Settings settings) {
+        if (!(state instanceof SrsState.Leveled leveled) || leveled.level() < 1
+                || leveled.level() >= settings.topLevel()) {
+            throw new IllegalArgumentException("Only a leveled item below the top level can fail, not " + state);
+        }
+        int level = Math.max(1, leveled.level() - settings.demotion(leveled.level()));
+        return new SrsState.Leveled(level, leveled.locksAt(), true, 0, Optional.of(now.plus(settings.banLength())));
     }
 }

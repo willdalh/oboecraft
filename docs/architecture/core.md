@@ -2,7 +2,7 @@
 
 The `core` module holds the game rules as plain Java, in `io.github.willdalh.oboecraft.core`. This page describes its parts and their names. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b. Milestone 4 added name parts and full answer checking, and milestone 6 the interaction and the drop setting. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
+The parts were designed in milestone 3a and built in milestone 3b. Milestone 4 added name parts and full answer checking, milestone 6 the interaction and the drop setting, and milestone 9 fails, bans and punishment. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
 
 ## Rules for the core
 
@@ -26,7 +26,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
 | `core.settings` | `Settings`, `LevelSettings` | 3b |
 | `core.text` | `JapaneseText`, `Romaji` | 4 |
-| `core.punishment` | Removal rate, removal counts, protected items | 9 |
+| `core.punishment` | `Punishment`, `Recipe`, `ProtectedItems` | 9 |
 
 ### Items
 
@@ -40,9 +40,9 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### SRS state
 
-- `SrsState`: a sealed interface. It has `Leveled`, with the level and locks-at time, and stateless `Known` and `Ignored` records. `Leveled.NEW` is level 0 with no locks-at time. Milestone 9 adds the demoted flag, wrong attempts and banned-until time to `Leveled`, from [SRS state](../design/srs-state.md#leveled-state).
+- `SrsState`: a sealed interface. It has `Leveled`, with the level, locks-at time, demoted flag, wrong attempts and banned-until time from [SRS state](../design/srs-state.md#leveled-state), and stateless `Known` and `Ignored` records. `Leveled.NEW` is level 0 with no locks-at time. A second constructor takes only the level and locks-at time, for a state that was never failed. `Leveled` rejects a negative level and wrong attempts other than 0 or `MAX_WRONG_ATTEMPTS` (1). `isBannedAt(now)` is whether its latest ban ends after `now`.
 - `Progress`: one player's SRS states, a map from `ItemId` to `SrsState`. An item with no entry is `Leveled.NEW`, and storing `Leveled.NEW` removes the entry, so only items the player has interacted with are kept. It also keeps states for item ids that aren't in the current name list, so they survive a name list change. `with(item, state)` returns new progress with one state changed.
-- `SrsRules`: `isLocked(state, now, settings)` and `pass(state, now, settings)`. Milestone 9 adds `fail`. `canRevert(state, settings)` restricts the word list and Revert to known, ignored and mastered states.
+- `SrsRules`: `isLocked(state, now, settings)`, `isBanned(state, now, settings)`, which is only true for a locked item, `pass(state, now, settings)`, which doesn't promote a demoted item, and `fail(state, now, settings)`, which only accepts a leveled state from level 1 below the top level. `canRevert(state, settings)` restricts the word list and Revert to known, ignored and mastered states.
 
 `DisplayRules.of(state, now, settings)` returns a sealed `DisplayState`: `Hidden` for locked items, `Timed(LockTimer)` for unlocked items with an interval, or `Normal` for mastered items. The rules use `SrsRules.isLocked` once, without inventing an interaction. The type cannot represent a hidden item with a running timer. Milestones 8 and 9 extend these explicit display rules for their new states.
 
@@ -50,7 +50,7 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### Lock check
 
-- `LockDecision`: `ALLOW`, `REVIEW` or `DENY`. Milestone 9 adds `BANNED`.
+- `LockDecision`: `ALLOW`, `REVIEW`, `BANNED` or `DENY`.
 - `Interaction`: what the player tries to do, one value per kind in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do), like `PLACE`, `INGREDIENT` or `DROP`. Which game action is which interaction is a Minecraft question, so `fabric` decides it.
 - `LockCheck.check(state, interaction, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) for an item, in order. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states. A stack that isn't in the name list has no SRS state, so `fabric` allows it before it gets here (rule 1). `DROP` is allowed unless `Settings.dropCountsAsInteraction()` is on (rule 3).
 
@@ -60,12 +60,24 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### Reviews
 
-- `ReviewRules.start(state, now, settings)`: whether a review can start, as a `ReviewStart`: `Started` with the level, or `NotLocked`. It decides "not locked" with `SrsRules.isLocked`, so it agrees with the lock check when settings change the top level. Later milestones add whether it is a lesson and the attempts left to `Started`, and a `Banned` result.
+- `ReviewRules.start(state, now, settings)`: whether a review can start, as a `ReviewStart`: `Started` with the level and the attempts left, `NotLocked`, or `Banned` with when the ban ends. It decides with `SrsRules.isLocked` and `isBanned`, so it agrees with the lock check when settings change the top level. `ATTEMPTS` is the two attempts of a review. A lesson always has both, since it doesn't count wrong answers.
 - `ReviewRules.isAttempt(typed)`: whether typed text counts as an attempt. Text that normalizes to nothing, with `JapaneseText.normalize`, doesn't, so the client and server agree with answer checking about what is empty.
-- `ReviewRules.answer(entry, state, typed, now, settings)`: the result of an answer as a `ReviewResult`, which holds the `ReviewOutcome` (`PASS`, `WRONG` or `LESSON`) and the new state. Milestone 9 adds the fail outcome, `dontKnow`, and the level before the review, which punishment needs.
+- `ReviewRules.answer(entry, state, typed, now, settings)` and `dontKnow(state, now, settings)`: the result as a `ReviewResult`, which holds the `ReviewOutcome` (`PASS`, `WRONG`, `LESSON` or `FAIL`), the new state, and the level before the review, which punishment needs. A wrong first answer returns `WRONG` with the wrong attempt saved in the state, and a wrong second answer or Don't know returns `FAIL` with `SrsRules.fail`. Both only accept a leveled state.
 - `AnswerChecker.isCorrect(entry, typed)`: whether a typed answer is correct, with the rules in [Answers](../design/answers.md). See [Answer checking](#answer-checking).
 
 The trigger isn't in the core. It is a Minecraft concept, about menus and slots, so `fabric` keeps it and turns it into counts for punishment.
+
+### Punishment
+
+The rules are in [Punishment](../design/punishment.md).
+
+- `Punishment.removalPercent(level, settings)`: the removal rate in whole percent, from `BASE_REMOVAL_PERCENT` (50) and `Settings.percentageFactor`, never below 0. It rejects level 0, since lessons aren't punished.
+- `Punishment.removedCount(item, inView, level, settings)`: how many of the reviewed item a fail removes from what the current view has, 0 for a protected item.
+- `Punishment.removedIngredients(recipe, inView, level, settings)`: how many of each ingredient a fail on a crafted item removes, leaving out protected ingredients and those with nothing to remove.
+- `Recipe`: what one craft uses, as a map from `ItemId` to uses and the total number of uses, which also counts ingredients that aren't items. It rejects uses below 1 and a total below the items' uses.
+- `ProtectedItems.isProtected(item)`: the fixed list of protected item ids, `IDS`, built once.
+
+Every count is `count × part × percent / (whole × 100)`, rounded up, in `long` integer arithmetic, so no share is rounded up because of a floating-point error. It is never more than the count.
 
 ### Answer checking
 
@@ -93,8 +105,8 @@ The answer checker only keeps what depends on the answer: the states it has visi
 
 ### Settings
 
-- `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels and `dropCountsAsInteraction`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` is a level's interval.
-- `LevelSettings`: one level's interval. Milestone 9 adds the level's demotion.
+- `LevelSettings`: one level's interval and demotion.
+- `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels, `banLength`, `percentageFactor` and `dropCountsAsInteraction`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` and `demotion(level)` are a level's interval and demotion. `withLevels`, `withBanLength`, `withPercentageFactor` and `withDropCountsAsInteraction` return a copy with one setting changed.
 
 Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, and the ban length and `percentageFactor` in 9.
 

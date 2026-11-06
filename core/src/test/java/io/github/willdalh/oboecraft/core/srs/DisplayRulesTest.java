@@ -29,18 +29,18 @@ class DisplayRulesTest {
     @Test
     void displayUsesConfiguredIntervalsAndTopLevel() {
         var state = new SrsState.Leveled(2, Optional.of(NOW.plusSeconds(120)));
-        Settings settings = new Settings(List.of(new LevelSettings(Duration.ofSeconds(30)),
-                new LevelSettings(Duration.ofSeconds(120))), false);
+        Settings settings = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(Duration.ofSeconds(30), 1),
+                new LevelSettings(Duration.ofSeconds(120), 1)));
         DisplayState.Timed timed = assertInstanceOf(DisplayState.Timed.class, DisplayRules.of(state, NOW, settings));
         assertEquals(Duration.ofSeconds(120), timed.timer().interval());
         assertEquals(DisplayState.Normal.INSTANCE, DisplayRules.of(state, NOW,
-                new Settings(List.of(new LevelSettings(Duration.ofSeconds(30))), false)));
+                Settings.DEFAULTS.withLevels(List.of(new LevelSettings(Duration.ofSeconds(30), 1)))));
     }
 
     @Test
     void markerOnlyPathAgreesWithFullDisplayAtEveryBoundary() {
         for (Duration interval : List.of(Duration.ofNanos(100), Duration.ofMinutes(10), Duration.ofDays(1_000_000))) {
-            Settings settings = new Settings(List.of(new LevelSettings(interval)), false);
+            Settings settings = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(interval, 1)));
             Instant end = NOW.plus(interval);
             Instant warning = end.minus(interval.dividedBy(10));
             for (SrsState state : List.of(SrsState.Leveled.NEW,

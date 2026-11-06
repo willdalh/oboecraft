@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
+import java.util.Optional;
 
 /**
  * The playable loop through a real client in singleplayer: right-clicking with a locked oak log opens the answer
@@ -96,6 +97,40 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             singleplayer.getConnection().waitForServerboundPackets();
             context.waitTicks(2);
             assertBlock(singleplayer, target.above(), true, "an unlocked oak log is placed");
+
+            // Locked again at level 1, Don't know fails: half of the 3 logs in hand, rounded up, are removed, and the
+            // menu shows the answer until it is closed.
+            singleplayer.getServer().runOnServer(server -> OboecraftMod.serverProgress().update(
+                    server.getPlayerList().getPlayers().getFirst(), OAK_LOG,
+                    new SrsState.Leveled(1, Optional.of(OboecraftMod.serverProgress().now()))));
+            singleplayer.getConnection().waitForClientboundPackets();
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+            context.waitForScreen(AnswerScreen.class);
+            singleplayer.getConnection().waitForServerboundPackets();
+            context.getInput().pressKey(InputConstants.KEY_DELETE);
+            context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail());
+            context.takeScreenshot("answer-menu-failed");
+            int logsLeft = singleplayer.getServer().computeOnServer(server ->
+                    server.getPlayerList().getPlayers().getFirst().getMainHandItem().getCount());
+            if (logsLeft != 1) {
+                throw new AssertionError("A fail at level 1 should leave 1 of 3 oak logs, not " + logsLeft);
+            }
+            context.getInput().pressKey(InputConstants.KEY_RETURN);
+            context.waitFor(client -> !(client.gui.screen() instanceof AnswerScreen));
+
+            // The oak log is banned, so right-clicking neither places it nor opens the answer menu.
+            singleplayer.getConnection().waitForClientboundPackets();
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+            singleplayer.getConnection().waitForServerboundPackets();
+            context.waitTicks(2);
+            if (context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen)) {
+                throw new AssertionError("A banned item must not open the answer menu");
+            }
+            int logsAfterBan = singleplayer.getServer().computeOnServer(server ->
+                    server.getPlayerList().getPlayers().getFirst().getMainHandItem().getCount());
+            if (logsAfterBan != 1) {
+                throw new AssertionError("A banned oak log must not be placed");
+            }
 
             // Start a fresh lesson, mark it known, then revert it through the real word list.
             singleplayer.getServer().runOnServer(server -> OboecraftMod.serverProgress().update(

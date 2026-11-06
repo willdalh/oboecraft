@@ -7,6 +7,7 @@ import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.lock.IgnoredItems;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
+import io.github.willdalh.oboecraft.core.punishment.Punishment;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
@@ -115,12 +116,16 @@ public final class ServerReviews {
         }
         switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
             case ReviewStart.Started started -> {
-                Trigger trigger = Trigger.of(player, location);
+                Trigger trigger = Trigger.of(player, location, itemMapping);
                 active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
-                ServerPlayNetworking.send(
-                        player, new ReviewStarted(progress.now(), reviewId, item, started.level()));
+                ServerPlayNetworking.send(player, new ReviewStarted(
+                        progress.now(), reviewId, item, started.level(), started.attemptsLeft()));
             }
             case ReviewStart.NotLocked notLocked -> refuseNotLocked(player, reviewId, item);
+            case ReviewStart.Banned banned -> {
+                progress.sendState(player, item);
+                refuse(player, reviewId, ReviewRefused.Reason.BANNED);
+            }
         }
     }
 
@@ -141,12 +146,13 @@ public final class ServerReviews {
     }
 
     /**
-     * Checks an answer in the review {@code reviewId}. A pass unlocks the item and ends the review. Blank answers aren't
-     * attempts and are ignored. An answer in a review that isn't going tells the client that review is cancelled.
+     * Checks an answer in the review {@code reviewId}. A pass unlocks the item and ends the review, a wrong first
+     * answer is saved as a wrong attempt, and a wrong second answer is a fail. Blank answers aren't attempts and are
+     * ignored. An answer in a review that isn't going tells the client that review is cancelled.
      */
     public void answer(ServerPlayer player, int reviewId, String typed) {
         ActiveReview review = active.get(player.getUUID());
-        if (review == null || review.reviewId() != reviewId) {
+        if (review == null || review.reviewId() != reviewId || !progress.isLoaded(player)) {
             ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
             return;
         }
@@ -154,19 +160,8 @@ public final class ServerReviews {
             return;
         }
         NameListEntry entry = review.entry();
-        ReviewResult result = ReviewRules.answer(
-                entry, progress.state(player, entry.id()), typed, progress.now(), settings);
-        Optional<ReviewAnswered.Answer> shownAnswer = Optional.empty();
-        if (result.outcome() == ReviewOutcome.PASS) {
-            active.remove(player.getUUID());
-            progress.update(player, entry.id(), result.newState());
-        }
-        if (result.outcome() == ReviewOutcome.PASS || result.outcome() == ReviewOutcome.LESSON) {
-            shownAnswer = Optional.of(new ReviewAnswered.Answer(
-                    entry.japaneseName().text(), entry.japaneseName().reading()));
-        }
-        ServerPlayNetworking.send(
-                player, new ReviewAnswered(progress.now(), reviewId, result.outcome(), shownAnswer));
+        finish(player, review, ReviewRules.answer(
+                entry, progress.state(player, entry.id()), typed, progress.now(), settings));
     }
 
     /** Applies only to the matching active review, never a client-supplied item. */
@@ -174,19 +169,76 @@ public final class ServerReviews {
         ActiveReview review = active.get(player.getUUID());
         if (review == null || review.reviewId() != reviewId || !progress.isLoaded(player)) return;
         ItemId item = review.entry().id();
-        if (action == ReviewAction.Action.SHOW_ANSWER || action == ReviewAction.Action.DONT_KNOW) {
-            if (ReviewRules.isLesson(progress.state(player, item))) {
-                var name = review.entry().japaneseName();
-                ServerPlayNetworking.send(player, new ReviewAnswered(progress.now(), reviewId, ReviewOutcome.LESSON,
-                        Optional.of(new ReviewAnswered.Answer(name.text(), name.reading()))));
+        switch (action) {
+            case SHOW_ANSWER -> {
+                if (ReviewRules.isLesson(progress.state(player, item))) {
+                    sendAnswered(player, review, ReviewOutcome.LESSON);
+                }
             }
-            return;
+            case DONT_KNOW -> finish(player, review,
+                    ReviewRules.dontKnow(progress.state(player, item), progress.now(), settings));
+            case KNOWN, IGNORE -> {
+                progress.update(player, item, action == ReviewAction.Action.KNOWN
+                        ? new SrsState.Known() : new SrsState.Ignored());
+                active.remove(player.getUUID());
+                if (action == ReviewAction.Action.IGNORE) IgnoredItems.drop(player, item);
+                ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
+            }
         }
-        progress.update(player, item, action == ReviewAction.Action.KNOWN
-                ? new SrsState.Known() : new SrsState.Ignored());
-        active.remove(player.getUUID());
-        if (action == ReviewAction.Action.IGNORE) IgnoredItems.drop(player, item);
-        ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
+    }
+
+    /**
+     * Carries out the result of an answer or Don't know. A pass or a fail ends the review. A fail first removes part
+     * of the current view, at the level the item had before the fail demoted it, and then stores the new state.
+     */
+    private void finish(ServerPlayer player, ActiveReview review, ReviewResult result) {
+        ItemId item = review.entry().id();
+        switch (result.outcome()) {
+            case PASS -> {
+                active.remove(player.getUUID());
+                progress.update(player, item, result.newState());
+            }
+            case FAIL -> {
+                active.remove(player.getUUID());
+                punish(player, review, result.levelBefore());
+                progress.update(player, item, result.newState());
+            }
+            case WRONG -> progress.update(player, item, result.newState());
+            case LESSON -> {
+            }
+        }
+        sendAnswered(player, review, result.outcome());
+    }
+
+    /**
+     * Removes part of the current view for a fail at {@code level}: the reviewed item, or for a crafting trigger the
+     * recipe's ingredients, whatever is in the input slots by now.
+     */
+    private void punish(ServerPlayer player, ActiveReview review, int level) {
+        CurrentView view = CurrentView.of(player, review.trigger(), itemMapping);
+        Map<ItemId, Integer> inView = view.counts();
+        ItemId item = review.entry().id();
+        Map<ItemId, Integer> removed = switch (review.trigger()) {
+            case Trigger.Crafting crafting -> Punishment.removedIngredients(crafting.recipe(), inView, level, settings);
+            case Trigger.Inventory inventory -> removedOfItem(item, inView, level);
+            case Trigger.Container container -> removedOfItem(item, inView, level);
+        };
+        view.remove(removed);
+    }
+
+    private Map<ItemId, Integer> removedOfItem(ItemId item, Map<ItemId, Integer> inView, int level) {
+        int count = Punishment.removedCount(item, inView.getOrDefault(item, 0), level, settings);
+        return count > 0 ? Map.of(item, count) : Map.of();
+    }
+
+    /** Tells the client how the answer turned out, with the Japanese name when the client shows it. */
+    private void sendAnswered(ServerPlayer player, ActiveReview review, ReviewOutcome outcome) {
+        Optional<ReviewAnswered.Answer> shownAnswer = outcome == ReviewOutcome.WRONG
+                ? Optional.empty()
+                : Optional.of(new ReviewAnswered.Answer(
+                        review.entry().japaneseName().text(), review.entry().japaneseName().reading()));
+        ServerPlayNetworking.send(
+                player, new ReviewAnswered(progress.now(), review.reviewId(), outcome, shownAnswer));
     }
 
     /** Only known, ignored and mastered entries belonging to the sender can be reverted. */

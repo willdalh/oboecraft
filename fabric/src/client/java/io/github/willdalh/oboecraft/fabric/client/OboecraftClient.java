@@ -58,11 +58,11 @@ public final class OboecraftClient implements ClientModInitializer {
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewStarted.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewStarted(payload.reviewId(), payload.item(), payload.level());
+            reviews.reviewStarted(payload.reviewId(), payload.item(), payload.level(), payload.attemptsLeft());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewRefused.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewEnded(payload.reviewId());
+            reviews.reviewRefused(payload.reviewId(), payload.reason());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewAnswered.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());

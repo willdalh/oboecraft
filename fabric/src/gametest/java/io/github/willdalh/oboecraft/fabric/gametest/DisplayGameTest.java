@@ -35,7 +35,7 @@ public class DisplayGameTest {
     public void displayAndInteractionsUseTheSameSettings(GameTestHelper helper) {
         var player = TestPlayers.join(helper, UUID.randomUUID());
         try {
-            var settings = new Settings(List.of(new LevelSettings(Duration.ofSeconds(100))), false);
+            var settings = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(Duration.ofSeconds(100), 1)));
             var locks = new Locks(OboecraftMod.itemMapping(), settings);
             var stack = new ItemStack(Items.OAK_LOG);
             var mastered = new FixedProgress(new SrsState.Leveled(2, Optional.of(NOW.minusSeconds(1))));

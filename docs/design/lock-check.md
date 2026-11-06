@@ -81,7 +81,7 @@ A drag over several slots checks each slot as it is added, so a locked stack is 
 
 ## What is built when
 
-Milestone 3b builds the decisions Allow and Review, and rules 1, 2, 7 and 9, for placing. Milestone 6 adds the interaction as an input, rule 3 with the drop setting, and the check for every interaction. Milestone 8 adds rules 4 to 6 with Deny and picking up, and milestone 9 adds rule 8 with Banned.
+Milestone 3b builds the decisions Allow and Review, and rules 1, 2, 7 and 9, for placing. Milestone 6 adds the interaction as an input, rule 3 with the drop setting, and the check for every interaction. Milestone 8 adds rules 4 to 6 with Deny and picking up, and milestone 9 adds rule 8 with Banned. When the client's lock check decides banned, it tells the player above the hotbar how long the ban has left. The server stops the action too, but doesn't ask for the answer menu.
 
 ## Opening the answer menu on purpose
 

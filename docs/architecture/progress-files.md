@@ -2,7 +2,7 @@
 
 Progress is saved as JSON files with a format version, see [ADR: Progress saved as versioned JSON files](../decisions/20261105-progress-save-format.md). `ProgressFiles` in `fabric` reads and writes them and turns them into core `Progress` values.
 
-Format 2 stores leveled, known and ignored states. Format 1 files are read unchanged and written as format 2 on the next save. The version increases because older code treats an unknown kind as a broken file; it must instead refuse a newer save without replacing it. Demotion, wrong attempts and bans in the example below are still planned for milestone 9.
+Format 2 stores leveled, known and ignored states. Format 1 files are read unchanged and written as format 2 on the next save. The version increases because older code treats an unknown kind as a broken file; it must instead refuse a newer save without replacing it. Milestone 9 added the optional fields `demoted`, `wrongAttempts` and `bannedUntil` without a new version: format 2 files without them read as before. An older format 2 reader ignores them, so after a downgrade a failed item loses its demotion and ban, but nothing else.
 
 ## Where the files are
 
@@ -42,7 +42,7 @@ The server tells the host apart from LAN guests by whether the player owns the s
 
 - `items` is keyed by item id. Items at `Leveled.NEW` are left out.
 - `kind` is `leveled`, `known` or `ignored`. A kind this version of the mod doesn't know makes the file broken, see below.
-- Fields that are unset, false or 0 are left out.
+- Fields that are unset, false or 0 are left out. `wrongAttempts` is 0 or 1, and any other value makes the file broken.
 - Times are ISO 8601 in UTC, to the millisecond, so they can be read and fixed by hand.
 - Items are written in the order of their ids, so a file changes little between saves.
 - Items whose ids aren't in the current name list are read and written back unchanged. Once the name list has former ids, states saved under a former id are moved to the current item id when the file is read, see [Items](../design/items.md#name-list-entries).

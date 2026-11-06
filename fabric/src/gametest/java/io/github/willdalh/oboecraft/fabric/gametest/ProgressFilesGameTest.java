@@ -77,6 +77,34 @@ public class ProgressFilesGameTest {
     }
 
     @GameTest
+    public void aFailedItemMatchesTheDocumentedFormatAndIsReadBack(GameTestHelper helper) throws IOException {
+        Path file = temporaryFile();
+        SrsState failed = new SrsState.Leveled(4, Optional.of(Instant.parse("2026-11-05T09:00:00Z")), true, 1,
+                Optional.of(Instant.parse("2026-11-06T12:05:00Z")));
+        Progress progress = Progress.EMPTY.with(new ItemId("block.minecraft.diamond_block"), failed);
+
+        ProgressFiles.write(file, progress);
+
+        String expected = """
+                {
+                  "version": 2,
+                  "items": {
+                    "block.minecraft.diamond_block": {
+                      "kind": "leveled",
+                      "level": 4,
+                      "locksAt": "2026-11-05T09:00:00.000Z",
+                      "demoted": true,
+                      "wrongAttempts": 1,
+                      "bannedUntil": "2026-11-06T12:05:00.000Z"
+                    }
+                  }
+                }""";
+        helper.assertValueEqual(Files.readString(file, StandardCharsets.UTF_8), expected, "file");
+        helper.assertValueEqual(ProgressFiles.read(file), new ProgressFiles.ReadResult.Loaded(progress), "read");
+        helper.succeed();
+    }
+
+    @GameTest
     public void aMissingFileIsNoProgress(GameTestHelper helper) throws IOException {
         helper.assertValueEqual(ProgressFiles.read(temporaryFile()), new ProgressFiles.ReadResult.Missing(), "read");
         helper.succeed();
@@ -102,6 +130,10 @@ public class ProgressFilesGameTest {
             "{\"version\": 1, \"items\": {\"block.minecraft.oak_log\": {\"kind\": \"leveled\", \"level\": -1}}}",
             "{\"version\": 1, \"items\": {\"block.minecraft.oak_log\": "
                     + "{\"kind\": \"leveled\", \"level\": 1, \"locksAt\": \"tomorrow\"}}}",
+            "{\"version\": 2, \"items\": {\"block.minecraft.oak_log\": "
+                    + "{\"kind\": \"leveled\", \"level\": 1, \"wrongAttempts\": 2}}}",
+            "{\"version\": 2, \"items\": {\"block.minecraft.oak_log\": "
+                    + "{\"kind\": \"leveled\", \"level\": 1, \"bannedUntil\": \"soon\"}}}",
         };
         for (String text : invalid) {
             helper.assertTrue(readText(text) instanceof ProgressFiles.ReadResult.Broken, "broken: " + text);

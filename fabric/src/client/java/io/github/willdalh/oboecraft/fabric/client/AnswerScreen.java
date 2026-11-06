@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
+import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
@@ -34,6 +35,10 @@ public final class AnswerScreen extends Screen {
     private static final Component INPUT_LABEL = Component.translatable("oboecraft.answer_menu.input");
     private static final Component WRONG = Component.translatable("oboecraft.answer_menu.wrong")
             .withStyle(ChatFormatting.RED);
+    private static final Component ATTEMPT_LEFT = Component.translatable("oboecraft.answer_menu.attempt_left")
+            .withStyle(ChatFormatting.GOLD);
+    private static final Component FAILED = Component.translatable("oboecraft.answer_menu.failed")
+            .withStyle(ChatFormatting.RED);
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
 
@@ -42,10 +47,12 @@ public final class AnswerScreen extends Screen {
     private final ItemStack icon;
     private final @Nullable AbstractContainerScreen<?> menuScreen;
     private int level;
+    private int attemptsLeft;
     private List<FormattedCharSequence> hintLines = List.of();
     private @Nullable EditBox input;
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
+    private boolean failed;
     private boolean composing;
     private boolean endedByServer;
 
@@ -53,16 +60,17 @@ public final class AnswerScreen extends Screen {
      * @param reviewId   the id of the review, which every message about it carries
      * @param item       the item under review
      * @param icon       the stack being reviewed, shown without its name
-     * @param level      the item's level as the client knows it, until the server says
+     * @param expected   the item's level and attempts left as the client knows them, until the server says
      * @param menuScreen the screen of the open menu that the answer menu opens over, or null if none is open
      */
-    AnswerScreen(
-            int reviewId, ItemId item, ItemStack icon, int level, @Nullable AbstractContainerScreen<?> menuScreen) {
+    AnswerScreen(int reviewId, ItemId item, ItemStack icon, ReviewStart.Started expected,
+            @Nullable AbstractContainerScreen<?> menuScreen) {
         super(TITLE);
         this.reviewId = reviewId;
         this.item = item;
         this.icon = icon;
-        this.level = level;
+        this.level = expected.level();
+        this.attemptsLeft = expected.attemptsLeft();
         this.menuScreen = menuScreen;
     }
 
@@ -84,12 +92,19 @@ public final class AnswerScreen extends Screen {
         return wrong;
     }
 
+    /** Whether the review failed, so the menu shows the answer until the player closes it. Client game tests read it. */
+    public boolean showsFail() {
+        return failed;
+    }
+
     @Override
     protected void init() {
         String typed = input == null ? "" : input.getValue();
         input = new EditBox(font, (width - INPUT_WIDTH) / 2, height / 2, INPUT_WIDTH, INPUT_HEIGHT, INPUT_LABEL);
         input.setMaxLength(SubmitAnswer.MAX_LENGTH);
         input.setValue(typed);
+        input.setEditable(!failed);
+        input.setVisible(!failed);
         input.setResponder(value -> wrong = false);
         addRenderableWidget(input);
         updateHint();
@@ -110,6 +125,12 @@ public final class AnswerScreen extends Screen {
         if (composing) {
             return true;
         }
+        if (failed) {
+            if (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event) || event.isConfirmation()) {
+                onClose();
+            }
+            return true;
+        }
         if (ReviewKeys.KNOWN.matches(event)) {
             action(ReviewAction.Action.KNOWN);
             return true;
@@ -122,7 +143,7 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.SHOW_ANSWER);
             return true;
         }
-        if (level == 0 && ReviewKeys.DONT_KNOW.matches(event)) {
+        if (ReviewKeys.DONT_KNOW.matches(event)) {
             action(ReviewAction.Action.DONT_KNOW);
             return true;
         }
@@ -140,12 +161,16 @@ public final class AnswerScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (composing) return true;
+        if (failed) {
+            if (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event)) onClose();
+            return super.mouseClicked(event, doubleClick);
+        }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
         if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             action(ReviewAction.Action.SHOW_ANSWER); return true;
         }
-        if (level == 0 && ReviewKeys.DONT_KNOW.matches(event)) {
+        if (ReviewKeys.DONT_KNOW.matches(event)) {
             action(ReviewAction.Action.DONT_KNOW); return true;
         }
         if (ReviewKeys.ANSWER.matches(event)) { submit(); return true; }
@@ -181,20 +206,38 @@ public final class AnswerScreen extends Screen {
         }
     }
 
-    /** The server started the review, at this level. */
-    void started(int level) {
-        this.level = level;
+    /** The server started the review, at this level and with these attempts left. */
+    void started(ReviewStart.Started started) {
+        this.level = started.level();
+        this.attemptsLeft = started.attemptsLeft();
         updateHint();
     }
 
     private void updateHint() {
-        hintLines = font.split(ReviewKeys.hint(level == 0), Math.max(100, width - 24));
+        Component hint = failed ? ReviewKeys.closeHint() : ReviewKeys.hint(level == 0);
+        hintLines = font.split(hint, Math.max(100, width - 24));
     }
 
-    /** The server said the answer was wrong. The typing bar is cleared, and the review goes on. */
+    /** The server said the answer was wrong. The typing bar is cleared, and the review goes on with one attempt. */
     void answeredWrong() {
         input.setValue("");
         wrong = true;
+        attemptsLeft = 1;
+    }
+
+    /**
+     * The review failed, and the server has punished it. The review is over, so the menu only shows the answer until
+     * the player closes it, and closing it tells the server nothing.
+     */
+    void failed(ReviewAnswered.Answer answer) {
+        endedByServer = true;
+        failed = true;
+        wrong = false;
+        shownAnswer = answer;
+        input.setValue("");
+        input.setEditable(false);
+        input.setVisible(false);
+        updateHint();
     }
 
     /** The server ended the review, so the menu closes without telling it. */
@@ -239,12 +282,19 @@ public final class AnswerScreen extends Screen {
             graphics.text(font, line, centerX - font.width(line) / 2, hintY, 0xFFA0A0A0);
             hintY += 12;
         }
+        int messageY = hintY + 12;
+        if (failed) {
+            graphics.centeredText(font, FAILED, centerX, messageY, -1);
+            messageY += 12;
+        }
         if (shownAnswer != null) {
             graphics.centeredText(font, Component.literal(shownAnswer.japaneseName() + " (" + shownAnswer.reading() + ")"),
-                    centerX, hintY + 12, -1);
+                    centerX, messageY, -1);
         }
         if (wrong) {
-            graphics.centeredText(font, WRONG, centerX, hintY + 12, -1);
+            graphics.centeredText(font, WRONG, centerX, messageY, -1);
+        } else if (!failed && level > 0 && attemptsLeft == 1) {
+            graphics.centeredText(font, ATTEMPT_LEFT, centerX, messageY, -1);
         }
     }
 }

@@ -24,6 +24,9 @@ final class NetworkCodecs {
     private static final StreamCodec<ByteBuf, SrsState.Leveled> LEVELED = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, SrsState.Leveled::level,
             ByteBufCodecs.optional(INSTANT), SrsState.Leveled::locksAt,
+            ByteBufCodecs.BOOL, SrsState.Leveled::demoted,
+            ByteBufCodecs.VAR_INT, SrsState.Leveled::wrongAttempts,
+            ByteBufCodecs.optional(INSTANT), SrsState.Leveled::bannedUntil,
             SrsState.Leveled::new);
 
     /** State tags are checked before any state is constructed. */
