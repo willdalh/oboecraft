@@ -184,11 +184,6 @@ Decided in milestone 9, see [Punishment](design/punishment.md):
 - A banned item shows how long its ban has left above the hotbar. Only the client shows it, from its own state: the server stops the action without a message.
 - The progress format went to version 3 for the new fields. A format 2 reader would ignore them and save the file without them, losing every demotion, ban and wrong attempt after a downgrade, so an older mod must refuse the file instead. The network protocol went to 4.
 
-### Voice
-
-- The audio for each reading is pre-generated with VOICEVOX from the reviewed reading and shipped as sound files, around 1,500 clips and 10 MB. It works offline and sounds the same for everyone.
-- VOICEVOX requires credit, in the form "VOICEVOX:<voice name>". Some voices are for non-commercial use only, so the chosen voice must allow use in a published mod. The voice is picked in milestone 10.
-
 ### Progress
 
 See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
@@ -202,7 +197,7 @@ See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-sa
 
 - The mod is built to be published, with clean licenses and credits from the start.
 - Server support is a priority from the start.
-- The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list and voice files keep their own terms, listed in the credits file [`CREDITS.md`](../CREDITS.md), which ships in the mod jar: Mojang for the Japanese names, JMdict and KANJIDIC2 (EDRDG) and SudachiDict for the readings, and VOICEVOX for the voice.
+- The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list keeps its own terms, listed in the credits file [`CREDITS.md`](../CREDITS.md), which ships in the mod jar: Mojang for the Japanese names, and JMdict and KANJIDIC2 (EDRDG) and SudachiDict for the readings.
 - JMdict and KANJIDIC2 are licensed CC BY-SA 4.0, so the readings and name parts in the name list are under CC BY-SA 4.0 too, separate from the MIT code. The Japanese names stay Mojang's. See [ADR: The name list's readings are under CC BY-SA 4.0](decisions/20261106-name-list-under-cc-by-sa.md) and [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20).
 
 ## Milestones
@@ -328,11 +323,11 @@ What later milestones should know: progress format 3 and protocol 4 carry the ne
 
 The removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
 
-### 10. Voice and notification
+### 10. Notification
 
 **Status:** not started
 
-Pick the VOICEVOX voice and generate the audio. Play it and show the notification at the top of the screen.
+Show the notification at the top of the screen after a pass, in place of the text above the hotbar. The spoken reading from `idea.md` is not part of this plan, see [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
 
 ### 11. Remaining rules
 
@@ -350,7 +345,7 @@ Server settings JSON synced to players, the client setting for clickable buttons
 
 **Status:** not started
 
-A credits file (Mojang names, JMdict, VOICEVOX) and a release build. `CREDITS.md` exists since milestone 5, with the name list's license, and the release adds VOICEVOX.
+A release build. The credits file `CREDITS.md` exists since milestone 5, with the name list's license.
 
 ## Working on a milestone
 
@@ -363,15 +358,10 @@ A milestone is implemented from this plan, [`idea.md`](idea.md) and the docs, wi
 - Show that the milestone works with tests where you can: core unit tests for the rules, and Fabric game tests for what happens in the game. The PR description says what was only checked by hand, or not at all.
 - Follow the Docs section of [AGENTS.md](../AGENTS.md): when behavior, structure or terms change, update `docs/design/`, `docs/architecture/` and `docs/glossary.md` in the same PR.
 - In the milestone's last PR, set its status to done and add a short outcome under it: what was built, where it differs from the plan, and what later milestones should know.
-- Some choices are the user's: accepting the EULA, the JMdict license question in milestone 5 and the VOICEVOX voice in milestone 10. For these, open an issue that explains the choice, and carry on with the work that doesn't depend on it.
-
-## Open questions
-
-- Which VOICEVOX voice to use. Decided in milestone 10.
+- Some choices are the user's: accepting the EULA and the JMdict license question in milestone 5. For these, open an issue that explains the choice, and carry on with the work that doesn't depend on it.
 
 ## References
 
 - [Fabric for Minecraft 26.1](https://fabricmc.net/2026/03/14/261.html): the game ships unobfuscated, Fabric uses Mojang's names, and Loom has a non-remapping plugin.
 - [Minecraft: Java Edition 26.3](https://www.minecraft.net/en-us/article/minecraft-java-edition-26-3): the version the mod targets.
-- [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/): credit is required.
 - [チュートリアル:日本語入力](https://ja.minecraft.wiki/w/チュートリアル:日本語入力): Japanese input (IME) works on all operating systems since 26.3.
