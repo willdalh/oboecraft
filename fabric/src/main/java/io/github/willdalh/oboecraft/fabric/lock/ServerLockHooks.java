@@ -40,10 +40,10 @@ public final class ServerLockHooks {
     }
 
     /**
-     * Checks an action that would interact with these stacks. When the lock check stops it, a stack in the inventory
-     * is sent again, since the client may already have used it up, and unless a review is going, the client is told
-     * to open the answer menu. A menu click needs no such resend: Minecraft sends the menu's real contents after
-     * every click.
+     * Checks an action that would interact with these stacks. When the lock check stops it, the client is sent the
+     * stack's real place again, since it may already have used up the stack or moved it, and unless a review is going,
+     * it is told to open the answer menu for the stack. The resend comes first, so the client finds the stack where
+     * the server says it is.
      *
      * @return whether the action is stopped
      */
@@ -54,9 +54,11 @@ public final class ServerLockHooks {
             return false;
         }
         StackLocation location = stopped.get().checked().location();
-        if (location instanceof StackLocation.InventorySlot slot) {
-            player.connection.send(new ClientboundSetPlayerInventoryPacket(
+        switch (location) {
+            case StackLocation.InventorySlot slot -> player.connection.send(new ClientboundSetPlayerInventoryPacket(
                     slot.index(), player.getInventory().getItem(slot.index()).copy()));
+            case StackLocation.MenuSlot menuSlot -> player.containerMenu.sendAllDataToRemote();
+            case StackLocation.Carried carried -> player.containerMenu.sendAllDataToRemote();
         }
         if (!OboecraftMod.serverReviews().isReviewing(player)) {
             ServerPlayNetworking.send(player, new ShowReview(OboecraftMod.clock().instant(), location));
@@ -65,14 +67,30 @@ public final class ServerLockHooks {
     }
 
     /**
-     * Checks a click in the player's open menu. While a review is going, every click is refused, so the current view
-     * can't be rearranged before the review ends.
+     * Whether the lock check would stop an interaction with the stack, without stopping anything or telling the
+     * client. For moves the server makes itself, which skip a locked stack and tell the client once afterwards.
+     */
+    public static boolean wouldStop(ServerPlayer player, CheckedStack checked) {
+        return OboecraftMod.locks().firstStopped(OboecraftMod.serverProgress(), player, List.of(checked)).isPresent();
+    }
+
+    /**
+     * Whether an action that could change the current view is refused because the player has a review going, so the
+     * current view stays as it was when the review started. A normal client can't act during a review, since the
+     * answer menu covers the screen, so this only stops clients that don't play by the rules.
+     */
+    public static boolean refusedDuringReview(ServerPlayer player) {
+        return OboecraftMod.serverReviews().isReviewing(player);
+    }
+
+    /**
+     * Checks a click in the player's open menu. While a review is going, every click is refused, see
+     * {@link #refusedDuringReview}.
      *
      * @return whether the click is stopped
      */
     public static boolean stopsClick(
             ServerPlayer player, AbstractContainerMenu menu, int slot, int button, ContainerInput input) {
-        return OboecraftMod.serverReviews().isReviewing(player)
-                || stops(player, MenuClicks.stacksOf(menu, slot, button, input, player));
+        return refusedDuringReview(player) || stops(player, MenuClicks.stacksOf(menu, slot, button, input, player));
     }
 }

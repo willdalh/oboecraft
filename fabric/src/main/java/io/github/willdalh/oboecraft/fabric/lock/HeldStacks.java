@@ -9,15 +9,30 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CrossbowItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.equipment.Equippable;
+import net.minecraft.world.level.Level;
 
 /**
  * The stacks that actions with a held stack interact with, for the lock check. Both sides use the same rules, so the
  * client stops the same actions as the server.
  */
 public final class HeldStacks {
+    /** Whether an item class has its own {@code use}, worked out once per class. */
+    private static final ClassValue<Boolean> OVERRIDES_USE = new ClassValue<>() {
+        @Override
+        protected Boolean computeValue(Class<?> itemClass) {
+            try {
+                return itemClass.getMethod("use", Level.class, Player.class, InteractionHand.class)
+                        .getDeclaringClass() != Item.class;
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException("Item.use isn't there", e);
+            }
+        }
+    };
+
     private HeldStacks() {
     }
 
@@ -28,9 +43,13 @@ public final class HeldStacks {
 
     /**
      * Using the stack in the hand in the air: putting it on if using it equips it, otherwise a use. A bow, or a
-     * crossbow that isn't loaded, also uses the ammo it would shoot.
+     * crossbow that isn't loaded, also uses the ammo it would shoot. A stack whose item has no use in the air, like a
+     * block, does nothing there, so it isn't checked.
      */
     public static List<CheckedStack> using(Player player, InteractionHand hand, ItemStack stack) {
+        if (!hasUse(stack)) {
+            return List.of();
+        }
         List<CheckedStack> stacks = new ArrayList<>(2);
         Interaction interaction = equipsWhenUsed(stack) ? Interaction.EQUIP : Interaction.USE;
         stacks.add(new CheckedStack(stack, interaction, StackLocation.hand(player, hand)));
@@ -64,6 +83,18 @@ public final class HeldStacks {
     private static List<CheckedStack> mainHand(Player player, Interaction interaction) {
         return List.of(new CheckedStack(
                 player.getMainHandItem(), interaction, StackLocation.hand(player, InteractionHand.MAIN_HAND)));
+    }
+
+    /**
+     * Whether using the stack in the air can do something. Minecraft's default {@code Item.use} only does something
+     * for these components, and items with their own use, like bows, buckets and snowballs, override it.
+     */
+    private static boolean hasUse(ItemStack stack) {
+        return OVERRIDES_USE.get(stack.getItem().getClass())
+                || stack.has(DataComponents.CONSUMABLE)
+                || stack.has(DataComponents.EQUIPPABLE)
+                || stack.has(DataComponents.BLOCKS_ATTACKS)
+                || stack.has(DataComponents.KINETIC_WEAPON);
     }
 
     /** Using these items equips them, like armor, unless they are eaten or drunk first. */

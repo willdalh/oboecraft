@@ -13,8 +13,9 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * The stacks a click in a menu would interact with, worked out from the click before Minecraft carries it out. Both
- * sides use the same rules, so the client stops the same clicks as the server. Where Minecraft's own outcome depends
- * on more than the slot, like where a shift-click moves a stack, the click is checked as if the stack moves.
+ * sides use the same rules, so the client stops the same clicks as the server. Where a shift-click moves a stack out
+ * of the inventory depends on each menu's own code, so that move is checked where Minecraft makes it, see
+ * {@link #moveIntoMenu}.
  */
 public final class MenuClicks {
     /** The slot index Minecraft uses for a click outside the menu, which drops what the player carries. */
@@ -79,6 +80,36 @@ public final class MenuClicks {
         return stacks;
     }
 
+    /**
+     * A shift-click's move of a stack from the player's inventory into slots of the menu, which Minecraft makes with
+     * {@code moveItemStackTo}, into a range of slots of one kind.
+     *
+     * @param player  the player whose stack it is
+     * @param checked the stack and what moving it there does
+     */
+    public record MoveIntoMenu(Player player, CheckedStack checked) {
+    }
+
+    /**
+     * What moving {@code stack} into the menu's slots from {@code firstTarget} on does, if the stack is in the player's
+     * inventory and the move isn't free. Moves within the inventory, and moves of a stack from the menu's own slots,
+     * whose taking the click already checked, are free.
+     */
+    public static Optional<MoveIntoMenu> moveIntoMenu(AbstractContainerMenu menu, ItemStack stack, int firstTarget) {
+        Optional<Interaction> interaction = MenuSlots.putting(menu, menu.getSlot(firstTarget));
+        if (interaction.isEmpty()) {
+            return Optional.empty();
+        }
+        for (Slot source : menu.slots) {
+            if (source.getItem() == stack && source.container instanceof Inventory inventory) {
+                StackLocation location = new StackLocation.MenuSlot(menu.containerId, source.index);
+                return Optional.of(
+                        new MoveIntoMenu(inventory.player, new CheckedStack(stack, interaction.get(), location)));
+            }
+        }
+        return Optional.empty();
+    }
+
     /** Collects the stacks of one click. */
     private record Clicked(AbstractContainerMenu menu, List<CheckedStack> stacks) {
         StackLocation locationOf(Slot target) {
@@ -111,26 +142,12 @@ public final class MenuClicks {
         }
 
         /**
-         * A shift-click moves the slot's stack out of a container slot into the inventory, or out of the inventory into
-         * the first other slot that takes it.
+         * A shift-click on a slot of the menu takes the stack into the inventory. A shift-click in the inventory is
+         * checked where Minecraft moves the stack, see {@link #moveIntoMenu}.
          */
         void quickMoved(Slot target, Player player) {
-            if (!target.hasItem() || !target.mayPickup(player)) {
-                return;
-            }
             if (!MenuSlots.isPlayerInventory(target)) {
                 taken(target, player);
-                return;
-            }
-            ItemStack stack = target.getItem();
-            for (Slot other : menu.slots) {
-                if (other != target && !MenuSlots.isPlayerInventory(other) && other.mayPlace(stack)) {
-                    Optional<Interaction> interaction = MenuSlots.putting(menu, other);
-                    if (interaction.isPresent()) {
-                        add(stack, interaction.get(), locationOf(target));
-                        return;
-                    }
-                }
             }
         }
 

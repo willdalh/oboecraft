@@ -43,7 +43,7 @@ An action is described as the stacks it would interact with, each a `CheckedStac
 
 `StackLocation.stackIn(player)` reads the stack on the caller's side, and is empty if the location isn't valid for the player, like a menu that isn't open or a slot out of range. So a location from the network is never trusted.
 
-`Locks.firstStopped(view, player, stacks)` asks the lock check about each stack in order, and returns the first one it doesn't allow, as a `StoppedStack` with its item and the decision. For each stack it:
+`Locks.firstStopped(view, player, stacks)` asks the lock check about each stack in order, and returns the first one it doesn't allow, as a `StoppedStack` with its item. For each stack it:
 
 1. maps the stack to an item, and allows a stack that isn't one,
 2. gets the item's SRS state from `view`, a `ProgressView` that `ServerProgress` and `ClientProgress` both implement,
@@ -54,11 +54,11 @@ An action is described as the stacks it would interact with, each a `CheckedStac
 Two classes turn an action into its stacks, with the rules in [Lock check](../design/lock-check.md#what-the-player-tries-to-do):
 
 - `HeldStacks`: placing, using (with the ammo of a bow or crossbow), using on an entity, attacking with a weapon, mining with a tool, and dropping the selected stack.
-- `MenuClicks.stacksOf(menu, slot, button, input, player)`: a click in a menu, from Minecraft's `ContainerInput` kinds. `MenuSlots` says what putting a stack into a slot and taking it out does, from the slot's class, its container and the menu's class, and whether a slot is a crafting result.
+- `MenuClicks.stacksOf(menu, slot, button, input, player)`: a click in a menu, from Minecraft's `ContainerInput` kinds. A shift-click in the inventory is checked in `moveItemStackTo`, where the menu's own code moves the stack, with `MenuClicks.moveIntoMenu`. `MenuSlots` says what putting a stack into a slot and taking it out does, from the slot's class, its container and the menu's class, and whether a slot is a crafting result.
 
 Every hook calls `firstStopped` through one of two classes, which only decide what stopping the action looks like:
 
-- `ServerLockHooks` acts for a `ServerPlayer`. When it stops an action, it sends a stopped stack's inventory slot again, since the client may already have used it up, and unless a review is going, it sends `ShowReview` with the location. After a stopped menu click, Minecraft's own click handler sends the menu's real contents, so no resend is needed. While a review is going, `ServerLockHooks.stopsClick` refuses every click in the open menu.
+- `ServerLockHooks` acts for a `ServerPlayer`. When it stops an action, it sends a stopped stack's inventory slot again, since the client may already have used it up, and unless a review is going, it sends `ShowReview` with the location. After a stopped menu click, Minecraft's own click handler sends the menu's real contents, so no resend is needed. Before `ShowReview`, it sends the stack's real place: the inventory slot, or the open menu's whole contents. While a review is going, `ServerLockHooks.refusedDuringReview` refuses menu clicks and, in `ServerGamePacketListenerImplMixin`, the recipe book, choosing a trade, menu buttons, dropping and swapping hands.
 - `ClientReviews.stops` in `src/client` acts for the `LocalPlayer`. When it stops an action, it opens the answer menu at once and sends `StartReview`.
 
 Hooks use mixins where Fabric API has no event at the right moment:
@@ -71,8 +71,8 @@ Hooks use mixins where Fabric API has no event at the right moment:
 | Attacking | Fabric's `AttackEntityCallback`, and `PiercingWeaponMixin` for a spear's stab | Fabric's `AttackEntityCallback`, and `MultiPlayerGameModeMixin` on `piercingAttack` |
 | Mining | Fabric's `AttackBlockCallback` | Fabric's `AttackBlockCallback` |
 | Dropping with the drop key | `ServerPlayerMixin` on `ServerPlayer.drop(boolean)` | `MultiPlayerGameModeMixin` on `dropItem` |
-| Menu clicks | `AbstractContainerMenuMixin` on `AbstractContainerMenu.clicked` | `MultiPlayerGameModeMixin` on `handleContainerInput`, before it predicts the click and sends it |
-| The recipe book | `ServerPlaceRecipeMixin`, which skips a locked ingredient | None: only the server moves the ingredients |
+| Menu clicks | `AbstractContainerMenuMixin` on `AbstractContainerMenu.clicked` and `moveItemStackTo` | `MultiPlayerGameModeMixin` on `handleContainerInput`, and `ClientAbstractContainerMenuMixin` on `moveItemStackTo` |
+| The recipe book | `ServerPlaceRecipeMixin`, which leaves locked ingredients out of what is available | None: only the server moves the ingredients |
 | Choosing a trade | `MerchantMenuMixin`, which skips a locked payment | None: the server's menu contents undo the client's move |
 
 Fabric's events run the callbacks of both sides on each side, so each callback checks whether its player is a `ServerPlayer` or a `LocalPlayer`. `ServerLockHooks.register` and `ClientLockHooks.register` register them.

@@ -68,6 +68,18 @@ public class HeldStackGameTest {
     }
 
     @GameTest
+    public void aLockedBlockUsedInTheAirIsntChecked(GameTestHelper helper) {
+        ServerPlayer player = playerHolding(helper, new ItemStack(Items.DIRT));
+        try {
+            helper.assertValueEqual(use(helper, player), InteractionResult.PASS,
+                    "using locked dirt in the air, which does nothing");
+        } finally {
+            TestPlayers.leave(player);
+        }
+        helper.succeed();
+    }
+
+    @GameTest
     public void aLockedArmorIsntPutOnUntilItIsUnlocked(GameTestHelper helper) {
         ServerPlayer player = playerHolding(helper, new ItemStack(Items.IRON_CHESTPLATE));
         try {
@@ -96,7 +108,7 @@ public class HeldStackGameTest {
                     "drawing a bow with locked arrows fails");
             helper.assertFalse(player.isUsingItem(), "the player draws the bow");
             reviews.start(player, 1, new StackLocation.InventorySlot(5));
-            helper.assertValueEqual(reviews.activeItem(player), Optional.of(ARROW), "item under review");
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.of(ARROW), "item under review");
             reviews.close(player, 1);
 
             TestProgress.unlock(player, ARROW);

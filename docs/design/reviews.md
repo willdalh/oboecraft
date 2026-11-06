@@ -38,7 +38,7 @@ The answer menu opens on top of the open container's screen and goes back to it 
 
 For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then. Milestone 9, which removes them, notes them.
 
-While a review is going, the server refuses every click in the player's open menu, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
+While a review is going, the server refuses every click in the player's open menu, the recipe book, choosing a trade, a menu's buttons, dropping and swapping hands, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
 
 The worn armor slots are never part of the current view.
 

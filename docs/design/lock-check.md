@@ -62,6 +62,8 @@ A new kind only needs a new value here and, if it needs its own rule, a new rule
 
 Placing is checked when the stack is used on the block, after the block itself had its chance to react. So right-clicking a chest or crafting table with a locked item in hand still opens it, and only the placing is stopped.
 
+Using a stack in the air is only checked for items whose use does something, like food, armor, bows and throwables. A block used in the air does nothing, so it isn't checked.
+
 Using a stack on an entity is checked before the entity reacts, since the game doesn't tell apart an entity that uses the held item, like a cow being fed wheat, from one that doesn't, like a villager opening its trades. So right-clicking any entity with a locked item in hand opens the answer menu. To trade or ride with a locked item, the player holds something else.
 
 Attacking only counts for a weapon and mining only for a tool, since only they change what a hit or breaking a block does. Hitting a mob while holding a locked block, or breaking dirt while holding a locked torch, isn't checked. A weapon or a tool is any item Minecraft gives the weapon or the tool component, like swords, axes, pickaxes, the mace and the trident.
@@ -72,7 +74,7 @@ A bow, or a crossbow that isn't loaded, checks the bow first and then the ammo i
 
 A click in a menu is checked before Minecraft carries it out, from the clicked slot, the kind of click and what the player carries, as the stacks the click would move. If the lock check stops any of them, the whole click is stopped. A click that both takes a stack and puts another, like swapping, checks both.
 
-Where Minecraft's outcome depends on more than the slot, the click is checked as if the stack moves. A shift-click on a stack in the inventory while a menu is open counts as putting it into the first slot of the menu that takes it, even if Minecraft would then only move it within the inventory. Such a click on a locked stack opens the answer menu instead of moving it.
+A shift-click on a stack in the inventory is checked where the menu's own code moves it: into a slot of the menu, it counts as putting it there, and within the inventory it is free.
 
 A drag over several slots checks each slot as it is added, so a locked stack is spread only over slots that don't need a check. A double-click that gathers stacks also from a container's slots counts as taking from that container.
 
@@ -94,4 +96,4 @@ The check runs on both sides with the same rules.
 
 Minecraft sends placing and using to the server even when the client stopped them, so the server checks every action again. When the server stops an action, it tells the client what to show, the answer menu or later the ban message, and where the stack is. The client ignores this while its answer menu is already open, which is the normal case. When the client allowed the action and the server didn't, for example because the item locked a moment before, the client opens the answer menu then. The server sends the stack's slot again, so a stack the client already used up is put back, and after a stopped click it sends the menu's real contents, which undoes the move the client predicted.
 
-The recipe book and choosing a trade move stacks from the inventory into a menu, and only the server checks them: the recipe book moves them on the server only, and the client's own move for a trade is undone when the server sends the menu's contents. A locked stack isn't moved, as if the inventory didn't have it, and the client is told to open the answer menu for it.
+The recipe book and choosing a trade move stacks from the inventory into a menu, and only the server checks them. The recipe book leaves locked stacks out of what it counts as available, so it uses unlocked ones where it can and otherwise places nothing. A trade skips a locked payment. Either way the client is then told once to open the answer menu for a locked stack. The server always sends the stack's real place before it asks for the answer menu, so the client finds the stack even after predicting a move.

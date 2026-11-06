@@ -34,8 +34,14 @@ public final class ServerReviews {
     private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
 
-    /** A review that is going, and what the player was doing when it started. */
-    private record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
+    /**
+     * A review that is going.
+     *
+     * @param reviewId the id the client gave it
+     * @param entry    the item under review
+     * @param trigger  what the player was doing when it started
+     */
+    public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
     public ServerReviews(ItemMapping itemMapping, ServerProgress progress, Settings settings) {
@@ -49,14 +55,9 @@ public final class ServerReviews {
         return active.containsKey(player.getUUID());
     }
 
-    /** The item the player is reviewing, if a review is going. */
-    public Optional<ItemId> activeItem(ServerPlayer player) {
-        return Optional.ofNullable(active.get(player.getUUID())).map(review -> review.entry().id());
-    }
-
-    /** The trigger of the player's review, if a review is going. */
-    public Optional<Trigger> activeTrigger(ServerPlayer player) {
-        return Optional.ofNullable(active.get(player.getUUID())).map(ActiveReview::trigger);
+    /** The player's review, if one is going. Game tests read it. */
+    public Optional<ActiveReview> activeReview(ServerPlayer player) {
+        return Optional.ofNullable(active.get(player.getUUID()));
     }
 
     /**
