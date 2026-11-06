@@ -43,9 +43,9 @@ See the [architecture overview](architecture/overview.md) for the details.
 
 - The repository is [willdalh/oboecraft](https://github.com/willdalh/oboecraft) on GitHub.
 - Core rules get plain unit tests. The `fabric` module uses Fabric game tests where they pay off.
-- GitHub Actions runs on every PR: the build, the core tests and the Fabric game tests on a headless server. A PR with a failing check isn't merged. CI is set up in milestone 2.
+- GitHub Actions runs on every PR and every push to `main`: the build, the core tests and the Fabric game tests on a headless server. A PR with a failing check isn't merged. CI is set up in milestone 2.
 - `./gradlew runClient` starts the game with the mod, and `./gradlew runServer` starts a local dedicated server. Both commands are added to AGENTS.md in milestone 2.
-- The build uses the Gradle wrapper and a Java 25 Gradle toolchain, so Gradle and Java 25 are downloaded automatically, whatever Java version is installed.
+- The build uses the Gradle wrapper and a Java 25 Gradle toolchain, so Gradle and Java 25 are downloaded automatically, whatever Java version is installed. Loom needs Gradle itself to run on Java 25, so the Gradle daemon has a Java 25 toolchain too (`gradle/gradle-daemon-jvm.properties`).
 
 ### Name list
 
@@ -124,7 +124,7 @@ Added the [architecture overview](architecture/overview.md), the [stack](decisio
 
 ### 2. Project setup
 
-**Status:** not started
+**Status:** in progress
 
 Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-remapping Fabric Loom. An empty mod that starts with `./gradlew runClient` and on a dedicated server with `./gradlew runServer`. One sample core test and one Fabric game test. GitHub Actions runs the build and tests on every PR. AGENTS.md gets the run and test commands, and `docs/architecture/` is updated to match the real code.
 
