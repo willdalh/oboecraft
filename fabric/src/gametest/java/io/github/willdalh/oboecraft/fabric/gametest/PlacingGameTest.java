@@ -183,30 +183,21 @@ public class PlacingGameTest {
     }
 
     @GameTest
-    public void aReviewWhereTheServerStoppedTheActionStartsWithoutASecondCheck(GameTestHelper helper) {
+    public void aReviewTheServerStoppedIsRefusedOnceLocksArentActive(GameTestHelper helper) {
         helper.setBlock(new BlockPos(0, 0, 0), Blocks.STONE);
         ServerPlayer player = playerWithOakLogs(helper);
         try {
-            player.getInventory().setItem(1, new ItemStack(Items.DIRT));
             helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)) instanceof InteractionResult.Fail,
                     "placing a locked oak log fails");
-            // Creative mode makes a second lock check allow the stacks, so only the server's stop starts a review.
+            // The client asks for the review only after the player changed to creative mode, as a slow or modified
+            // client could. The lock check, asked again, allows the stack now, so no review starts.
             player.setGameMode(GameType.CREATIVE);
-
-            reviews().start(player, 1, new StackLocation.InventorySlot(1));
-            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(),
-                    "item under review at a location the server didn't stop");
-            reviews().start(player, 2, MAIN_HAND);
-            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(),
-                    "item under review once a start used up the server's stop");
+            reviews().start(player, 1, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(), "item under review in creative");
 
             player.setGameMode(GameType.SURVIVAL);
-            helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)) instanceof InteractionResult.Fail,
-                    "placing a locked oak log fails");
-            player.setGameMode(GameType.CREATIVE);
-            reviews().start(player, 3, MAIN_HAND);
-            helper.assertValueEqual(ActiveReviews.item(player), Optional.of(OAK_LOG),
-                    "item under review at the location the server stopped");
+            reviews().start(player, 2, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.of(OAK_LOG), "item under review");
         } finally {
             TestPlayers.leave(player);
         }

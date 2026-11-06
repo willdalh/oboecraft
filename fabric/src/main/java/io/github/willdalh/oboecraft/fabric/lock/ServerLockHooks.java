@@ -65,7 +65,6 @@ public final class ServerLockHooks {
         }
         ServerReviews reviews = OboecraftMod.serverReviews();
         if (!reviews.isReviewing(player) && stopped.get().decision() == LockDecision.REVIEW) {
-            reviews.serverStopped(player, location);
             ServerPlayNetworking.send(player, new ShowReview(OboecraftMod.clock().instant(), location));
         }
         return true;

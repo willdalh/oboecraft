@@ -10,7 +10,7 @@ More detail on each part:
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, and milestone 10 the notification after a pass.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, and milestone 11 the game mode and anvil rules.
 
 ## Core and adapters
 
