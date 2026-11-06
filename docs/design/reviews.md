@@ -52,7 +52,7 @@ A wrong attempt is saved in the item's [SRS state](srs-state.md), so it isn't lo
 
 Pressing Enter with an empty typing bar does nothing and isn't an attempt. Neither does the Enter that confirms the keyboard's kanji conversion: while the conversion has text that isn't confirmed, every key belongs to the conversion, so Esc doesn't close the menu either.
 
-The server checks the answer. The client sends the typed text and gets back pass, wrong with one attempt left, or fail.
+The server checks the answer, with the rules in [Answers](answers.md). The client sends the typed text and gets back pass, wrong with one attempt left, or fail.
 
 ## Actions
 
@@ -94,8 +94,8 @@ The Japanese name and reading are only sent to the client when it shows them: af
 
 ## What is built when
 
-- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. Answers pass only when they match the Japanese name or the reading exactly, apart from spaces at the start and end. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading are shown above the hotbar. Dying cancels the review.
-- Milestone 4: full answer checking.
+- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading are shown above the hotbar. Dying cancels the review.
+- Milestone 4: full answer checking, see [Answers](answers.md).
 - Milestone 6: the other triggers.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
 - Milestone 9: two attempts, Don't know, fails and punishment.

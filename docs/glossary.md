@@ -93,8 +93,12 @@ The item's name in the Japanese translation of Minecraft, like オークの原�
 _Avoid_: translation, correct answer, word
 
 **Reading**:
-How a Japanese name is pronounced, written in kana, like おーくのげんぼく. Each Japanese name has one reading.
-_Avoid_: pronunciation, kana
+How a Japanese name or a name part is pronounced, written in hiragana, like おーくのげんぼく. Each Japanese name has one reading, made of its name parts' readings.
+_Avoid_: pronunciation, kana, furigana
+
+**Name part**:
+One piece of a Japanese name with its own reading: one kanji, like 原 (げん), kanji that are only read together, like 今日 (きょう), a run of kana, or the particle の. An answer may write each part as it is written or as its reading.
+_Avoid_: segment, token, word, unit
 
 **Name list**:
 All items with their Japanese names and readings.

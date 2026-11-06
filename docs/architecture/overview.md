@@ -7,8 +7,9 @@ More detail on each part:
 - [Core](core.md): the packages and types of the game rules.
 - [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu and networking.
 - [Progress files](progress-files.md): where progress is saved and the file format.
+- [Name list file](name-list-file.md): the format of the name list that ships with the mod.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking.
 
 ## Core and adapters
 

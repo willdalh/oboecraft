@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -10,6 +10,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [SRS state](srs-state.md) | Levels, intervals, locking, demotion, bans, and known and ignored items |
 | [Lock check](lock-check.md) | The one check that decides what happens when a player interacts with a stack |
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
+| [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
 | [Settings](settings.md) | The values that settings control and their defaults |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
 
@@ -21,7 +22,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Levels, intervals, locking, saving progress, sync to the client | 3b |
 | Lock check, used for placing blocks | 3b |
 | Answer menu with Answer only, exact kana or kanji | 3b |
-| Name list format and full answer checking | 4 |
+| Name parts with readings per kanji, full answer checking | 4 |
 | The full name list | 5 |
 | Lock check for every interaction | 6 |
 | Lessons, Already known, Ignore, the word list | 8 |

@@ -31,8 +31,7 @@ The name list has one entry per item. Each entry has:
 | Item id | `block.minecraft.oak_log` | The item's id. It is saved in progress and sent between server and client, so it never changes once released. |
 | Translation keys | `block.minecraft.oak_log` | Every translation key that maps to this item. Most items have one. |
 | Former ids | | Item ids of entries that were merged into this one. Usually empty. Added with the first name list update that merges entries. |
-| Japanese name | オークの原木 | The correct answer |
-| Reading | おーくのげんぼく | How the Japanese name is said |
+| Japanese name | オーク, の, 原 (げん), 木 (ぼく) | The correct answer, as [name parts](#name-parts) with their readings |
 
 The item id is one of the item's translation keys: its only key, or for items with several, the one the name list picks, like `item.minecraft.music_disc_13` for all music discs. It stays the item's id even if Minecraft later drops that key, so saved progress never loses an item.
 
@@ -47,9 +46,30 @@ An item id or former id belongs to at most one entry, and is never reused for an
 
 A translation key belongs to at most one entry.
 
-Milestone 4 decides how readings are stored, per kanji and with units like 今日 = きょう. Milestone 3b uses a hand-written list of 10 blocks from the first minutes of play, with the reading as one string: the oak, birch and spruce logs, oak planks, the crafting table, the torch, dirt, cobblestone, sand and gravel. Milestone 5 generates the full list from `ja_jp.json`.
+The name list so far is a hand-written list of 10 blocks from the first minutes of play: the oak, birch and spruce logs, oak planks, the crafting table, the torch, dirt, cobblestone, sand and gravel. Milestone 5 generates the full list from `ja_jp.json`. The file format is in [Name list file](../architecture/name-list-file.md).
 
 The hand-written list has no merges, so 3b doesn't build former ids or the merge of states on load yet. They come with the first name list update that merges two entries, before any release that needs them.
+
+## Name parts
+
+The Japanese name is stored split into name parts, so that each part has its own reading. An answer may write each part as it is written or as its reading, see [Answers](answers.md). A part is one of:
+
+| Part | Example | Reading |
+|---|---|---|
+| One kanji | 原 | げん, how it is said in this name |
+| Kanji that are only read together | 今日, 松明 | きょう, たいまつ |
+| A run of kana | オーク | おーく, the kana as hiragana |
+| The particle の | の | の |
+| Letters or digits | TNT | てぃーえぬてぃー |
+
+- Readings are per kanji where the kanji can be read one by one: 原木 is 原 (げん) and 木 (ぼく), and 作業台 is 作 (さ), 業 (ぎょう) and 台 (だい). Each reading is the sound the kanji has in this name, with any sound change, like 一本 (いっぽん) as 一 (いっ) and 本 (ぽん).
+- Kanji that can't be split, because the word's reading doesn't come from each kanji, like 今日 (きょう), 松明 (たいまつ) and 砂利 (じゃり), are one part.
+- Kana between kanji, like the き in 焼き鳥, is its own part. Kana is always read as it is written.
+- The particle の is its own part, since an answer may leave it out. A の inside a word, like キノコ, stays in that word's part.
+- Readings are in hiragana, with ー for a long vowel where the name has one. A reading never starts with a small kana like ゃ, since that belongs to the kana before it.
+- Punctuation, like the ・ in ジャック・オ・ランタン, stays in the part's text and is left out of its reading.
+
+The Japanese name is the text of its parts joined, like オークの原木, and its reading is their readings joined, like おーくのげんぼく. The reading is what is shown after a pass, and what milestone 10 speaks.
 
 ## Protected items
 

@@ -2,7 +2,7 @@
 
 The `core` module holds the game rules as plain Java, in `io.github.willdalh.oboecraft.core`. This page describes its parts and their names. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
+The parts were designed in milestone 3a and built in milestone 3b. Milestone 4 added name parts and full answer checking. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
 
 ## Rules for the core
 
@@ -19,19 +19,21 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | Package | Contents | Milestone |
 |---|---|---|
 | `core.item` | `ItemId`, `NameListEntry`, `NameList` | 3b |
+| | `JapaneseName`, `NamePart` | 4 |
 | `core.srs` | `SrsState`, `Progress`, `SrsRules` | 3b |
 | `core.lock` | `LockDecision`, `LockCheck` | 3b |
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
 | `core.settings` | `Settings`, `LevelSettings` | 3b |
+| `core.text` | `JapaneseText`, `Romaji` | 4 |
 | `core.punishment` | Removal rate, removal counts, protected items | 9 |
 
 ### Items
 
 - `ItemId`: a record around the item id string, like `block.minecraft.oak_log`. Code passes `ItemId`, never a bare string, so it can't be mixed up with a translation key.
-- `NameListEntry`: the item id, its translation keys, the Japanese name and the reading. It rejects an entry with no translation key, or a blank key, name or reading.
+- `NameListEntry`: the item id, its translation keys and its `JapaneseName`. It rejects an entry with no translation key, or a blank key.
+- `JapaneseName`: the Japanese name as a list of `NamePart`s, see [Name parts](../design/items.md#name-parts). `text()` is the parts' text joined, like オークの原木, and `reading()` their readings joined, like おーくのげんぼく. Both are worked out once when the name is built. It rejects a name with no parts.
+- `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.
 - `NameList`: all entries. Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
-
-The reading is a plain string until milestone 4 decides how readings are stored per kanji. Only `NameListEntry` and `AnswerChecker` change then.
 
 Former ids, and moving states saved under a former id when progress is loaded (`Progress.withFormerIdsMerged(nameList)` in the design), are added with the first name list update that merges two entries. The hand-written name list has no merges, so 3b leaves them out. See [Items](../design/items.md#name-list-entries).
 
@@ -55,9 +57,31 @@ Each input is added when a rule first depends on it: milestone 6 adds an `Intera
 - `ReviewRules.start(state, now, settings)`: whether a review can start, as a `ReviewStart`: `Started` with the level, or `NotLocked`. It decides "not locked" with `SrsRules.isLocked`, so it agrees with the lock check when settings change the top level. Later milestones add whether it is a lesson and the attempts left to `Started`, and a `Banned` result.
 - `ReviewRules.isAttempt(typed)`: whether typed text counts as an attempt. Blank text doesn't.
 - `ReviewRules.answer(entry, state, typed, now, settings)`: the result of an answer as a `ReviewResult`, which holds the `ReviewOutcome` (`PASS` or `WRONG` so far) and the new state. Milestone 9 adds the fail outcome, `dontKnow`, and the level before the review, which punishment needs.
-- `AnswerChecker.isCorrect(entry, typed)`: whether a typed answer is correct. In 3b it matches the Japanese name or the reading exactly, ignoring spaces at the start and end. Milestone 4 replaces the rules, not the signature.
+- `AnswerChecker.isCorrect(entry, typed)`: whether a typed answer is correct, with the rules in [Answers](../design/answers.md). See [Answer checking](#answer-checking).
 
 The trigger isn't in the core. It is a Minecraft concept, about menus and slots, so `fabric` keeps it and turns it into counts for punishment.
+
+### Answer checking
+
+`AnswerChecker` normalizes the typed answer with `JapaneseText.normalize`, then searches for a way to read it as the Japanese name. A step in the search is a position in the name's whole reading together with a position in the answer. From each step it tries:
+
+- at the start of a part, the part's normalized text, like 原, which jumps to the end of the part,
+- at the start of the particle の, leaving it out,
+- the next kana of the reading typed as kana, or, for a long vowel, any way of writing it,
+- a romaji spelling from `Romaji` whose kana are the next kana of the reading, within the part,
+- a single `n` for ん when the answer doesn't go on with a vowel, `y` or `'`, and a doubled consonant for っ.
+
+The answer passes if a path reaches the end of both the reading and the answer. Romaji can be read in more than one way, like `onna`, so the search tries every way. Each step is tried at most once, so the work is at most the reading's length times the answer's length, and answers are at most 64 characters, see [Networking](fabric.md#networking).
+
+The search works on the reading as one string, so a long vowel at the start of a part is checked against the vowel before it, in the part before. A romaji spelling never crosses into the next part, since a part can't start with a small kana.
+
+### Text
+
+`core.text` holds the rules for Japanese text that the name list and answer checking share:
+
+- `JapaneseText.normalize(text)`: Unicode NFKC, lower case, katakana as hiragana, ō and ô as o and ー, dashes as ー, apostrophes only after `n`, and everything that isn't a letter or digit left out. Answers and the name's text are normalized the same way. See [Answers](../design/answers.md#ignored-differences).
+- `JapaneseText.isKana`, `isSmallKana` and `vowelOf`: what kind of kana a character is, for `NamePart`'s checks and for long vowels.
+- `Romaji`: the spellings a Japanese keyboard types, like `shi` and `si` for し and `du` for づ, looked up by their first letter. It is built once, and rejects a spelling that is two different kana.
 
 ### Settings
 

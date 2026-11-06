@@ -6,8 +6,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameList;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.item.NamePart;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -46,8 +48,9 @@ public final class NameListFile {
     }
 
     /**
-     * Parses a name list: an array of entries, each with an {@code id}, its {@code translationKeys}, the
-     * {@code japaneseName} and the {@code reading}.
+     * Parses a name list: an array of entries, each with an {@code id}, its {@code translationKeys} and the
+     * {@code japaneseName} as an array of parts. A part in kana is a string, like {@code "オーク"}, and any other part is
+     * an array of its text and its reading, like {@code ["原", "げん"]}. See the name list file doc.
      */
     static NameList parse(JsonElement json) {
         List<NameListEntry> entries = new ArrayList<>();
@@ -59,9 +62,27 @@ public final class NameListFile {
             entries.add(new NameListEntry(
                     new ItemId(entry.get("id").getAsString()),
                     translationKeys,
-                    entry.get("japaneseName").getAsString(),
-                    entry.get("reading").getAsString()));
+                    parseJapaneseName(entry.getAsJsonArray("japaneseName"))));
         }
         return new NameList(entries);
+    }
+
+    private static JapaneseName parseJapaneseName(JsonArray json) {
+        List<NamePart> parts = new ArrayList<>();
+        for (JsonElement part : json) {
+            parts.add(parsePart(part));
+        }
+        return new JapaneseName(parts);
+    }
+
+    private static NamePart parsePart(JsonElement json) {
+        if (json.isJsonPrimitive()) {
+            return NamePart.kana(json.getAsString());
+        }
+        JsonArray textAndReading = json.getAsJsonArray();
+        if (textAndReading.size() != 2) {
+            throw new IllegalArgumentException("A part with a reading is an array of its text and reading: " + json);
+        }
+        return new NamePart(textAndReading.get(0).getAsString(), textAndReading.get(1).getAsString());
     }
 }

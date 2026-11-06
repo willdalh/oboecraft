@@ -61,6 +61,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 - A script generates the readings, and an agent then reviews them. A Japanese text splitter (for example Sudachi) splits each name into words and guesses their readings. JMdict, the dictionary data behind Jisho, used as an offline file, checks each word. Words where the two disagree, or that are missing from JMdict, go on a list to check closely.
 - The script is re-run for each new Minecraft version, and only new items need review.
 - Readings are stored per kanji (原 = げん, 木 = ぼく), so answers can mix kanji and kana. Words that can't be split per kanji, like 今日 = きょう, are stored as one unit.
+- Each Japanese name is stored as a list of name parts: one kanji with its reading, kanji read together with their reading, a run of kana, or the particle の, which is its own part so it can be optional. In the file, a part in kana is a string and any other part is an array of its text and its reading in hiragana: `["オーク", "の", ["原", "げん"], ["木", "ぼく"]]`. The Japanese name and its reading are the parts joined, so they can't disagree. Letters and digits, like TNT, are a part with a reading too. See [Items](design/items.md#name-parts) and [Name list file](architecture/name-list-file.md).
 
 ### Items
 
@@ -119,6 +120,14 @@ More rules:
 - A missing small っ fails.
 - Different kana with the same sound fail: ず/づ, じ/ぢ and を/お. For example, `みかずき` for みかづき and `はなじ` for はなぢ fail.
 - Romaji tells these kana apart too: づ is `du`, ぢ is `di` and を is `wo`, as when typing on a Japanese keyboard. Hepburn `zu`, `ji` and `o` fail for those kana: `mikazuki` fails for みかづき, and `mikaduki` passes.
+
+Decided in milestone 4, see [Answers](design/answers.md):
+
+- The answer is matched against the name's parts, trying every way the romaji can be read, instead of turning the answer into kana first. So `onna` passes for おんな, and a part written as it is, like TNT, is never mistaken for romaji.
+- A long e can also be written with い, like `eiga` and `eega` for えいが, since えい is said as a long e.
+- A macron or circumflex (`ō`, `ô`) and a dash (`o-ku`) write a long vowel. The dash is ー, as when typing on a Japanese keyboard.
+- Full-width and half-width letters and kana count as the same.
+- Hepburn's `m` for ん before b, p and m (`tempura`) isn't accepted, since a Japanese keyboard doesn't type it.
 
 Since 26.3, Minecraft's window library has moved from GLFW to SDL3, and the keyboard's kanji conversion (IME) works on all operating systems. The answer menu uses Minecraft's normal text box to get it. Minecraft hands every key to the screen without checking the conversion, so the answer menu ignores Enter while the conversion has text that isn't confirmed. A client game test checks this with a simulated conversion. A real IME on each operating system is only checked by hand.
 
@@ -200,7 +209,13 @@ Parts:
 
 ### 4. Answer checking
 
-**Status:** not started
+**Status:** done
+
+Built: name parts in the core (`JapaneseName` and `NamePart`), the name list file format with readings per kanji, and full answer checking in the core: kanji and kana mixed per part, the optional particle の, romaji in both styles with du/di/wo, ん as n, nn or n', っ as a doubled consonant, long vowels written any way, and spaces, case, width and punctuation ignored. The 10 hand-written entries use the new format, with 松明 and 砂利 as one part each. Core unit tests cover every rule and example in [Answers](design/answers.md), and game tests check the loaded name list and a romaji answer through a review on the server.
+
+Where it differs from the plan: a long e can be written with い or え, ō and o- write a long vowel, and full-width letters count, see [Answer checking](#answer-checking). The name list file has no separate field for the Japanese name, since it is the parts joined.
+
+What later milestones should know: milestone 5's script writes `japaneseName` as name parts, with the particle の as its own part, readings in hiragana and kanji split per kanji only where each has its own reading. The core rejects a broken entry when the mod starts, but can't tell a wrong reading, see [Name list file](architecture/name-list-file.md#checks). Milestone 10 speaks `JapaneseName.reading()`. The answer is still shown after a pass as the name and its reading, unchanged from 3b.
 
 First the agent decides the name list file format (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in that format.
 
