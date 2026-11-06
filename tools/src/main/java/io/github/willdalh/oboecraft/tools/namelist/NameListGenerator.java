@@ -1,0 +1,194 @@
+package io.github.willdalh.oboecraft.tools.namelist;
+
+import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
+import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SequencedMap;
+import java.util.regex.Pattern;
+
+/**
+ * Builds the name list from the keys Minecraft names stacks with and their Japanese names. Keys with the same Japanese
+ * name become one entry. An entry that is already in the name list keeps its item id, and keeps its parts as long as
+ * its Japanese name is the same, since they have been reviewed. Only new and changed names are guessed, and those need
+ * review.
+ */
+final class NameListGenerator {
+    /** A format argument, like {@code %s} or {@code %1$s}, which the game fills in, like a player's name. */
+    private static final Pattern FORMAT_ARGUMENT = Pattern.compile("%(\\d+\\$)?[sd]");
+
+    private NameListGenerator() {
+    }
+
+    /**
+     * The new name list.
+     *
+     * @param entries   every entry, in the order of the keys
+     * @param generated the entries whose names were guessed, with what to check closely, in the same order
+     * @param notes     things about the whole list that a reviewer should know, like keys that were left out
+     */
+    record Result(List<NameListEntry> entries, List<GeneratedEntry> generated, List<String> notes) {
+    }
+
+    /**
+     * An entry whose parts and readings were guessed.
+     *
+     * @param entry the entry
+     * @param notes what to check closely, empty if nothing stood out
+     */
+    record GeneratedEntry(NameListEntry entry, List<String> notes) {
+    }
+
+    /** An entry while it is built, since keys named after arguments are added to it last. */
+    private static final class Draft {
+        final ItemId id;
+        final List<String> translationKeys;
+        final JapaneseName japaneseName;
+        final List<String> notes;
+        final boolean generated;
+
+        Draft(ItemId id, List<String> translationKeys, JapaneseName japaneseName, List<String> notes,
+                boolean generated) {
+            this.id = id;
+            this.translationKeys = new ArrayList<>(translationKeys);
+            this.japaneseName = japaneseName;
+            this.notes = notes;
+            this.generated = generated;
+        }
+    }
+
+    /**
+     * Generates the name list.
+     *
+     * @param keys         the keys Minecraft names stacks with, in order
+     * @param japanese     Minecraft's Japanese text for each key
+     * @param existing     the name list as it is now, with reviewed parts
+     * @param guesser      guesses the parts of new names
+     * @throws IllegalStateException if two existing entries now have the same name, which needs former ids
+     */
+    static Result generate(List<ItemNameKey> keys, Map<String, String> japanese, List<NameListEntry> existing,
+            NameGuesser guesser) {
+        List<String> notes = new ArrayList<>();
+        SequencedMap<String, List<String>> keysByName = new LinkedHashMap<>();
+        List<ItemNameKey> namedAfterArguments = new ArrayList<>();
+        Map<String, String> defaultKeyByItem = new HashMap<>();
+        for (ItemNameKey key : keys) {
+            if (key.item() != null) {
+                defaultKeyByItem.putIfAbsent(key.item(), key.translationKey());
+            }
+            String name = japanese.get(key.translationKey());
+            if (name == null) {
+                notes.add(key.translationKey() + " has no Japanese name, so it is left out");
+            } else if (FORMAT_ARGUMENT.matcher(name).find()) {
+                namedAfterArguments.add(key);
+            } else {
+                keysByName.computeIfAbsent(name, unused -> new ArrayList<>()).add(key.translationKey());
+            }
+        }
+
+        Map<String, NameListEntry> existingByKey = new HashMap<>();
+        existing.forEach(entry -> entry.translationKeys().forEach(key -> existingByKey.put(key, entry)));
+        Map<ItemId, String> keeperOf = keepers(existing, keysByName);
+
+        List<Draft> drafts = new ArrayList<>();
+        Map<String, Draft> draftByKey = new HashMap<>();
+        for (Map.Entry<String, List<String>> group : keysByName.entrySet()) {
+            Draft draft = draftFor(group.getKey(), group.getValue(), existingByKey, keeperOf, guesser);
+            drafts.add(draft);
+            group.getValue().forEach(key -> draftByKey.put(key, draft));
+        }
+
+        for (ItemNameKey key : namedAfterArguments) {
+            String text = japanese.get(key.translationKey());
+            String itemKey = defaultKeyByItem.get(key.item());
+            Draft draft = itemKey == null || itemKey.equals(key.translationKey()) ? null : draftByKey.get(itemKey);
+            if (draft == null) {
+                notes.add(key.translationKey() + " (" + text + ") names no item with an entry, so it is left out");
+            } else {
+                draft.translationKeys.add(key.translationKey());
+                notes.add(key.translationKey() + " (" + text + ") is added to " + draft.id + ", the item it names");
+            }
+        }
+
+        for (NameListEntry entry : existing) {
+            if (!keeperOf.containsKey(entry.id())) {
+                drafts.add(new Draft(entry.id(), entry.translationKeys(), entry.japaneseName(), List.of(), false));
+                notes.add(entry.id() + " (" + entry.japaneseName().text() + ") is no longer in the game. It is kept, "
+                        + "so saved progress for it isn't lost");
+            }
+        }
+
+        List<NameListEntry> entries = new ArrayList<>();
+        List<GeneratedEntry> generated = new ArrayList<>();
+        for (Draft draft : drafts) {
+            NameListEntry entry = new NameListEntry(draft.id, draft.translationKeys, draft.japaneseName);
+            entries.add(entry);
+            if (draft.generated) {
+                generated.add(new GeneratedEntry(entry, draft.notes));
+            }
+        }
+        return new Result(List.copyOf(entries), List.copyOf(generated), List.copyOf(notes));
+    }
+
+    /**
+     * For each existing entry, the name whose entry keeps its item id: the name of its item id's key, or if Minecraft
+     * no longer has that key, the first name of its other keys. When an entry's keys get different names, the other
+     * names become new items.
+     */
+    private static Map<ItemId, String> keepers(
+            List<NameListEntry> existing, SequencedMap<String, List<String>> keysByName) {
+        Map<String, String> nameByKey = new HashMap<>();
+        keysByName.forEach((name, keys) -> keys.forEach(key -> nameByKey.put(key, name)));
+        Map<ItemId, String> keeperOf = new HashMap<>();
+        for (NameListEntry entry : existing) {
+            String keeper = nameByKey.get(entry.id().value());
+            for (int i = 0; keeper == null && i < entry.translationKeys().size(); i++) {
+                keeper = nameByKey.get(entry.translationKeys().get(i));
+            }
+            if (keeper != null) {
+                keeperOf.put(entry.id(), keeper);
+            }
+        }
+        return keeperOf;
+    }
+
+    private static Draft draftFor(String name, List<String> keys, Map<String, NameListEntry> existingByKey,
+            Map<ItemId, String> keeperOf, NameGuesser guesser) {
+        List<NameListEntry> touched = keys.stream()
+                .map(existingByKey::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (touched.size() > 1) {
+            throw new IllegalStateException("The entries " + touched.stream().map(NameListEntry::id).toList()
+                    + " now have the same Japanese name " + name + ". Merging entries needs former ids, which the "
+                    + "name list doesn't have yet. See docs/design/items.md.");
+        }
+        NameListEntry previous = touched.isEmpty() ? null : touched.getFirst();
+        boolean keepsId = previous != null && name.equals(keeperOf.get(previous.id()));
+        if (keepsId && previous.japaneseName().text().equals(name)) {
+            return new Draft(previous.id(), keys, previous.japaneseName(), List.of(), false);
+        }
+
+        GuessedName guess = guesser.guess(name);
+        List<String> notes = new ArrayList<>();
+        ItemId id;
+        if (keepsId) {
+            id = previous.id();
+            notes.add("The Japanese name changed from " + previous.japaneseName().text());
+        } else {
+            id = new ItemId(keys.getFirst());
+            if (previous != null) {
+                notes.add("Split from " + previous.id() + " (" + previous.japaneseName().text() + "), so it is a new "
+                        + "item");
+            }
+        }
+        notes.addAll(guess.notes());
+        return new Draft(id, keys, guess.name(), notes, true);
+    }
+}
