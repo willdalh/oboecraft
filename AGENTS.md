@@ -83,6 +83,7 @@ Docs reflect code. Changes that touch game behavior, architecture, tools, or ter
 
 | Path | Contents | Kept in sync with code |
 |---|---|---|
+| `README.md` | What the mod does, installing it and a short guide to playing | Yes |
 | `docs/idea.md` | Original vision | No, frozen |
 | `docs/implementation-plan.md` | Decisions and milestones for building the mod | Yes, milestone status updated as PRs merge |
 | `docs/design/` | Game behavior as it actually works | Yes |
