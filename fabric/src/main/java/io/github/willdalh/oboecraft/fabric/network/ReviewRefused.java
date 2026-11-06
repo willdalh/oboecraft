@@ -10,8 +10,8 @@ import net.minecraft.util.ByIdMap;
 
 /**
  * Server to client, when the review the client asked for with {@code reviewId} can't start. The client closes that
- * answer menu. A refusal because the item isn't locked comes right after a {@link StateUpdate} with the item's state,
- * so the client's next check allows the action.
+ * answer menu. A refusal because the item isn't locked or is banned comes right after a {@link StateUpdate} with the
+ * item's state, so the client's next check agrees with the server.
  */
 public record ReviewRefused(Instant serverTime, int reviewId, Reason reason) implements CustomPacketPayload {
     public static final Type<ReviewRefused> TYPE = NetworkCodecs.type("review_refused");
@@ -31,6 +31,8 @@ public record ReviewRefused(Instant serverTime, int reviewId, Reason reason) imp
     public enum Reason {
         /** The item isn't locked. */
         NOT_LOCKED,
+        /** The item is banned after a fail. The client shows how long the ban has left. */
+        BANNED,
         /** The stack isn't an item, isn't there any more, or isn't somewhere the player can reach. */
         STACK_GONE,
         /** The player's progress isn't loaded, for example while they are being disconnected. */

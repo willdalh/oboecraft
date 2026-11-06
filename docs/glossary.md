@@ -191,3 +191,11 @@ _Avoid_: punishment percentage, loss rate
 **Ban**:
 A period after a fail when the item can't be reviewed.
 _Avoid_: cooldown, timeout, lockout
+
+**Ingredient**:
+An item a recipe uses, in an input slot of a menu that makes its result from input slots, like the crafting grid. A fail on a crafted item removes ingredients instead of the item.
+_Avoid_: input, material, component
+
+**Recipe**:
+What one craft of a result uses: how many of each ingredient, noted from the input slots when a review of the result starts.
+_Avoid_: formula, pattern

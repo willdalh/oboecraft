@@ -12,7 +12,7 @@ On a server, the server owner controls these. In singleplayer they belong to the
 |---|---|---|
 | Levels | 8 levels with an interval and a demotion each, see [Levels and intervals](srs-state.md#levels-and-intervals) | Pass, fail and locking |
 | Ban length | 5 minutes | Fail |
-| `percentageFactor` | 5 | Removal rate |
+| `percentageFactor` | 5, in whole percentage points | Removal rate, see [Punishment](punishment.md) |
 | Dropping counts as an interaction | Off | Lock check |
 
 The removal rate on a fail at level `L` is `50% - (L - 1) × percentageFactor%`, and never below 0%. Since `percentageFactor` can't be negative, the rate is never above 50%.
@@ -21,7 +21,7 @@ The top level, mastered, is always one more than the number of levels in the set
 
 The server sends its settings to each player when they join, since the client's lock check needs them too. Until milestone 12, both sides use the defaults.
 
-Settings are checked when they are read. A level must have an interval longer than zero and a demotion of at least 0, there must be at least one level, the ban length must be at least 0, and `percentageFactor` must be at least 0. Invalid settings are rejected as a whole, and the defaults are used instead. Milestone 3b checks the levels and intervals, and each later setting is checked when it is added.
+Settings are checked when they are read. A level must have an interval longer than zero and a demotion of at least 0, there must be at least one level, the ban length must be at least 0, and `percentageFactor` must be at least 0. Invalid settings are rejected as a whole, and the defaults are used instead. Milestone 3b checks the levels and intervals, and each later setting is checked when it is added. Milestone 9 added the demotions, the ban length and `percentageFactor`, with their checks.
 
 ## Client settings
 

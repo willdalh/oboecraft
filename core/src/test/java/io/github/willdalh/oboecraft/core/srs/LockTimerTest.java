@@ -58,7 +58,7 @@ class LockTimerTest {
     @Test
     void usesTheConfiguredIntervalAndSupportsSubsecondAndVeryLongIntervals() {
         for (Duration interval : List.of(Duration.ofNanos(100), Duration.ofDays(1_000_000))) {
-            Settings settings = new Settings(List.of(new LevelSettings(interval)), false);
+            Settings settings = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(interval, 1)));
             SrsState passed = SrsRules.pass(SrsState.Leveled.NEW, NOW, settings);
             LockTimer timer = timer(passed, NOW.plus(interval.dividedBy(2)), settings).orElseThrow();
             assertEquals(0.5, timer.fractionRemaining(), 0.000001);

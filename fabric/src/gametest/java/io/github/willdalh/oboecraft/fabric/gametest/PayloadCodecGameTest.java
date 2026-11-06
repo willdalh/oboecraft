@@ -59,13 +59,18 @@ public class PayloadCodecGameTest {
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
         assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.InventorySlot(40)));
         assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.MenuSlot(3, 12)));
-        assertRoundTrip(helper, ReviewStarted.STREAM_CODEC, new ReviewStarted(TIME, 7, OAK_LOG, 4));
-        assertRoundTrip(helper, ReviewRefused.STREAM_CODEC,
-                new ReviewRefused(TIME, 7, ReviewRefused.Reason.NO_PROGRESS));
+        assertRoundTrip(helper, ReviewStarted.STREAM_CODEC, new ReviewStarted(TIME, 7, OAK_LOG, 4, 1));
+        for (ReviewRefused.Reason reason : ReviewRefused.Reason.values()) {
+            assertRoundTrip(helper, ReviewRefused.STREAM_CODEC, new ReviewRefused(TIME, 7, reason));
+        }
+        assertRoundTrip(helper, StateUpdate.STREAM_CODEC, new StateUpdate(TIME, OAK_LOG,
+                new SrsState.Leveled(2, Optional.of(TIME), true, 1, Optional.of(TIME.plusSeconds(300)))));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.PASS,
                 Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC,
                 new ReviewAnswered(TIME, 7, ReviewOutcome.WRONG, Optional.empty()));
+        assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.FAIL,
+                Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ReviewCancelled.STREAM_CODEC, new ReviewCancelled(TIME, 7));
         helper.succeed();
     }

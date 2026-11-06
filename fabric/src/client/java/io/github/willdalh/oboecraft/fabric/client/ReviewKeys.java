@@ -53,11 +53,16 @@ public final class ReviewKeys {
         MutableComponent result = Component.empty();
         boolean first = true;
         for (Binding binding : lesson ? new Binding[]{ANSWER, CLOSE, KNOWN, IGNORE, SHOW, DONT_KNOW}
-                : new Binding[]{ANSWER, CLOSE, KNOWN, IGNORE}) {
+                : new Binding[]{ANSWER, CLOSE, DONT_KNOW, KNOWN, IGNORE}) {
             if (!first) result.append("  ·  ");
             first = false;
             result.append(binding.label()).append(": ").append(Component.translatable(binding.mapping().getName()));
         }
         return result;
+    }
+
+    /** After a fail, the menu only shows the answer, and the answer and close keys close it. */
+    static Component closeHint() {
+        return Component.translatable("oboecraft.answer_menu.close_hint", CLOSE.label());
     }
 }

@@ -172,6 +172,18 @@ Since 26.3, Minecraft's window library has moved from GLFW to SDL3, and the keyb
 - Progress format 2 is necessary for known and ignored states: format 1 readers reject unknown kinds as corrupt, so adding kinds without increasing the version would risk replacing progress after a downgrade.
 - Word list and binding behavior are described in [Word list](design/word-list.md) and [Reviews](design/reviews.md).
 
+### Punishment
+
+Decided in milestone 9, see [Punishment](design/punishment.md):
+
+- `percentageFactor` is in whole percentage points, and every removed count is worked out in integer arithmetic and rounded up, so a share like 15 of 50 is never rounded to 16 by a floating-point error.
+- A crafting trigger's recipe is noted from the menu's input slots when the review starts: each stack in an input slot is one use of its item. This matches how the crafting grid, stonecutter and smithing table use their inputs. A loom's pattern and an anvil's extra repair material count as one use each.
+- Ingredients that aren't items, and protected ingredients, count towards the recipe's total but are never removed, so the other ingredients only lose their own part.
+- The current view of an inventory trigger includes the inventory's crafting grid and the carried stack. Results, including a trade's result, are never part of it. A punishment takes from the menu's own slots first, then the inventory, then the carried stack.
+- After a fail, the answer menu stays open with the Japanese name and reading until the player closes it, and the review is already over on the server.
+- A banned item shows how long its ban has left above the hotbar. Only the client shows it, from its own state: the server stops the action without a message.
+- The progress format went to version 3 for the new fields. A format 2 reader would ignore them and save the file without them, losing every demotion, ban and wrong attempt after a downgrade, so an older mod must refuse the file instead. The network protocol went to 4.
+
 ### Progress
 
 See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
@@ -301,7 +313,13 @@ Lessons at level 0 (show the answer, no punishment), the Already known and Ignor
 
 ### 9. Punishment
 
-**Status:** not started
+**Status:** done
+
+Built: two attempts with a wrong attempt saved in the SRS state, Don't know as a fail from level 1, and fails with punishment in the core (`SrsRules.fail`, `ReviewRules.dontKnow`, and `core.punishment` with the removal rate, removal counts, recipes and protected items); the demotion, ban length and `percentageFactor` settings; rule 8 of the lock check with Banned; the recipe noted for a crafting trigger; removing from the current view of each trigger on the server; the ban message on the client; and the answer menu showing the answer after a fail. Core tests cover every rule and example from [Punishment](design/punishment.md), and game tests run a fail through each trigger, a protected item, a ban and the pass after it. A client game test fails a review with Don't know in a real client, checks the removed stack and that a banned item neither opens the answer menu nor is placed.
+
+Where it differs from the plan: the plan didn't say how a recipe's parts are counted, how rounding is done, or what the answer menu shows after a fail, see [Punishment](#punishment). Protected and other mods' ingredients keep the other ingredients' parts unchanged.
+
+What later milestones should know: progress format 3 and protocol 4 carry the new state fields, and protocol 4 the attempts left. Milestone 10 can show the notification after a fail too, where the answer menu shows the answer now. Milestone 11's creative mode needs nothing new for bans: the lock check allows everything when locks aren't active. Milestone 12 reads the ban length, `percentageFactor` and each level's demotion into `Settings`, whose records already check them. A fail over a container of another mod, and the ban message on a dedicated server over the network, haven't been run.
 
 The removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
 

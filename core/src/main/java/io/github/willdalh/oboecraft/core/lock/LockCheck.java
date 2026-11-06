@@ -37,6 +37,9 @@ public final class LockCheck {
         if (interaction == Interaction.PICK_UP) {
             return LockDecision.ALLOW;
         }
-        return SrsRules.isLocked(state, now, settings) ? LockDecision.REVIEW : LockDecision.ALLOW;
+        if (!SrsRules.isLocked(state, now, settings)) {
+            return LockDecision.ALLOW;
+        }
+        return SrsRules.isBanned(state, now) ? LockDecision.BANNED : LockDecision.REVIEW;
     }
 }
