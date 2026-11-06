@@ -27,6 +27,14 @@ The code follows clean architecture, with a `core` module and a `fabric` adapter
 - Keep the core thin. It takes simple inputs, like item ids, counts and timestamps, and returns decisions. Minecraft concepts like inventories and slots stay in `fabric`.
 - The server decides everything that matters. Client code only displays and never has the final say.
 
+## Code quality, safety and performance
+
+Code quality, code safety and performance are all requirements for a PR. A PR that gives up one for another says so and explains why.
+
+- **Code quality:** code can be understood without its author. Names say what things are, each function does one thing, and each piece of logic lives in one place. No unused or dead code.
+- **Code safety:** input from outside the code's control is untrusted. It is checked before use, both that it is valid and that the sender is allowed to make the request. Shared state is only changed in ways that can't race. No error or invalid input leaves stored data lost or corrupt.
+- **Performance:** code that runs often never blocks, and does only the work its input needs. Work whose result doesn't change is done once, not on every call.
+
 ## Commands
 
 Run these from the repository root. The first run downloads Gradle, Java 25 and Minecraft, so it takes a while.
