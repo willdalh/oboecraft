@@ -184,6 +184,14 @@ Decided in milestone 9, see [Punishment](design/punishment.md):
 - A banned item shows how long its ban has left above the hotbar. Only the client shows it, from its own state: the server stops the action without a message.
 - The progress format went to version 3 for the new fields. A format 2 reader would ignore them and save the file without them, losing every demotion, ban and wrong attempt after a downgrade, so an older mod must refuse the file instead. The network protocol went to 4.
 
+### Notification
+
+Decided in milestone 10, see [Display](design/display.md#notification):
+
+- The notification is only the Japanese name, as written in the name list with its kanji, in plain white text with Minecraft's text shadow, centered at the top of the screen at twice the normal text size, or smaller when the name doesn't fit. It has no reading, icon, box or background. It goes below any boss bars.
+- It is shown for 3 seconds of real time and fades out in the last second. A new pass replaces it. It is drawn after the screen, so a menu's screen doesn't dim it, and hidden with the HUD and while an answer menu is open.
+- Only a pass shows it, also when the answer menu was closed before the pass arrived. After a fail the answer menu already shows the name and reading.
+
 ### Progress
 
 See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
@@ -325,7 +333,13 @@ The removal math in core, removing from the current view, removing crafting ingr
 
 ### 10. Notification
 
-**Status:** not started
+**Status:** done
+
+Built: `PassNotification` on the client, which shows the Japanese name from the server's pass at the top of the screen for 3 seconds of real time, with a fade in the last second, and replaces the text above the hotbar. Core `NotificationTiming` holds the timing, with unit tests. The client game tests check that a pass shows オークの原木 below a boss bar, that its text is drawn, also at full brightness over the inventory screen, and that it goes away.
+
+Where it differs from the plan: the plan left the look open. It is only the name as plain text, see [Notification](#notification). The reading is no longer shown after a pass, though `ReviewAnswered` still carries it. No payloads or saved fields changed.
+
+What later milestones should know: the notification's length and look are fixed, not settings. It is drawn by `GuiMixin`, not as a Fabric HUD element, since a HUD element is drawn under screens. A notification next to other mods' HUD elements has not been checked.
 
 Show the notification at the top of the screen after a pass, in place of the text above the hotbar. The spoken reading from `idea.md` is not part of this plan, see [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
 

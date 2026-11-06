@@ -83,13 +83,13 @@ A review of an item at level 0 is a lesson:
 
 The answer menu shows the item's level, and "one attempt left" when a wrong attempt is saved. When a review starts, the server sends the level, which says whether it is a lesson, and how many attempts are left.
 
-The Japanese name and reading are only sent to the client when it shows them: after a pass, after a fail, and in a lesson when the answer is shown.
+The Japanese name and reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client only shows the name.
 
 ## Outcomes
 
 | Outcome | What happens |
 |---|---|
-| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The Japanese name is shown at the top of the screen. |
+| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes and the [notification](display.md#notification) shows the Japanese name at the top of the screen. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
 | Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name and reading until the player closes it with Answer or Close. Only a new press closes it, not a key still held from the last answer, and not in the first half second, so the answer is always seen. The review is already over, so closing it changes nothing. |
 | Lesson answer shown | The Japanese name is shown, and the lesson goes on. |
@@ -98,9 +98,9 @@ The Japanese name and reading are only sent to the client when it shows them: af
 
 ## What is built when
 
-- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading are shown above the hotbar. Dying cancels the review.
+- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading were shown above the hotbar, until milestone 10. Dying cancels the review.
 - Milestone 4: full answer checking, see [Answers](answers.md).
 - Milestone 6: starting a review from every interaction, the three triggers, the answer menu over an open menu's screen, refusing clicks in the open menu during a review, and cancelling a review whose menu closes.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
 - Milestone 9: two attempts with a wrong attempt saved, Don't know, fails and punishment, bans, and noting a crafting trigger's ingredients.
-- Milestone 10: the notification on a pass, in place of the text above the hotbar.
+- Milestone 10: the [notification](display.md#notification) on a pass, in place of the text above the hotbar.

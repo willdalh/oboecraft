@@ -21,6 +21,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | `core.item` | `ItemId`, `NameListEntry`, `NameList` | 3b |
 | | `JapaneseName`, `NamePart` | 4 |
 | `core.srs` | `SrsState`, `Progress`, `SrsRules` | 3b |
+| | `NotificationTiming` | 10 |
 | `core.lock` | `LockDecision`, `LockCheck` | 3b |
 | | `Interaction` | 6 |
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
@@ -47,6 +48,8 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 `DisplayRules.of(state, now, settings)` returns a sealed `DisplayState`: `Hidden` for locked items, `Timed(LockTimer)` for unlocked items with an interval, or `Normal` for mastered items. The rules use `SrsRules.isLocked` once, without inventing an interaction. The type cannot represent a hidden item with a running timer. Milestones 8 and 9 extend these explicit display rules for their new states.
 
 `LockTimer` holds the remaining time and level interval. `fractionRemaining()` clamps the bar to full and `closeToLocking()` checks the final tenth of the interval. `DisplayRules.closeToLocking` uses the same threshold for slot markers without constructing a full display state or timer. Durations are not converted to whole milliseconds or nanoseconds, so subsecond and very long configured intervals work too. The adapter decides whether displays are active and draws the result.
+
+- `NotificationTiming`: how long the notification after a pass is shown (`SHOWN`, 3 seconds) and fades out (`FADE`, the last second). `isOver(elapsed)` and `opacity(elapsed)` take the real time since it was shown, see [Display](../design/display.md#notification).
 
 ### Lock check
 
