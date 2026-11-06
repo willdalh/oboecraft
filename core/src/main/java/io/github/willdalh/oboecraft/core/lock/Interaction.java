@@ -26,6 +26,8 @@ public enum Interaction {
     PUT_IN_CONTAINER,
     /** Moving the stack out of an open container or a menu's slots. */
     TAKE_FROM_CONTAINER,
+    /** Picking a stack up, allowed even while locked but never while ignored. */
+    PICK_UP,
     /** Throwing the stack out of the inventory. Only an interaction when the drop setting is on. */
     DROP
 }

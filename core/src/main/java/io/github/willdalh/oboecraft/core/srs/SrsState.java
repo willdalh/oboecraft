@@ -5,10 +5,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Everything tracked about one item for one player. Known and ignored states are added next to {@link Leveled} by
- * a later milestone.
+ * Everything tracked about one item for one player.
  */
 public sealed interface SrsState {
+    /** Already known, unlocked forever. */
+    record Known() implements SrsState {}
+
+    /** Left out of learning and blocked from use. */
+    record Ignored() implements SrsState {}
+
     /**
      * An item that moves through the levels, from 0 up to mastered.
      *

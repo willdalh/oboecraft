@@ -26,6 +26,7 @@ public final class OboecraftClient implements ClientModInitializer {
         progress = new ClientProgress();
         reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings());
         registerReceivers();
+        ReviewKeys.register();
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progress.clear());

@@ -68,6 +68,16 @@ class ReviewRulesTest {
     }
 
     @Test
+    void wrongLessonAnswersRevealTheNameWithoutChangingProgress() {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertEquals(new ReviewResult(ReviewOutcome.LESSON, SrsState.Leveled.NEW),
+                    ReviewRules.answer(OAK_LOG, SrsState.Leveled.NEW, "wrong", NOW, SETTINGS));
+        }
+        assertTrue(ReviewRules.isLesson(SrsState.Leveled.NEW));
+        assertFalse(ReviewRules.isLesson(new SrsState.Known()));
+    }
+
+    @Test
     void anAnswerWithoutLettersOrDigitsIsntAnAttempt() {
         assertFalse(ReviewRules.isAttempt(""));
         assertFalse(ReviewRules.isAttempt("  "));

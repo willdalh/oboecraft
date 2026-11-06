@@ -42,7 +42,9 @@ public class ProgressFilesGameTest {
     public void progressIsReadBackAsItWasWritten(GameTestHelper helper) throws IOException {
         Progress progress = new Progress(Map.of(
                 OAK_LOG, new SrsState.Leveled(2, Optional.of(Instant.parse("2026-11-06T13:10:00.123Z"))),
-                GONE, new SrsState.Leveled(9, Optional.empty())));
+                GONE, new SrsState.Leveled(9, Optional.empty()),
+                new ItemId("block.minecraft.dirt"), new SrsState.Known(),
+                new ItemId("block.minecraft.stone"), new SrsState.Ignored()));
         Path file = temporaryFile();
 
         ProgressFiles.write(file, progress);
@@ -61,7 +63,7 @@ public class ProgressFilesGameTest {
 
         String expected = """
                 {
-                  "version": 1,
+                  "version": 2,
                   "items": {
                     "block.minecraft.oak_log": {
                       "kind": "leveled",
@@ -82,8 +84,8 @@ public class ProgressFilesGameTest {
 
     @GameTest
     public void aFileFromANewerVersionIsTooNew(GameTestHelper helper) {
-        helper.assertValueEqual(readText("{\"version\": 2, \"items\": {\"x\": \"a format we don't know\"}}"),
-                new ProgressFiles.ReadResult.TooNew(2), "read");
+        helper.assertValueEqual(readText("{\"version\": 3, \"items\": {\"x\": \"a format we don't know\"}}"),
+                new ProgressFiles.ReadResult.TooNew(3), "read");
         helper.succeed();
     }
 
@@ -131,4 +133,18 @@ public class ProgressFilesGameTest {
         helper.assertFalse(Files.exists(file), "the broken file was moved");
         helper.succeed();
     }
+    @GameTest
+    public void versionOneProgressSurvivesUpgrade(GameTestHelper helper) throws IOException {
+        var old = readText("""
+                {"version":1,"items":{"block.minecraft.oak_log":{"kind":"leveled","level":9}}}
+                """);
+        Progress expected = Progress.EMPTY.with(OAK_LOG, new SrsState.Leveled(9, Optional.empty()));
+        helper.assertValueEqual(old, new ProgressFiles.ReadResult.Loaded(expected), "old progress");
+        Path file = temporaryFile();
+        ProgressFiles.write(file, ((ProgressFiles.ReadResult.Loaded) old).progress());
+        helper.assertTrue(Files.readString(file).contains("\"version\": 2"), "rewritten as version 2");
+        helper.assertValueEqual(ProgressFiles.read(file), old, "progress survives upgrade");
+        helper.succeed();
+    }
+
 }

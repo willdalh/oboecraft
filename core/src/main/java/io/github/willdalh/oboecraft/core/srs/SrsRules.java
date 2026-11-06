@@ -16,10 +16,17 @@ public final class SrsRules {
      */
     public static boolean isLocked(SrsState state, Instant now, Settings settings) {
         return switch (state) {
+            case SrsState.Known known -> false;
+            case SrsState.Ignored ignored -> false;
             case SrsState.Leveled leveled -> leveled.level() == 0
                     || (leveled.level() < settings.topLevel()
                             && leveled.locksAt().map(locksAt -> !now.isBefore(locksAt)).orElse(true));
         };
+    }
+
+    /** Only these states appear in the word list and can be reverted. */
+    public static boolean canRevert(SrsState state, Settings settings) {
+        return !(state instanceof SrsState.Leveled leveled) || leveled.level() >= settings.topLevel();
     }
 
     /**
@@ -28,6 +35,8 @@ public final class SrsRules {
      */
     public static SrsState pass(SrsState state, Instant now, Settings settings) {
         return switch (state) {
+            case SrsState.Known known -> known;
+            case SrsState.Ignored ignored -> ignored;
             case SrsState.Leveled leveled -> {
                 int level = Math.min(leveled.level() + 1, settings.topLevel());
                 Optional<Instant> locksAt = level == settings.topLevel()

@@ -31,6 +31,12 @@ public final class LockCheck {
         if (interaction == Interaction.DROP && !settings.dropCountsAsInteraction()) {
             return LockDecision.ALLOW;
         }
+        if (state instanceof SrsState.Ignored) {
+            return interaction == Interaction.DROP ? LockDecision.ALLOW : LockDecision.DENY;
+        }
+        if (interaction == Interaction.PICK_UP) {
+            return LockDecision.ALLOW;
+        }
         return SrsRules.isLocked(state, now, settings) ? LockDecision.REVIEW : LockDecision.ALLOW;
     }
 }

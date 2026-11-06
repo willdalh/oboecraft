@@ -36,7 +36,7 @@ class LockCheckTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = Interaction.class, names = "DROP", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = Interaction.class, names = {"DROP", "PICK_UP"}, mode = EnumSource.Mode.EXCLUDE)
     void aLockedItemOpensTheAnswerMenu(Interaction interaction) {
         assertEquals(LockDecision.REVIEW, check(LOCKED, interaction, true));
     }
