@@ -7,7 +7,6 @@
   "oboecraft.answer_menu.failed": "Failed. The answer is:",
   "oboecraft.answer_menu.close_hint": "%s: Close",
   "oboecraft.review.banned": "Banned after a fail. Try again in %s.",
-  "oboecraft.review.passed": "Correct: %s (%s)",
   "oboecraft.progress.broken": "Your Oboecraft progress file couldn't be read, so you start with empty progress. The broken file was kept as %s.",
   "oboecraft.progress.too_new": "Your Oboecraft progress was saved by a newer version of Oboecraft. Update Oboecraft to play here.",
   "oboecraft.progress.unreadable": "Oboecraft couldn't read your progress file. Ask the server owner to check the server log.",

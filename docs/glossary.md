@@ -62,6 +62,10 @@ _Avoid_: cooldown
 The small amber mark on a stack during the final tenth of its interval. It disappears when the item locks.
 _Avoid_: badge, warning icon
 
+**Notification**:
+The item's Japanese name, shown at the top of the screen for a few seconds after a pass.
+_Avoid_: toast, popup, title
+
 ### Reviews
 
 **Review**:

@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, and milestone 9 fails, punishment and bans. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, milestone 9 fails, punishment and bans, and milestone 10 the notification after a pass. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -142,7 +142,15 @@ The screen only sends what the player does and shows what the server sends. It n
 
 Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't check whether the IME is converting. The IME's text that isn't confirmed yet reaches the screen as a `PreeditEvent`, and the answer menu ignores every key while one is shown, since the keys belong to the conversion. So an Enter that confirms a conversion never submits the answer, an Esc that cancels it never closes the menu, and a Backspace never deletes confirmed text, on any platform, whether or not SDL3 also passes those keys on. The client game test checks Enter and Esc with a simulated conversion.
 
-`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it shows the Japanese name and reading above the hotbar, until milestone 10 adds the notification. After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
+`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it closes the answer menu and hands the Japanese name to the notification, see [below](#the-notification). After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
+
+## The notification
+
+`client.display.PassNotification` holds the Japanese name the notification shows and when it was shown, from Minecraft's monotonic `Util.getMillis`. `ClientReviews` calls `show` with the name from `ReviewAnswered` after a pass, before it looks for the review's answer menu, and a new name replaces the old one. Core `NotificationTiming` says when it is over and how opaque it is, so the timing doesn't depend on client ticks.
+
+`GuiMixin` draws it in `Gui.extractRenderState`, after the screen and before the saving indicator, the toasts and the debug overlay, so it is on top of a menu's screen. It is skipped while `Hud.isHidden()` or an `AnswerScreen` is open. The name is drawn with `GuiGraphicsExtractor.text`, scaled to twice the normal size or less so it fits the GUI width with a margin. Its top is below the boss bars: `BossHealthOverlayAccessor` gives the number of bars, and the layout follows vanilla's, 19 GUI pixels per bar from y 12 until a third of the screen's height. Disconnecting clears it. See [Display](../design/display.md#notification) for the visual rules.
+
+`NotificationTimingTest` checks the timing. `AnswerMenuClientGameTest` checks that a pass with a boss bar shown puts オークの原木 in the notification, that its white text is in the screenshot, and that it is gone again. `MenuClientGameTest` passes a review from the inventory and checks that the text is drawn at full brightness over the inventory screen.
 
 ## Networking
 

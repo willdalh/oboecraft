@@ -5,12 +5,12 @@ This describes how the code is structured. It is kept in sync with the code.
 More detail on each part:
 
 - [Core](core.md): the packages and types of the game rules.
-- [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu, item displays and networking.
+- [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu, item displays, the notification and networking.
 - [Progress files](progress-files.md): where progress is saved and the file format.
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, and milestone 7 item displays.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, and milestone 10 the notification after a pass.
 
 ## Core and adapters
 

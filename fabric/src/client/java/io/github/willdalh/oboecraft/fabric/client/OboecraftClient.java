@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.display.ClientDisplayHooks;
+import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
 import io.github.willdalh.oboecraft.fabric.network.ProtocolCheck;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
@@ -20,22 +21,33 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 public final class OboecraftClient implements ClientModInitializer {
     private static ClientProgress progress;
     private static ClientReviews reviews;
+    private static PassNotification notification;
 
     @Override
     public void onInitializeClient() {
         progress = new ClientProgress();
-        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings());
+        notification = new PassNotification();
+        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings(),
+                notification);
         registerReceivers();
         ReviewKeys.register();
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progress.clear());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            progress.clear();
+            notification.clear();
+        });
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
     }
 
     /** The SRS states the server sent. Client game tests read them. */
     public static ClientProgress progress() {
         return progress;
+    }
+
+    /** The notification after a pass, which the GUI draws and client game tests read. */
+    public static PassNotification notification() {
+        return notification;
     }
 
     /** The client's side of reviews, which the client's interaction hooks call. */
