@@ -30,6 +30,11 @@ class NameListTest {
     }
 
     @Test
+    void keepsTheEntriesInOrder() {
+        assertEquals(List.of(MUSIC_DISC, OAK_LOG), new NameList(List.of(MUSIC_DISC, OAK_LOG)).entries());
+    }
+
+    @Test
     void findsAnEntryById() {
         NameList nameList = new NameList(List.of(OAK_LOG, MUSIC_DISC));
 

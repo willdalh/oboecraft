@@ -92,6 +92,15 @@ public final class JapaneseText {
     }
 
     /**
+     * Whether a name part's reading can start with this kana. A small kana like ゃ and the long vowel mark belong to the
+     * kana before them, and ん ends the syllable before it, so a part never starts with one. The small っ can start a
+     * part, as in 取っ手.
+     */
+    public static boolean canStartAPart(char kana) {
+        return !isSmallKana(kana) && kana != LONG_VOWEL_MARK && kana != 'ん';
+    }
+
+    /**
      * The vowel a hiragana ends in, as one of {@code a}, {@code i}, {@code u}, {@code e} and {@code o}, or 0 for
      * {@code ん}, {@code っ} and characters that aren't hiragana. The long vowel mark has no vowel of its own.
      */

@@ -10,7 +10,7 @@ The parts were designed in milestone 3a and built in milestone 3b, for placing b
 
 | Service | What it does |
 |---|---|
-| Name list | `NameListFile` loads `oboecraft/name_list.json` once from the mod's own resources, through Fabric's mod container, so it works the same on a dedicated server, which has no client assets. The file is parsed here into core `NameListEntry` values. Its format is in [Name list file](name-list-file.md). |
+| Name list | `NameListFile` loads `oboecraft/name_list.json` once from the mod's own resources, through Fabric's mod container, so it works the same on a dedicated server, which has no client assets. `NameListJson` in the `json` module parses it into a core `NameList`. Its format is in [Name list file](name-list-file.md). |
 | Item mapping | `ItemMapping` maps an `ItemStack` to its name list entry, see [below](#item-mapping). |
 | Clock | `ModClock`, the one `InstantSource` that all game code reads the time from, to the millisecond. It reads the system clock, and game tests swap in a clock they control with `setSource`. |
 | Settings | The current core `Settings`. It is `Settings.DEFAULTS` until milestone 12 loads the file on the server and sends it to the client. |

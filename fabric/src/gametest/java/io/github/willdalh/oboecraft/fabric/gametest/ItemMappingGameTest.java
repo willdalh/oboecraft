@@ -78,8 +78,8 @@ public class ItemMappingGameTest {
 
     @GameTest
     public void aStackNotInTheNameListIsNotAnItem(GameTestHelper helper) {
-        helper.assertTrue(OboecraftMod.itemMapping().entryOf(new ItemStack(Items.ANDESITE)).isEmpty(),
-                Component.literal("andesite isn't in the name list"));
+        helper.assertTrue(OboecraftMod.itemMapping().entryOf(OtherModStacks.of(Items.ANDESITE)).isEmpty(),
+                Component.literal("another mod's item isn't in the name list"));
         helper.assertTrue(OboecraftMod.itemMapping().entryOf(ItemStack.EMPTY).isEmpty(),
                 Component.literal("an empty stack isn't an item"));
         helper.succeed();

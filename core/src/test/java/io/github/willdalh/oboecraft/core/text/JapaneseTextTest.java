@@ -70,6 +70,15 @@ class JapaneseTextTest {
     }
 
     @Test
+    void aPartCantStartWithASmallKanaTheLongVowelMarkOrN() {
+        assertFalse(JapaneseText.canStartAPart('ゃ'));
+        assertFalse(JapaneseText.canStartAPart('ー'));
+        assertFalse(JapaneseText.canStartAPart('ん'));
+        assertTrue(JapaneseText.canStartAPart('っ'));
+        assertTrue(JapaneseText.canStartAPart('か'));
+    }
+
+    @Test
     void eachKanaEndsInItsVowel() {
         assertEquals('a', JapaneseText.vowelOf('か'));
         assertEquals('a', JapaneseText.vowelOf('ゃ'));

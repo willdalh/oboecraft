@@ -7,6 +7,7 @@ import java.util.Optional;
 
 /** All items, with lookups by translation key and by item id. */
 public final class NameList {
+    private final List<NameListEntry> entries;
     private final Map<String, NameListEntry> entriesByTranslationKey;
     private final Map<ItemId, NameListEntry> entriesById;
 
@@ -28,6 +29,7 @@ public final class NameList {
                 }
             }
         }
+        this.entries = List.copyOf(entries);
         this.entriesByTranslationKey = Map.copyOf(byKey);
         this.entriesById = Map.copyOf(byId);
     }
@@ -40,6 +42,11 @@ public final class NameList {
     /** The entry with this item id, if any. */
     public Optional<NameListEntry> byId(ItemId id) {
         return Optional.ofNullable(entriesById.get(id));
+    }
+
+    /** Every entry, in the order it was given. */
+    public List<NameListEntry> entries() {
+        return entries;
     }
 
     public int size() {
