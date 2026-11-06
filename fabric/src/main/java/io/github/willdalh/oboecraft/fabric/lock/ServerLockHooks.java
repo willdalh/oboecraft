@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.lock;
 
+import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.network.ShowReview;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
@@ -63,7 +64,7 @@ public final class ServerLockHooks {
             case StackLocation.Carried carried -> player.containerMenu.sendAllDataToRemote();
         }
         ServerReviews reviews = OboecraftMod.serverReviews();
-        if (!reviews.isReviewing(player)) {
+        if (!reviews.isReviewing(player) && stopped.get().decision() == LockDecision.REVIEW) {
             reviews.serverStopped(player, location);
             ServerPlayNetworking.send(player, new ShowReview(OboecraftMod.clock().instant(), location));
         }

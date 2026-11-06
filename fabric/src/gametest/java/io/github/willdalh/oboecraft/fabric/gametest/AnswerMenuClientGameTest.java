@@ -48,10 +48,10 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             assertBlock(singleplayer, target.above(), false, "a locked oak log isn't placed");
             context.takeScreenshot("answer-menu");
 
-            // A wrong answer shows that it was wrong, and the review goes on.
+            // A wrong lesson answer reveals the name, and the lesson goes on.
             context.getInput().typeChars("オーク");
             context.getInput().pressKey(InputConstants.KEY_RETURN);
-            context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsWrongAnswer());
+            context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
             assertStillReviewing(context, singleplayer);
 
             // The typing bar holds a correct answer while the keyboard's kanji conversion still has text that isn't
@@ -82,6 +82,44 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             singleplayer.getConnection().waitForServerboundPackets();
             context.waitTicks(2);
             assertBlock(singleplayer, target.above(), true, "an unlocked oak log is placed");
+
+            // Start a fresh lesson, mark it known, then revert it through the real word list.
+            singleplayer.getServer().runOnServer(server -> OboecraftMod.serverProgress().update(
+                    server.getPlayerList().getPlayers().getFirst(), OAK_LOG, SrsState.Leveled.NEW));
+            singleplayer.getConnection().waitForClientboundPackets();
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+            context.waitForScreen(AnswerScreen.class);
+            singleplayer.getConnection().waitForServerboundPackets();
+            context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
+                    InputConstants.KEY_K, 'k', InputConstants.MOD_CONTROL)));
+            context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Known
+                    && !(client.gui.screen() instanceof AnswerScreen));
+            context.getInput().pressKey(InputConstants.KEY_J);
+            context.waitForScreen(io.github.willdalh.oboecraft.fabric.client.WordListScreen.class);
+            context.takeScreenshot("word-list-known");
+            context.runOnClient(client -> {
+                var screen = client.gui.screen();
+                screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(screen.width / 2.0, 62,
+                        new net.minecraft.client.input.MouseButtonInfo(1, 0)), false);
+                var revert = screen.children().stream()
+                        .filter(child -> child instanceof net.minecraft.client.gui.components.Button button
+                                && button.getMessage().getString().equals("Revert to level 0"))
+                        .map(child -> (net.minecraft.client.gui.components.Button) child).findFirst().orElseThrow();
+                revert.onPress(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+            });
+            context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG).equals(SrsState.Leveled.NEW));
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+            context.waitForScreen(AnswerScreen.class);
+            singleplayer.getConnection().waitForServerboundPackets();
+            context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
+                    InputConstants.KEY_I, 'i', InputConstants.MOD_CONTROL)));
+            context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Ignored
+                    && !(client.gui.screen() instanceof AnswerScreen));
+            singleplayer.getConnection().waitForClientboundPackets();
+            if (!context.computeOnClient(client -> client.player.getMainHandItem().isEmpty())) {
+                throw new AssertionError("Ignore must drop the held stack on both sides");
+            }
         }
     }
 

@@ -24,4 +24,4 @@ The marker disappears when the item locks; its name is then hidden instead. Lock
 
 ## Later milestones
 
-Known and ignored states arrive in milestone 8 and bans in milestone 9. Known items need no timer, and banned items keep their names hidden while locked. Milestone 12 supplies synced settings to the shared lock service, which also serves displays, so the timer uses the server's intervals.
+Known and ignored items show their normal names, without timers or near-lock markers. Bans arrive in milestone 9, and banned items will keep their names hidden while locked. Milestone 12 supplies synced settings to the shared lock service, which also serves displays, so the timer uses the server's intervals.

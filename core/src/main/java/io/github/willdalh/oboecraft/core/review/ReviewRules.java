@@ -22,7 +22,13 @@ public final class ReviewRules {
         }
         return switch (state) {
             case SrsState.Leveled leveled -> new ReviewStart.Started(leveled.level());
+            case SrsState.Known known -> new ReviewStart.NotLocked();
+            case SrsState.Ignored ignored -> new ReviewStart.NotLocked();
         };
+    }
+
+    public static boolean isLesson(SrsState state) {
+        return state instanceof SrsState.Leveled leveled && leveled.level() == 0;
     }
 
     /**
@@ -47,6 +53,6 @@ public final class ReviewRules {
         if (AnswerChecker.isCorrect(entry, typed)) {
             return new ReviewResult(ReviewOutcome.PASS, SrsRules.pass(state, now, settings));
         }
-        return new ReviewResult(ReviewOutcome.WRONG, state);
+        return new ReviewResult(isLesson(state) ? ReviewOutcome.LESSON : ReviewOutcome.WRONG, state);
     }
 }

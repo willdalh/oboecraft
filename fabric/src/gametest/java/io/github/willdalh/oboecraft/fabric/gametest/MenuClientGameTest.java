@@ -44,9 +44,31 @@ public class MenuClientGameTest implements FabricClientGameTest {
                 .create()) {
             singleplayer.getConnection().waitForChunksRender();
             context.waitFor(client -> OboecraftClient.progress().hasProgress(client.player));
+            reviewingFromTheInventory(context, singleplayer);
             takingALockedStackFromAChest(context, singleplayer);
             takingALockedCraftingResult(context, singleplayer);
         }
+    }
+
+    private static void reviewingFromTheInventory(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, new ItemStack(Items.OAK_LOG, 4)));
+        singleplayer.getConnection().waitForClientboundPackets();
+        context.runOnClient(client -> client.gui.setScreen(new InventoryScreen(client.player)));
+        click(context, InventoryMenu.USE_ROW_SLOT_START, SECONDARY, ContainerInput.PICKUP);
+        context.waitForScreen(AnswerScreen.class);
+        singleplayer.getConnection().waitForServerboundPackets();
+        check(singleplayer, player -> player.getInventory().getItem(0).getCount() == 4
+                && player.containerMenu.getCarried().isEmpty(), "right-click reviews without splitting the stack");
+        context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
+                InputConstants.KEY_S, 's', InputConstants.MOD_CONTROL)));
+        context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
+        context.takeScreenshot("lesson-answer");
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(InventoryScreen.class);
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(null);
+        singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, ItemStack.EMPTY));
+        singleplayer.getConnection().waitForClientboundPackets();
     }
 
     private static void takingALockedStackFromAChest(

@@ -16,7 +16,7 @@ An item with no saved state is leveled at level 0. So progress only stores items
 
 Revert puts a known, ignored or mastered item back to leveled at level 0, with nothing else kept.
 
-Known, ignored and revert are added in milestone 8. Until then every item is leveled.
+Known, ignored and Revert are built. Known and ignored items display their normal name, with no timer or near-lock marker.
 
 ## Leveled state
 

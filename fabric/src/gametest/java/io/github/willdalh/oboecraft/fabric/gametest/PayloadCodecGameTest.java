@@ -15,6 +15,8 @@ import io.github.willdalh.oboecraft.fabric.network.ShowReview;
 import io.github.willdalh.oboecraft.fabric.network.StartReview;
 import io.github.willdalh.oboecraft.fabric.network.StateUpdate;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
+import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
+import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.time.Instant;
@@ -47,6 +49,11 @@ public class PayloadCodecGameTest {
                 OAK_LOG, new SrsState.Leveled(3, Optional.of(TIME)),
                 new ItemId("block.minecraft.dirt"), new SrsState.Leveled(9, Optional.empty())));
 
+        for (SrsState state : new SrsState[]{new SrsState.Known(), new SrsState.Ignored()}) {
+            assertRoundTrip(helper, StateUpdate.STREAM_CODEC, new StateUpdate(TIME, OAK_LOG, state));
+        }
+        assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.LESSON,
+                Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress));
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
@@ -69,6 +76,10 @@ public class PayloadCodecGameTest {
         assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, new StackLocation.MenuSlot(3, 0)));
         assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, new StackLocation.Carried(3)));
         assertRoundTrip(helper, SubmitAnswer.STREAM_CODEC, new SubmitAnswer(300, "オークの原木"));
+        for (ReviewAction.Action action : ReviewAction.Action.values()) {
+            assertRoundTrip(helper, ReviewAction.STREAM_CODEC, new ReviewAction(300, action));
+        }
+        assertRoundTrip(helper, RevertItem.STREAM_CODEC, new RevertItem(OAK_LOG));
         assertRoundTrip(helper, CloseReview.STREAM_CODEC, new CloseReview(300));
         helper.succeed();
     }

@@ -3,6 +3,8 @@ package io.github.willdalh.oboecraft.fabric.client;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
+import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
+import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
@@ -11,6 +13,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -27,7 +30,6 @@ import org.jspecify.annotations.Nullable;
 public final class AnswerScreen extends Screen {
     private static final Component TITLE = Component.translatable("oboecraft.answer_menu.title");
     private static final Component INPUT_LABEL = Component.translatable("oboecraft.answer_menu.input");
-    private static final Component HINT = Component.translatable("oboecraft.answer_menu.hint");
     private static final Component WRONG = Component.translatable("oboecraft.answer_menu.wrong")
             .withStyle(ChatFormatting.RED);
     private static final int INPUT_WIDTH = 200;
@@ -40,6 +42,7 @@ public final class AnswerScreen extends Screen {
     private int level;
     private @Nullable EditBox input;
     private boolean wrong;
+    private ReviewAnswered.@Nullable Answer shownAnswer;
     private boolean composing;
     private boolean endedByServer;
 
@@ -103,11 +106,40 @@ public final class AnswerScreen extends Screen {
         if (composing) {
             return true;
         }
-        if (event.isConfirmation()) {
+        if (ReviewKeys.KNOWN.matches(event)) {
+            action(ReviewAction.Action.KNOWN);
+            return true;
+        }
+        if (ReviewKeys.IGNORE.matches(event)) {
+            action(ReviewAction.Action.IGNORE);
+            return true;
+        }
+        if (level == 0 && (ReviewKeys.SHOW.matches(event) || ReviewKeys.DONT_KNOW.matches(event))) {
+            action(ReviewAction.Action.SHOW_ANSWER);
+            return true;
+        }
+        if (ReviewKeys.CLOSE.matches(event)) {
+            onClose();
+            return true;
+        }
+        if (ReviewKeys.ANSWER.matches(event)) {
             submit();
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (composing) return true;
+        if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
+        if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
+        if (level == 0 && (ReviewKeys.SHOW.matches(event) || ReviewKeys.DONT_KNOW.matches(event))) {
+            action(ReviewAction.Action.SHOW_ANSWER); return true;
+        }
+        if (ReviewKeys.ANSWER.matches(event)) { submit(); return true; }
+        if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
+        return super.mouseClicked(event, doubleClick);
     }
 
     /** Tracks whether the keyboard's kanji conversion has text that isn't confirmed yet. */
@@ -115,6 +147,20 @@ public final class AnswerScreen extends Screen {
     public boolean preeditUpdated(@Nullable PreeditEvent event) {
         composing = event != null;
         return super.preeditUpdated(event);
+    }
+
+    private void action(ReviewAction.Action action) {
+        ClientPlayNetworking.send(new ReviewAction(reviewId, action));
+    }
+
+    public boolean showsLessonAnswer() {
+        return shownAnswer != null;
+    }
+
+    void showAnswer(ReviewAnswered.Answer answer) {
+        input.setValue("");
+        wrong = false;
+        shownAnswer = answer;
     }
 
     private void submit() {
@@ -172,9 +218,17 @@ public final class AnswerScreen extends Screen {
         int top = height / 2;
         graphics.fakeItem(icon, centerX - 8, top - 44);
         graphics.centeredText(font, Component.translatable("oboecraft.answer_menu.level", level), centerX, top - 20, -1);
-        graphics.centeredText(font, HINT, centerX, top + INPUT_HEIGHT + 8, 0xFFA0A0A0);
+        int hintY = top + INPUT_HEIGHT + 8;
+        for (var line : font.split(ReviewKeys.hint(level == 0), Math.max(100, width - 24))) {
+            graphics.text(font, line, centerX - font.width(line) / 2, hintY, 0xFFA0A0A0);
+            hintY += 12;
+        }
+        if (shownAnswer != null) {
+            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName() + " (" + shownAnswer.reading() + ")"),
+                    centerX, hintY + 12, -1);
+        }
         if (wrong) {
-            graphics.centeredText(font, WRONG, centerX, top + INPUT_HEIGHT + 22, -1);
+            graphics.centeredText(font, WRONG, centerX, hintY + 12, -1);
         }
     }
 }

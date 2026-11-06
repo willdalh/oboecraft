@@ -73,6 +73,6 @@ public final class Locks {
                 view.state(player, entry.get().id()), checked.interaction(), view.now(), true, settings);
         return decision == LockDecision.ALLOW
                 ? Optional.empty()
-                : Optional.of(new StoppedStack(checked, entry.get()));
+                : Optional.of(new StoppedStack(checked, entry.get(), decision));
     }
 }

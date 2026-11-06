@@ -159,7 +159,7 @@ The state of an item the player chose to leave out. It can't be picked up, taken
 _Avoid_: blacklisted, hidden, excluded
 
 **Word list**:
-The screen that shows all known, ignored and mastered items.
+The screen that shows known, ignored and mastered items in separate lists, with Revert. See [Word list](design/word-list.md).
 _Avoid_: library, vocabulary, dictionary
 
 **Revert**:

@@ -165,6 +165,13 @@ Decided in milestone 4, see [Answers](design/answers.md):
 
 Since 26.3, Minecraft's window library has moved from GLFW to SDL3, and the keyboard's kanji conversion (IME) works on all operating systems. The answer menu uses Minecraft's normal text box to get it. Minecraft hands every key to the screen without checking the conversion, so the answer menu ignores Enter while the conversion has text that isn't confirmed. A client game test checks this with a simulated conversion. A real IME on each operating system is only checked by hand.
 
+### Lessons and word list
+
+- Level 0 reveals the name after Show answer, Don't know or a wrong answer, without ending the lesson or changing progress.
+- Known and ignored states have no level. Revert is allowed only for them and mastered items, and resets to level 0.
+- Progress format 2 is necessary for known and ignored states: format 1 readers reject unknown kinds as corrupt, so adding kinds without increasing the version would risk replacing progress after a downgrade.
+- Word list and binding behavior are described in [Word list](design/word-list.md) and [Reviews](design/reviews.md).
+
 ### Voice
 
 - The audio for each reading is pre-generated with VOICEVOX from the reviewed reading and shipped as sound files, around 1,500 clips and 10 MB. It works offline and sounds the same for everyone.
@@ -287,7 +294,13 @@ What later milestones should know: `ItemDisplay` uses the shared `Locks` service
 
 ### 8. Lessons, known and ignored items, word list
 
-**Status:** not started
+**Status:** done
+
+Built: lesson answer reveal and unlimited unpunished attempts at level 0; Already known and Ignore; dropping ignored loose inventory stacks and blocking their interactions and pickups; inventory right-click reviews; Controls bindings; and a paginated word list with separate known, ignored and mastered tabs and server-validated Revert.
+
+Differences: Don't know is available in lessons now, with higher-level fails left to milestone 9. The word list defaults to J (O is Minecraft's Friends key). Default Ctrl shortcuts use Ctrl only while on their default letter; rebound keys or mouse buttons act alone, matching vanilla's single-key binding storage. Worn armor and container contents stay in use when ignoring an item.
+
+Later milestones: protocol 3 carries tagged states and lesson results. Progress format 2 reads format 1 unchanged, but prevents older mods from treating known/ignored states as corrupt and overwriting progress. Settings still use defaults until milestone 12. See [Word list](design/word-list.md).
 
 Lessons at level 0 (show the answer, no punishment), the Already known and Ignore actions, ignored items dropped and blocked, and the word list screen with Revert.
 

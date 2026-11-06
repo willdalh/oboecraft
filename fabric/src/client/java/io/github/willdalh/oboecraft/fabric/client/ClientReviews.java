@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
@@ -53,9 +54,21 @@ public final class ClientReviews {
      */
     public boolean stops(LocalPlayer player, List<CheckedStack> stacks) {
         Optional<StoppedStack> stopped = locks.firstStopped(progress, player, stacks);
-        stopped.ifPresent(stop ->
+        stopped.filter(stop -> stop.decision() == LockDecision.REVIEW).ifPresent(stop ->
                 openAnswerMenu(player, stop.checked().location(), stop.entry(), stop.checked().stack()));
         return stopped.isPresent();
+    }
+
+    /** Right-clicking a reviewable inventory stack must not split it first. Other inventory moves stay free. */
+    public boolean reviewInventorySlot(LocalPlayer player, int slot) {
+        if (!Locks.active(progress, player) || slot < 0 || slot >= player.containerMenu.slots.size()) return false;
+        var clicked = player.containerMenu.getSlot(slot);
+        if (clicked.container != player.getInventory() || !player.containerMenu.getCarried().isEmpty()) return false;
+        var entry = itemMapping.entryOf(clicked.getItem());
+        if (entry.isEmpty() || !(ReviewRules.start(progress.state(player, entry.get().id()), progress.now(), settings)
+                instanceof ReviewStart.Started)) return false;
+        openAnswerMenu(player, new StackLocation.MenuSlot(player.containerMenu.containerId, slot), entry.get(), clicked.getItem());
+        return true;
     }
 
     /** The server stopped an action and asks for the answer menu for the stack at {@code location}. */
@@ -113,6 +126,10 @@ public final class ClientReviews {
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
         AnswerScreen screen = answerScreen(reviewId);
         if (screen == null) {
+            return;
+        }
+        if (outcome == ReviewOutcome.LESSON) {
+            answer.ifPresent(screen::showAnswer);
             return;
         }
         if (outcome == ReviewOutcome.WRONG) {

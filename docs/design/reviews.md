@@ -67,7 +67,9 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 | Show answer | Ctrl+S | Lessons only: shows the Japanese name |
 | Close | Esc | The review is cancelled. Nothing is punished and the item stays locked. |
 
-All keys can be rebound in Minecraft's Controls screen.
+All keys can be rebound in Minecraft's Controls screen, including mouse buttons. Vanilla stores one key per binding: the default K, I and S bindings require Ctrl, and a different binding is used on its own. The hint shows the current binding. Close remains available with Esc as on other Minecraft screens.
+
+Don't know is available in lessons now. From level 1, it waits for milestone 9's punishment rules.
 
 ## Lessons
 

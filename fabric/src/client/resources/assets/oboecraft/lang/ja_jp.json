@@ -14,5 +14,20 @@
   "oboecraft.display.hours": "%s時間",
   "oboecraft.display.minutes": "%s分",
   "oboecraft.display.seconds": "%s秒",
-  "oboecraft.display.time_separator": ""
+  "oboecraft.display.time_separator": "",
+  "key.oboecraft.answer": "回答",
+  "key.oboecraft.close": "閉じる",
+  "key.oboecraft.known": "既知",
+  "key.oboecraft.ignore": "無視",
+  "key.oboecraft.show": "答えを表示",
+  "key.oboecraft.dont_know": "わからない",
+  "key.oboecraft.word_list": "単語リスト",
+  "key.category.oboecraft.reviews": "Oboecraft",
+  "oboecraft.word_list.title": "単語リスト",
+  "oboecraft.word_list.known": "既知",
+  "oboecraft.word_list.ignored": "無視",
+  "oboecraft.word_list.mastered": "習得済み",
+  "oboecraft.word_list.revert": "レベル0に戻す",
+  "oboecraft.word_list.empty": "単語はまだありません",
+  "oboecraft.word_list.hint": "%s/%sページ · 右クリックで元に戻す"
 }

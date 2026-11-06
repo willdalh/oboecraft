@@ -24,6 +24,8 @@ public final class ServerNetworking {
         PayloadTypeRegistry.clientboundPlay().register(ReviewAnswered.TYPE, ReviewAnswered.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ReviewCancelled.TYPE, ReviewCancelled.STREAM_CODEC);
 
+        PayloadTypeRegistry.serverboundPlay().register(ReviewAction.TYPE, ReviewAction.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(RevertItem.TYPE, RevertItem.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(StartReview.TYPE, StartReview.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(SubmitAnswer.TYPE, SubmitAnswer.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CloseReview.TYPE, CloseReview.STREAM_CODEC);
@@ -34,6 +36,10 @@ public final class ServerNetworking {
      * who sent the payload.
      */
     public static void registerReceivers(ServerReviews reviews) {
+        ServerPlayNetworking.registerGlobalReceiver(ReviewAction.TYPE,
+                (payload, context) -> reviews.action(context.player(), payload.reviewId(), payload.action()));
+        ServerPlayNetworking.registerGlobalReceiver(RevertItem.TYPE,
+                (payload, context) -> reviews.revert(context.player(), payload.item()));
         ServerPlayNetworking.registerGlobalReceiver(StartReview.TYPE,
                 (payload, context) -> reviews.start(context.player(), payload.reviewId(), payload.location()));
         ServerPlayNetworking.registerGlobalReceiver(SubmitAnswer.TYPE,

@@ -31,3 +31,5 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Two attempts, Don't know, punishment, demotion and bans | 9 |
 | Creative mode | 11 |
 | Settings files, sync and screens | 12 |
+
+- [Word list](word-list.md): known, ignored and mastered items, and Revert.
