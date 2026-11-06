@@ -192,6 +192,14 @@ Decided in milestone 10, see [Display](design/display.md#notification):
 - It is shown for 3 seconds of real time and fades out in the last second. A new pass replaces it. It is drawn after the screen, so a menu's screen doesn't dim it, and hidden with the HUD and while an answer menu is open.
 - Only a pass shows it, also when the answer menu was closed before the pass arrived. After a fail the answer menu already shows the name and reading.
 
+### Game modes and renaming
+
+Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items](design/items.md#renaming):
+
+- Changing to creative or spectator mode cancels a review that is going, like closing the answer menu, so nothing is punished and the SRS state, with a saved wrong attempt, is kept. Changing between survival and adventure mode keeps it.
+- A stack the server stopped just before the change can still start its review, since the server already decided the action needed one.
+- The anvil leaves the name of every item except the name tag as it is. It neither renames it nor takes its custom name away, and charges nothing for naming. Repairing and combining enchantments are unchanged. Stacks that aren't items, like other mods' items, can't be renamed either. The rule is in core `Renaming`, and the anvil's name field only takes typing for a name tag.
+
 ### Progress
 
 See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
@@ -345,7 +353,13 @@ Show the notification at the top of the screen after a pass, in place of the tex
 
 ### 11. Remaining rules
 
-**Status:** not started
+**Status:** done
+
+Built: changing to creative or spectator mode cancels a review that is going, and the anvil only renames name tags, on both sides, with core `Renaming`. Creative mode already allowed every action and kept the SRS state since milestone 3b, through the lock check's rule 2, and displays are off there since milestone 7. Core tests cover `Renaming`. Game tests cover the game mode changes and the anvil's results for a name tag, a sword, a sword with a custom name and a repair. A client game test checks the anvil's name field for a sword and a name tag.
+
+Where it differs from the plan: the plan only named creative mode. Spectator mode has no locks either, so it cancels a review too. Taking a custom name away with an anvil counts as renaming, and other mods' items can't be renamed, see [Game modes and renaming](#game-modes-and-renaming).
+
+What later milestones should know: no payloads, saved fields or settings changed. The anvil's name field still shows the input's real name, also for a locked item, like other names outside tooltips and the hotbar label.
 
 Creative mode (no locks, SRS state kept), and anvil renaming removed for everything except name tags.
 

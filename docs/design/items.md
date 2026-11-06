@@ -76,3 +76,9 @@ The Japanese name is the text of its parts joined, like オークの原木, and 
 ## Protected items
 
 Some items are protected and never removed in a punishment: the dragon egg, shulker boxes and bundles. They are still demoted and banned. Which items are protected is a fixed list of item ids in the core, not a setting: `block.minecraft.dragon_egg`, `block.minecraft.shulker_box` and the 16 colored shulker boxes, and `item.minecraft.bundle` and the 16 colored bundles. A game test checks that each is in the name list. See [Punishment](punishment.md#protected-items).
+
+## Renaming
+
+Only a name tag can be renamed. Renaming any other item with an anvil would let the player give a stack a name of their own, so the anvil leaves the name of every other item as it is: it neither gives it a new name nor takes an existing custom name away, and naming costs nothing for it. Repairing and combining enchantments on an anvil work as normal, and the result keeps the input's name. Stacks that aren't items, like other mods' items, can't be renamed either.
+
+The anvil's name field can only be typed in while a name tag is in its first slot. The server decides the result, so a modified client that sends a name anyway changes nothing. Name tags lock and unlock like any other item. This is a fixed rule, not a setting, and was added in milestone 11.

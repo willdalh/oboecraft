@@ -13,11 +13,17 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
@@ -33,6 +39,8 @@ public class MenuClientGameTest implements FabricClientGameTest {
     private static final ItemId OAK_PLANKS = new ItemId("block.minecraft.oak_planks");
     /** The menu slot of the first hotbar slot in a chest menu with three rows. */
     private static final int CHEST_HOTBAR_SLOT = 54;
+    /** The first hotbar slot of an anvil menu. */
+    private static final int ANVIL_HOTBAR_SLOT = 30;
     private static final int PRIMARY = 0;
     private static final int SECONDARY = 1;
 
@@ -47,6 +55,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
             reviewingFromTheInventory(context, singleplayer);
             takingALockedStackFromAChest(context, singleplayer);
             takingALockedCraftingResult(context, singleplayer);
+            renamingInAnAnvil(context, singleplayer);
         }
     }
 
@@ -156,6 +165,60 @@ public class MenuClientGameTest implements FabricClientGameTest {
         }
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
+    }
+
+    /**
+     * The anvil's name field takes no typing for a sword, so the sword isn't renamed, and it does for a name tag, which
+     * is. Both items are known, so moving them into the anvil isn't stopped.
+     */
+    private static void renamingInAnAnvil(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        int swordSlot = ANVIL_HOTBAR_SLOT;
+        int nameTagSlot = ANVIL_HOTBAR_SLOT + 1;
+        singleplayer.getServer().runOnServer(server -> {
+            ServerPlayer player = player(server);
+            player.experienceLevel = 30;
+            OboecraftMod.serverProgress().update(player, new ItemId("item.minecraft.diamond_sword"), new SrsState.Known());
+            OboecraftMod.serverProgress().update(player, new ItemId("item.minecraft.name_tag"), new SrsState.Known());
+            player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_SWORD));
+            player.getInventory().setItem(1, new ItemStack(Items.NAME_TAG));
+            player.openMenu(new SimpleMenuProvider(
+                    (id, inventory, opener) -> new AnvilMenu(id, inventory), Component.literal("Anvil")));
+        });
+        context.waitForScreen(AnvilScreen.class);
+
+        click(context, swordSlot, PRIMARY, ContainerInput.PICKUP);
+        click(context, AnvilMenu.INPUT_SLOT, PRIMARY, ContainerInput.PICKUP);
+        context.waitTick();
+        context.getInput().typeChars("Sting");
+        singleplayer.getConnection().waitForServerboundPackets();
+        String swordName = context.computeOnClient(MenuClientGameTest::anvilName);
+        if (swordName.contains("Sting")) {
+            throw new AssertionError("The anvil's name field should take no typing for a sword, but has " + swordName);
+        }
+        check(singleplayer, player -> player.containerMenu.getSlot(AnvilMenu.RESULT_SLOT).getItem().isEmpty(),
+                "the anvil has no result for a sword it can't rename");
+
+        click(context, AnvilMenu.INPUT_SLOT, PRIMARY, ContainerInput.PICKUP);
+        click(context, swordSlot, PRIMARY, ContainerInput.PICKUP);
+        click(context, nameTagSlot, PRIMARY, ContainerInput.PICKUP);
+        click(context, AnvilMenu.INPUT_SLOT, PRIMARY, ContainerInput.PICKUP);
+        context.waitTick();
+        context.getInput().typeChars("Pochi");
+        singleplayer.getConnection().waitForServerboundPackets();
+        context.takeScreenshot("anvil-name-tag");
+        check(singleplayer, player -> {
+            Component name = player.containerMenu.getSlot(AnvilMenu.RESULT_SLOT).getItem()
+                    .get(DataComponents.CUSTOM_NAME);
+            return name != null && name.getString().contains("Pochi");
+        }, "the anvil renames a name tag");
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(null);
+    }
+
+    private static String anvilName(Minecraft client) {
+        return client.gui.screen().children().stream()
+                .filter(EditBox.class::isInstance).map(EditBox.class::cast)
+                .findFirst().orElseThrow().getValue();
     }
 
     private static boolean resultIsCraftingTable(Minecraft client) {

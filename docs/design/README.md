@@ -2,11 +2,11 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, and milestone 10 the notification after a pass. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, and milestone 11 the game mode and renaming rules. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
-| [Items](items.md) | What an item is, the name list, and how a stack maps to its item |
+| [Items](items.md) | What an item is, the name list, how a stack maps to its item, and renaming |
 | [SRS state](srs-state.md) | Levels, intervals, locking, demotion, bans, and known and ignored items |
 | [Lock check](lock-check.md) | The one check that decides what happens when a player interacts with a stack |
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
@@ -31,7 +31,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Lessons, Already known, Ignore, the word list | 8 |
 | Two attempts, Don't know, punishment, demotion and bans | 9 |
 | The notification after a pass | 10 |
-| Creative mode | 11 |
+| Creative mode cancels a review, the anvil only renames name tags | 11 |
 | Settings files, sync and screens | 12 |
 
 - [Word list](word-list.md): known, ignored and mastered items, and Revert.

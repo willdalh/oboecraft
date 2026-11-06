@@ -267,6 +267,17 @@ public final class ServerReviews {
         }
     }
 
+    /**
+     * The player's game mode changed. In a game mode where locks aren't active, like creative mode, nothing is
+     * reviewed, so a review that is going is cancelled. Its item stays locked, and its state is kept for when the
+     * player returns to survival or adventure mode.
+     */
+    public void gameModeChanged(ServerPlayer player) {
+        if (!Locks.active(progress, player)) {
+            cancel(player);
+        }
+    }
+
     /** Cancels the player's review on the server's side, for example when they die, and tells the client. */
     public void cancel(ServerPlayer player) {
         ActiveReview review = active.remove(player.getUUID());

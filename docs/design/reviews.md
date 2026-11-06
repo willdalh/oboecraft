@@ -96,6 +96,12 @@ The Japanese name and reading are only sent to the client once the player has pa
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |
 
+## Game modes
+
+Locks are only active in survival and adventure mode, see [Lock check](lock-check.md#inputs). When a player changes to creative or spectator mode, a review that is going is cancelled, as if the player closed the answer menu, and the client's answer menu closes. Nothing is punished, the item stays locked and its SRS state, including a saved wrong attempt, is kept for when the player returns to survival or adventure mode. Changing between survival and adventure mode keeps the review going.
+
+In creative and spectator mode, the client's lock check allows every action, so it never opens the answer menu, and the server refuses a review the client asks for. The one exception is the stack the server itself stopped last, in survival or adventure mode: if the client asks for that review after the change, it starts and runs as normal, since the server already decided the action needed it.
+
 ## What is built when
 
 - Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading were shown above the hotbar, until milestone 10. Dying cancels the review.
@@ -104,3 +110,4 @@ The Japanese name and reading are only sent to the client once the player has pa
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
 - Milestone 9: two attempts with a wrong attempt saved, Don't know, fails and punishment, bans, and noting a crafting trigger's ingredients.
 - Milestone 10: the [notification](display.md#notification) on a pass, in place of the text above the hotbar.
+- Milestone 11: cancelling a review when the player changes to a game mode without locks.
