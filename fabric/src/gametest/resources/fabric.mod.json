@@ -15,11 +15,13 @@
       "io.github.willdalh.oboecraft.fabric.gametest.PayloadCodecGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.HeldStackGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.MenuSlotsGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.MenuSlotsGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.DisplayGameTest"
     ],
     "fabric-client-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest"
     ]
   },
   "depends": {

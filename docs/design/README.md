@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, and milestone 6 the lock check for every interaction. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, and milestone 7 item displays. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -12,6 +12,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
 | [Settings](settings.md) | The values that settings control and their defaults |
+| [Display](display.md) | Hidden names, the lock timer and the slot marker |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
 
 ## What is built when
@@ -25,6 +26,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Name parts with readings per kanji, full answer checking | 4 |
 | The full name list | 5 |
 | Lock check for every interaction | 6 |
+| Hidden names, lock timer and slot marker | 7 |
 | Lessons, Already known, Ignore, the word list | 8 |
 | Two attempts, Don't know, punishment, demotion and bans | 9 |
 | Creative mode | 11 |

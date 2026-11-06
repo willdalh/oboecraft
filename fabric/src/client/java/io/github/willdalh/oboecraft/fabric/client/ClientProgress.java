@@ -68,6 +68,27 @@ public final class ClientProgress implements ProgressView {
         return current(Minecraft.getInstance().getConnection());
     }
 
+    /** One immutable read of the connection's progress and estimated time, reused for a whole display frame. */
+    public ProgressView capture() {
+        Snapshot current = current();
+        return current == null ? Captured.EMPTY : new Captured(current.progress(),
+                current.serverTime().plusNanos(System.nanoTime() - current.receivedNanos()));
+    }
+
+    private record Captured(@Nullable Progress progress, Instant now) implements ProgressView {
+        private static final Captured EMPTY = new Captured(null, Instant.EPOCH);
+
+        @Override
+        public boolean hasProgress(Player player) {
+            return progress != null;
+        }
+
+        @Override
+        public SrsState state(Player player, ItemId item) {
+            return progress == null ? SrsState.Leveled.NEW : progress.state(item);
+        }
+    }
+
     @Override
     public boolean hasProgress(Player player) {
         return current() != null;
