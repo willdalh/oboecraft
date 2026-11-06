@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.item.NamePart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsRules;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -18,7 +20,10 @@ import org.junit.jupiter.api.Test;
 
 class ReviewRulesTest {
     private static final NameListEntry OAK_LOG = new NameListEntry(
-            new ItemId("block.minecraft.oak_log"), List.of("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく");
+            new ItemId("block.minecraft.oak_log"),
+            List.of("block.minecraft.oak_log"),
+            new JapaneseName(List.of(
+                    NamePart.kana("オーク"), NamePart.kana("の"), new NamePart("原", "げん"), new NamePart("木", "ぼく"))));
     private static final Instant NOW = Instant.parse("2026-11-06T12:00:00Z");
     private static final Settings SETTINGS = Settings.DEFAULTS;
 
@@ -63,9 +68,12 @@ class ReviewRulesTest {
     }
 
     @Test
-    void aBlankAnswerIsntAnAttempt() {
+    void anAnswerWithoutLettersOrDigitsIsntAnAttempt() {
         assertFalse(ReviewRules.isAttempt(""));
         assertFalse(ReviewRules.isAttempt("  "));
+        assertFalse(ReviewRules.isAttempt("。"));
+        assertFalse(ReviewRules.isAttempt("・、!"));
+        assertFalse(ReviewRules.isAttempt("'"));
         assertTrue(ReviewRules.isAttempt("つち"));
         assertThrows(IllegalArgumentException.class,
                 () -> ReviewRules.answer(OAK_LOG, SrsState.Leveled.NEW, " ", NOW, SETTINGS));

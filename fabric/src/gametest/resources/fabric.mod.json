@@ -8,6 +8,7 @@
     "fabric-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.ModLoadedGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ItemMappingGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.NameListGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.PlacingGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ProgressFilesGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ServerProgressGameTest",
