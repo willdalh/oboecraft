@@ -20,9 +20,9 @@ Oboecraft is a Minecraft mod for learning Japanese. It uses a spaced repetition 
 
 ## Architecture
 
-The code follows clean architecture, with a `core` module and a `fabric` adapter module. A `tools` module holds tools that are run by hand to make the mod's data, like the name list tool. `docs/architecture/overview.md` describes the structure.
+The code follows clean architecture, with a `core` module and a `fabric` adapter module. A `json` module holds the JSON file formats that the mod and its tools share, and a `tools` module holds tools that are run by hand to make the mod's data, like the name list tool. `docs/architecture/overview.md` describes the structure.
 
-- Dependencies point inward: `fabric` and `tools` depend on `core`, never the other way around, and nothing depends on `tools`.
+- Dependencies point inward: `json` depends on `core`, `fabric` and `tools` depend on both, never the other way around, and nothing depends on `tools`. `json` uses only Gson besides `core`.
 - `core` never imports Minecraft or Fabric code.
 - Put game rules (levels, intervals, answer checking, punishment, the name list) in `core`. Put everything that touches Minecraft or Fabric in `fabric`.
 - Keep the core thin. It takes simple inputs, like item ids, counts and timestamps, and returns decisions. Minecraft concepts like inventories and slots stay in `fabric`.
@@ -42,7 +42,7 @@ Run these from the repository root. The first run downloads Gradle, Java 25 and 
 
 | Command | What it does |
 |---|---|
-| `./gradlew build` | Compiles, runs the core and tools unit tests and the Fabric game tests, and builds the mod jar in `fabric/build/libs/` |
+| `./gradlew build` | Compiles, runs the unit tests of `core`, `json` and `tools` and the Fabric game tests, and builds the mod jar in `fabric/build/libs/` |
 | `./gradlew :core:test` | Runs only the core unit tests |
 | `./gradlew runGameTest` | Runs only the Fabric game tests, on a headless server |
 | `./gradlew runClientGameTest` | Runs the Fabric client game tests in a real client. Not part of `build`. It needs a display: without one, install `xvfb` and `mesa-vulkan-drivers` and run `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClientGameTest`, as CI does |

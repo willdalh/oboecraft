@@ -33,7 +33,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 - `NameListEntry`: the item id, its translation keys and its `JapaneseName`. It rejects an entry with no translation key, or a blank key.
 - `JapaneseName`: the Japanese name as a list of `NamePart`s, see [Name parts](../design/items.md#name-parts). `text()` is the parts' text joined, like オークの原木, and `reading()` their readings joined, like おーくのげんぼく. For answer checking, a position in the name is a position in its reading: `partAt(position)` is the part there, as a `PlacedPart` with its normalized text and where it starts and ends, and `vowelBefore(position)` is the vowel just before it in the same part, or none at the start of a part. All of this is worked out once when the name is built, since it never changes. It rejects a name with no parts.
 - `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, ー or ん, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.
-- `NameList`: all entries. Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
+- `NameList`: all entries, in order (`entries()`). Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
 
 Former ids, and moving states saved under a former id when progress is loaded (`Progress.withFormerIdsMerged(nameList)` in the design), are added with the first name list update that merges two entries. The name list has no merges yet, so they are left out, and the [name list tool](name-list-tool.md) stops if an update would merge two entries. See [Items](../design/items.md#name-list-entries).
 
@@ -82,7 +82,7 @@ The answer checker only keeps what depends on the answer: the states it has visi
 `core.text` holds the rules for Japanese text that the name list and answer checking share:
 
 - `JapaneseText.normalize(text)`: Unicode NFKC, lower case, katakana as hiragana (apart from the counters ヵ and ヶ), ō and ô as o and ー, dashes as ー, apostrophes only after `n`, and everything that isn't a letter or digit left out. Answers and the name's text are normalized the same way. See [Answers](../design/answers.md#ignored-differences).
-- `JapaneseText.isKana`, `isSmallKana` and `vowelOf`: what kind of kana a character is, for `NamePart`'s checks and for long vowels. `VOWELS`, `kanaOfVowel` and `isVowel` are the five vowels in romaji and kana, from the one table `vowelOf` uses, and `Romaji` builds its rows from `VOWELS` too.
+- `JapaneseText.isKana`, `isSmallKana` and `vowelOf`: what kind of kana a character is, for `NamePart`'s checks and for long vowels. `canStartAPart` is the rule for the first kana of a part's reading, which `NamePart` checks and the name list tool follows when it splits readings. `VOWELS`, `kanaOfVowel` and `isVowel` are the five vowels in romaji and kana, from the one table `vowelOf` uses, and `Romaji` builds its rows from `VOWELS` too.
 - `Romaji`: the spellings a Japanese keyboard types, like `shi` and `si` for し and `du` for づ, looked up by their first letter. It is built once, and rejects a spelling that is two different kana.
 
 ### Settings
