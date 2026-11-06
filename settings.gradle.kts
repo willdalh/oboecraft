@@ -14,4 +14,4 @@ plugins {
 
 rootProject.name = "oboecraft"
 
-include("core", "fabric")
+include("core", "json", "fabric", "tools")

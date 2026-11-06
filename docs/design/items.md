@@ -18,9 +18,9 @@ So a translation key is what one Japanese name hangs on, and the mod maps stacks
 2. The item name is a translatable text, and its translation key is looked up in the name list.
 3. If the name list has an entry with that key, the stack is that item. If not, the stack is not an item: it is never locked, shows its normal name and has no SRS state. This covers other mods' items and new vanilla items until the name list is updated.
 
-A few Minecraft items get a different key from their components, so they are several items, like the potions. A shield with a base color is named through `item.minecraft.shield.<color>`, like `item.minecraft.shield.red` (赤色の盾), and a lodestone compass through `item.minecraft.lodestone_compass` (ロードストーンコンパス). The name list gives these keys entries, or adds them to another entry, like any other key.
+A few Minecraft items get a different key from their components, so they are several items, like the potions. The game's code names a potion, splash potion, lingering potion or tipped arrow after its potion, like `item.minecraft.potion.effect.healing`, and one with no potion `...effect.empty`, so their default keys, like `item.minecraft.potion`, never name a stack and aren't in the name list. A shield with a base color is named through `item.minecraft.shield.<color>`, like `item.minecraft.shield.red` (赤色の盾), and a lodestone compass through `item.minecraft.lodestone_compass` (ロードストーンコンパス). The game's data can also give a stack its own item name: the maps found in abandoned camps are named after the camp, like `filled_map.swamp_camp_map` (沼地のキャンプの地図), and the ominous banner is named `block.minecraft.ominous_banner` (不吉な旗). The name list gives these keys entries, or adds them to another entry, like any other key. Which keys name stacks is worked out by the [name list tool](../architecture/name-list-tool.md#steps), and a game test checks that every stack the game names is in the name list.
 
-Only the translation key is used, not the arguments filled into the name. Some keys exist only to fill in such arguments. A player head with a player's profile is named through `block.minecraft.player_head.named`, which is `%sの頭` in Japanese. A key whose Japanese text has format arguments, like `%s`, is never its own entry, since `%sの頭` can't be an answer. Instead it is added to the entry of the item it names, so a named player head is still the player head, プレイヤーの頭. If that item has no entry, the key is left out. The name list script in milestone 5 lists these keys for review.
+Only the translation key is used, not the arguments filled into the name. Some keys exist only to fill in such arguments. A player head with a player's profile is named through `block.minecraft.player_head.named`, which is `%sの頭` in Japanese. A key whose Japanese text has format arguments, like `%s`, is never its own entry, since `%sの頭` can't be an answer. Instead it is added to the entry of the item it names, so a named player head is still the player head, プレイヤーの頭. If that item has no entry, the key is left out. The name list tool lists these keys for review.
 
 ## Name list entries
 
@@ -35,7 +35,7 @@ The name list has one entry per item. Each entry has:
 
 The item id is one of the item's translation keys: its only key, or for items with several, the one the name list picks, like `item.minecraft.music_disc_13` for all music discs. It stays the item's id even if Minecraft later drops that key, so saved progress never loses an item.
 
-When Minecraft's Japanese translation gives several keys the same name, they become one entry.
+When Minecraft's Japanese translation gives several keys the same name, they become one entry. Besides the music discs, every smithing template is 鍛冶型 and every banner pattern 旗の模様, and the brick item and the bricks block are both レンガ.
 
 Translations change between Minecraft versions, so entries can split and merge:
 
@@ -46,9 +46,9 @@ An item id or former id belongs to at most one entry, and is never reused for an
 
 A translation key belongs to at most one entry.
 
-The name list so far is a hand-written list of 10 blocks from the first minutes of play: the oak, birch and spruce logs, oak planks, the crafting table, the torch, dirt, cobblestone, sand and gravel. Milestone 5 generates the full list from `ja_jp.json`. The file format is in [Name list file](../architecture/name-list-file.md).
+The name list has every item of Minecraft 26.3, 1,738 entries. Milestone 5's [name list tool](../architecture/name-list-tool.md) generated it from `ja_jp.json`, and every entry was reviewed. The first 10, from the first minutes of play, were written by hand in milestone 3b. The file format is in [Name list file](../architecture/name-list-file.md).
 
-The hand-written list has no merges, so 3b doesn't build former ids or the merge of states on load yet. They come with the first name list update that merges two entries, before any release that needs them.
+The name list has no merges yet, so former ids and the merge of states on load aren't built yet. They come with the first name list update that merges two entries, before any release that needs them. Until then, the name list tool stops when an update would merge two entries.
 
 ## Name parts
 

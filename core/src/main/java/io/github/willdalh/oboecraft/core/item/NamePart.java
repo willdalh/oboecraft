@@ -22,22 +22,13 @@ public record NamePart(String text, String reading) {
         if (!JapaneseText.isKana(reading)) {
             throw new IllegalArgumentException("The reading " + reading + " of " + text + " isn't hiragana");
         }
-        if (!canStartAPart(reading.charAt(0))) {
+        if (!JapaneseText.canStartAPart(reading.charAt(0))) {
             throw new IllegalArgumentException("The reading " + reading + " of " + text
                     + " starts with a kana that belongs to the part before it");
         }
         if (JapaneseText.isKana(normalizedText) && !normalizedText.equals(reading)) {
             throw new IllegalArgumentException("The kana " + text + " can't be read " + reading);
         }
-    }
-
-    /**
-     * Whether a reading can start with this kana. A small kana like ゃ and the long vowel mark belong to the kana before
-     * them, and ん ends the syllable before it, so a part never starts with one. The small っ can start a part, as in
-     * 取っ手.
-     */
-    private static boolean canStartAPart(char kana) {
-        return !JapaneseText.isSmallKana(kana) && kana != JapaneseText.LONG_VOWEL_MARK && kana != 'ん';
     }
 
     /**

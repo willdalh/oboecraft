@@ -1,8 +1,10 @@
 # Name list file
 
-The name list ships in the mod's resources as `fabric/src/main/resources/oboecraft/name_list.json`. `NameListFile` in `fabric` loads it once when the mod starts and turns it into a core `NameList`. What an entry means is in [Items](../design/items.md#name-list-entries).
+The name list ships in the mod's resources as `fabric/src/main/resources/oboecraft/name_list.json`. `NameListFile` in `fabric` loads it once when the mod starts, and `NameListJson` in the `json` module parses it into a core `NameList`. The [name list tool](name-list-tool.md) reads and writes the file with the same `NameListJson`. What an entry means is in [Items](../design/items.md#name-list-entries).
 
-The format was decided in milestone 4. So far the file is written by hand. Milestone 5's script writes it from `ja_jp.json`, and an agent then reviews it.
+The readings and name parts in the file are under CC BY-SA 4.0, since they are adapted from JMdict and KANJIDIC2, see [ADR: The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md) and [`CREDITS.md`](../../CREDITS.md).
+
+The format was decided in milestone 4. The [name list tool](name-list-tool.md) writes the file from Minecraft's `ja_jp.json`, and an agent reviews every entry it generates and corrects the file by hand.
 
 ## Format
 
@@ -33,7 +35,7 @@ Former ids are added with the first name list update that merges two entries, se
 
 ## Checks
 
-`NameListFile` and the core check each entry when the file is loaded, so a broken file stops the mod from starting instead of failing answers later. The error names the entry by its id, or by its place in the list if it has no id, and says what is wrong with it:
+`NameListJson` and the core check each entry when the file is read, so a broken file stops the mod from starting instead of failing answers later. The error names the entry by its id, or by its place in the list if it has no id, and says what is wrong with it:
 
 - The file is an array of objects, and each has an `id` string, a `translationKeys` array of strings and a `japaneseName` array of parts. Each part is a string, or an array of exactly two strings.
 - An entry has at least one translation key, and none is blank.
@@ -44,4 +46,4 @@ Former ids are added with the first name list update that merges two entries, se
 - A string part is only kana and punctuation. A part with a kanji, a letter, a digit or the counters ヵ and ヶ needs its reading.
 - A part in kana can't be given another reading than its kana.
 
-Parts must be split as [Items](../design/items.md#name-parts) describes, with the particle の as its own part. The checks can't tell whether a kanji's reading is right or whether kanji were split correctly. That is what the review in milestone 5 is for.
+Parts must be split as [Items](../design/items.md#name-parts) describes, with the particle の as its own part. The checks can't tell whether a kanji's reading is right or whether kanji were split correctly. That is what the review of each generated entry is for, see [Name list tool](name-list-tool.md#reviewing).

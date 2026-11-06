@@ -8,8 +8,9 @@ More detail on each part:
 - [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu and networking.
 - [Progress files](progress-files.md): where progress is saved and the file format.
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
+- [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, and milestone 5 the name list tool and the full name list.
 
 ## Core and adapters
 
@@ -17,16 +18,18 @@ The code follows clean architecture. The core holds the game rules as plain Java
 
 ## Modules
 
-The mod id is `oboecraft`. The code is split into two Gradle modules:
+The mod id is `oboecraft`. The code is split into four Gradle modules:
 
 | Module | Package | Contents |
 |---|---|---|
 | `core` | `io.github.willdalh.oboecraft.core` | The game rules: levels and intervals, when an item is locked, answer checking, punishment and the name list. Plain Java with no Minecraft or Fabric imports. |
-| `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core`. |
+| `json` | `io.github.willdalh.oboecraft.json` | File formats in JSON that the mod and its tools share, so far the [name list file](name-list-file.md) (`NameListJson`). Plain Java and Gson, with no Minecraft or Fabric. Depends on `core`. It only compiles against Gson, so the mod uses the copy Minecraft ships, at the same version. |
+| `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core` and `json`. |
+| `tools` | `io.github.willdalh.oboecraft.tools` | Tools run by hand to make the mod's data, like the [name list tool](name-list-tool.md). Depends on `core` and `json`, and isn't part of the mod. |
 
 Minecraft is not on the classpath of `core`, so the compiler enforces the boundary. Support for another mod loader would be another adapter module next to `fabric`.
 
-The released mod is one jar, built by `fabric`. It contains `core`'s classes, so players install a single file. In dev runs (`runClient`, `runServer`, `runGameTest`), `core` belongs to the `oboecraft` mod too, so things like looking up resources through the mod work the same in dev and in the released jar. For this, `core` applies Loom's companion plugin, which only exports its classpath and adds no Minecraft or Fabric dependencies.
+The released mod is one jar, built by `fabric`. It contains the classes of `core` and `json`, so players install a single file, and the license and [credits](../../CREDITS.md). In dev runs (`runClient`, `runServer`, `runGameTest`), `core` and `json` belong to the `oboecraft` mod too, so things like looking up resources through the mod work the same in dev and in the released jar. For this, `core` and `json` apply Loom's companion plugin, which only exports its classpath and adds no Minecraft or Fabric dependencies.
 
 ## Source layout
 
@@ -36,6 +39,12 @@ settings.gradle.kts         The two modules and the toolchain download plugin
 gradle/libs.versions.toml   All dependency and plugin versions
 core/
   src/main/java             Game rules
+  src/test/java             Unit tests (JUnit)
+json/
+  src/main/java             File formats shared by the mod and its tools
+  src/test/java             Unit tests (JUnit)
+tools/
+  src/main/java             The name list tool
   src/test/java             Unit tests (JUnit)
 fabric/
   src/main/java             Code for both sides, and code that only runs on the server
@@ -99,7 +108,7 @@ Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` mod
 - **Game tests** run on a headless server. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod. Tests that need a player use one that joins over a connection that goes nowhere (`TestPlayers`), so the mod loads and saves its progress as for a real player.
 - **Client game tests** run a real client and drive it with key presses and mouse clicks. A client game test is a class that implements `FabricClientGameTest`, listed under the `fabric-client-gametest` entrypoint. Singleplayer passes payloads without encoding them, so a game test encodes and decodes each payload too.
 
-`./gradlew build` runs the core tests and the game tests. The game test results are written as a JUnit report to `fabric/build/test-results/gameTest/`, and the game test server's logs to `fabric/build/run/gameTest/logs/`.
+`./gradlew build` runs the unit tests of `core`, `json` and `tools`, and the game tests. The game test results are written as a JUnit report to `fabric/build/test-results/gameTest/`, and the game test server's logs to `fabric/build/run/gameTest/logs/`.
 
 `./gradlew runClientGameTest` runs the client game tests. It needs a display. Without one, run it in a virtual display with Mesa's software Vulkan driver, as CI does: Minecraft can't get an OpenGL context from Xvfb's software GLX, which has no sRGB framebuffer, so it falls back to Vulkan. Screenshots the tests take are in `fabric/build/run/clientGameTest/screenshots/`.
 
@@ -110,3 +119,4 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 - [Stack](../decisions/20261105-stack.md)
 - [Progress save format](../decisions/20261105-progress-save-format.md)
 - [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
+- [The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md)
