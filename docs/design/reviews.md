@@ -103,4 +103,4 @@ The Japanese name and reading are only sent to the client when it shows them: af
 - Milestone 6: starting a review from every interaction, the three triggers, the answer menu over an open menu's screen, refusing clicks in the open menu during a review, and cancelling a review whose menu closes.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
 - Milestone 9: two attempts, Don't know, fails and punishment, and noting a crafting trigger's ingredients.
-- Milestone 10: the reading and the notification on a pass, in place of the text above the hotbar.
+- Milestone 10: the notification on a pass, in place of the text above the hotbar.
