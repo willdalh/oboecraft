@@ -58,7 +58,7 @@ class SrsRulesTest {
 
     @Test
     void aLevelAboveTheTopLevelCountsAsMastered() {
-        Settings fewerLevels = new Settings(List.of(new LevelSettings(Duration.ofMinutes(10))));
+        Settings fewerLevels = new Settings(List.of(new LevelSettings(Duration.ofMinutes(10))), false);
 
         assertFalse(SrsRules.isLocked(leveled(5, NOW.minusSeconds(1)), NOW, fewerLevels));
     }
@@ -67,7 +67,7 @@ class SrsRulesTest {
     void anItemMasteredBeforeLevelsWereAddedIsLocked() {
         List<LevelSettings> nineLevels = new java.util.ArrayList<>(SETTINGS.levels());
         nineLevels.add(new LevelSettings(Duration.ofDays(60)));
-        Settings moreLevels = new Settings(nineLevels);
+        Settings moreLevels = new Settings(nineLevels, false);
 
         assertTrue(SrsRules.isLocked(new SrsState.Leveled(9, Optional.empty()), NOW, moreLevels));
     }
@@ -100,7 +100,7 @@ class SrsRulesTest {
     void aPassOfAnItemMasteredBeforeLevelsWereAddedReachesTheNewTopLevel() {
         List<LevelSettings> nineLevels = new java.util.ArrayList<>(SETTINGS.levels());
         nineLevels.add(new LevelSettings(Duration.ofDays(60)));
-        Settings moreLevels = new Settings(nineLevels);
+        Settings moreLevels = new Settings(nineLevels, false);
 
         assertEquals(new SrsState.Leveled(10, Optional.empty()),
                 SrsRules.pass(new SrsState.Leveled(9, Optional.empty()), NOW, moreLevels));

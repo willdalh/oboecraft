@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.core.settings;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
@@ -22,6 +23,11 @@ class SettingsTest {
     }
 
     @Test
+    void droppingIsntAnInteractionByDefault() {
+        assertFalse(Settings.DEFAULTS.dropCountsAsInteraction());
+    }
+
+    @Test
     void onlyLevelsFromOneBelowTheTopHaveAnInterval() {
         assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.interval(0));
         assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.interval(9));
@@ -29,14 +35,14 @@ class SettingsTest {
 
     @Test
     void theTopLevelIsOneMoreThanTheNumberOfLevels() {
-        Settings settings = new Settings(List.of(new LevelSettings(Duration.ofMinutes(1))));
+        Settings settings = new Settings(List.of(new LevelSettings(Duration.ofMinutes(1))), false);
 
         assertEquals(2, settings.topLevel());
     }
 
     @Test
     void rejectsNoLevels() {
-        assertThrows(IllegalArgumentException.class, () -> new Settings(List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new Settings(List.of(), false));
     }
 
     @Test

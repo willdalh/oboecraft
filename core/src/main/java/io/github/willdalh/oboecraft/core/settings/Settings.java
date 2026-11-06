@@ -6,10 +6,12 @@ import java.util.List;
 /**
  * The server settings. Rules that depend on a setting take this as a parameter.
  *
- * @param levels the settings for levels 1 and up, in order. Level 0 has no interval, and the top level, mastered,
- *               is one more than the number of levels here.
+ * @param levels                  the settings for levels 1 and up, in order. Level 0 has no interval, and the top
+ *                                level, mastered, is one more than the number of levels here.
+ * @param dropCountsAsInteraction whether dropping a stack out of the inventory is an interaction, so a locked item
+ *                                can't be dropped
  */
-public record Settings(List<LevelSettings> levels) {
+public record Settings(List<LevelSettings> levels, boolean dropCountsAsInteraction) {
     /** The default settings, which are the only ones until settings files are added. */
     public static final Settings DEFAULTS = new Settings(List.of(
             new LevelSettings(Duration.ofMinutes(10)),
@@ -19,7 +21,8 @@ public record Settings(List<LevelSettings> levels) {
             new LevelSettings(Duration.ofDays(3)),
             new LevelSettings(Duration.ofDays(7)),
             new LevelSettings(Duration.ofDays(14)),
-            new LevelSettings(Duration.ofDays(30))));
+            new LevelSettings(Duration.ofDays(30))),
+            false);
 
     public Settings {
         levels = List.copyOf(levels);

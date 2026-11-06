@@ -2,25 +2,30 @@ package io.github.willdalh.oboecraft.fabric.review;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
+import io.github.willdalh.oboecraft.fabric.lock.Locks;
+import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
 import io.github.willdalh.oboecraft.fabric.network.ReviewRefused;
 import io.github.willdalh.oboecraft.fabric.network.ReviewStarted;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Each player's active review. The server runs every review: it reads the stack itself, checks answers and stores
@@ -28,54 +33,103 @@ import net.minecraft.world.InteractionHand;
  * message about it carries that id. Only used on the server thread.
  */
 public final class ServerReviews {
+    /**
+     * The interaction a review that the client started from its own stop is checked again with. A location doesn't
+     * say what the client tried to do there. The lock check treats every interaction the same, except dropping, which
+     * the client only stops when the drop setting is on, and then like every other.
+     */
+    private static final Interaction RECHECKED_INTERACTION = Interaction.USE;
+
     private final ItemMapping itemMapping;
+    private final Locks locks;
     private final ServerProgress progress;
     private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
+    /** Where the server last stopped each player's action and asked for the answer menu, until a review starts. */
+    private final Map<UUID, StackLocation> serverStops = new HashMap<>();
 
-    /** A review that is going. Later milestones add the trigger here. */
-    private record ActiveReview(int reviewId, NameListEntry entry) {
+    /**
+     * A review that is going.
+     *
+     * @param reviewId the id the client gave it
+     * @param entry    the item under review
+     * @param trigger  what the player was doing when it started
+     */
+    public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
-    public ServerReviews(ItemMapping itemMapping, ServerProgress progress, Settings settings) {
+    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress, Settings settings) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+        this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.settings = Objects.requireNonNull(settings, "settings");
     }
 
-    /** The item the player is reviewing, if a review is going. */
-    public Optional<ItemId> activeItem(ServerPlayer player) {
-        return Optional.ofNullable(active.get(player.getUUID())).map(review -> review.entry().id());
+    /** Whether the player has a review going. */
+    public boolean isReviewing(ServerPlayer player) {
+        return active.containsKey(player.getUUID());
+    }
+
+    /** The player's review, if one is going. Game tests read it. */
+    public Optional<ActiveReview> activeReview(ServerPlayer player) {
+        return Optional.ofNullable(active.get(player.getUUID()));
     }
 
     /**
-     * Starts the review {@code reviewId} of the stack in the player's hand, if it is a locked item. A client only asks
-     * when it has no answer menu open, so a review that is still going is one the client has left: the new one
-     * replaces it.
+     * The server stopped the player's action at {@code location} and asked the client for the answer menu there, so
+     * the client's {@code StartReview} for it needs no second check. Only the latest stop is remembered.
      */
-    public void start(ServerPlayer player, int reviewId, InteractionHand hand) {
+    public void serverStopped(ServerPlayer player, StackLocation location) {
+        serverStops.put(player.getUUID(), location);
+    }
+
+    /**
+     * Starts the review {@code reviewId} of the stack at {@code location}, if it is a locked item whose interaction the
+     * lock check stops there. The server reads the stack and works out the trigger itself. At the location of the
+     * server's latest stop, the lock check already stopped the stack. At any other location, the client stopped the
+     * action itself and the server never saw it, so the lock check is asked again, and a stack it allows, for example
+     * in creative mode, is refused. A client only asks when it has no answer menu open, so a review that is still
+     * going is one the client has left: the new one replaces it.
+     */
+    public void start(ServerPlayer player, int reviewId, StackLocation location) {
         active.remove(player.getUUID());
+        boolean serverStopped = location.equals(serverStops.remove(player.getUUID()));
         if (!progress.isLoaded(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
         }
-        Optional<NameListEntry> entry = itemMapping.entryOf(player.getItemInHand(hand));
+        Optional<ItemStack> stack = location.stackIn(player);
+        Optional<NameListEntry> entry = stack.flatMap(itemMapping::entryOf);
         if (entry.isEmpty()) {
             refuse(player, reviewId, ReviewRefused.Reason.STACK_GONE);
             return;
         }
         ItemId item = entry.get().id();
+        if (!serverStopped && !lockCheckStops(player, stack.get(), location)) {
+            refuseNotLocked(player, reviewId, item);
+            return;
+        }
         switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
             case ReviewStart.Started started -> {
-                active.put(player.getUUID(), new ActiveReview(reviewId, entry.get()));
+                Trigger trigger = Trigger.of(player, location);
+                active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
                 ServerPlayNetworking.send(
                         player, new ReviewStarted(progress.now(), reviewId, item, started.level()));
             }
-            case ReviewStart.NotLocked notLocked -> {
-                progress.sendState(player, item);
-                refuse(player, reviewId, ReviewRefused.Reason.NOT_LOCKED);
-            }
+            case ReviewStart.NotLocked notLocked -> refuseNotLocked(player, reviewId, item);
         }
+    }
+
+    /** Whether the lock check stops an interaction with the stack at the location, see {@link #RECHECKED_INTERACTION}. */
+    private boolean lockCheckStops(ServerPlayer player, ItemStack stack, StackLocation location) {
+        List<CheckedStack> checked = List.of(new CheckedStack(stack, RECHECKED_INTERACTION, location));
+        return locks.firstStopped(progress, player, checked).isPresent();
+    }
+
+    /** Refuses a review because the item isn't locked for the player, and sends its state so the client agrees. */
+    private void refuseNotLocked(ServerPlayer player, int reviewId, ItemId item) {
+        progress.sendState(player, item);
+        refuse(player, reviewId, ReviewRefused.Reason.NOT_LOCKED);
     }
 
     private void refuse(ServerPlayer player, int reviewId, ReviewRefused.Reason reason) {
@@ -117,6 +171,17 @@ public final class ServerReviews {
         }
     }
 
+    /**
+     * The player's open menu is closing on the server. A review that needs that menu, since its current view is in
+     * it, is cancelled.
+     */
+    public void menuClosing(ServerPlayer player) {
+        ActiveReview review = active.get(player.getUUID());
+        if (review != null && review.trigger().needsMenu(player.containerMenu.containerId)) {
+            cancel(player);
+        }
+    }
+
     /** Cancels the player's review on the server's side, for example when they die, and tells the client. */
     public void cancel(ServerPlayer player) {
         ActiveReview review = active.remove(player.getUUID());
@@ -125,8 +190,9 @@ public final class ServerReviews {
         }
     }
 
-    /** Forgets the player's review when they leave. */
+    /** Forgets the player's review and the server's latest stop when they leave. */
     public void forget(UUID player) {
         active.remove(player);
+        serverStops.remove(player);
     }
 }

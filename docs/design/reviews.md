@@ -16,6 +16,8 @@ Either way, the server starts the review only if:
 - the stack is in the player's current view, or in the result slot of the open menu, and
 - the player has no other review going.
 
+The client says where the stack is: a slot of the inventory, a slot of the open menu, or the stack the player carries in it. It never says which item it is. The server reads the stack from its own state.
+
 A player has at most one review at a time. The client only asks to start a review when it has no answer menu open, so if a review is still going on the server, the player has left it, and the new review replaces it. Reviewing an item that isn't locked, to top up its timer early, isn't possible.
 
 If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it. A refusal because the item isn't locked also sends the item's state and the server's time, so the client's next check allows the action. See [Time](time.md#the-client).
@@ -24,7 +26,7 @@ If the server refuses, it tells the client why (not locked, banned, or the stack
 
 The server remembers the review's trigger: what the player was doing when the review started. Punishment needs it to know the current view and what to remove.
 
-The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least.
+The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least. The client only says where the stack is, and the server starts a review there only if an action with that stack was stopped: either the server stopped it itself and asked for the answer menu there, or the lock check, asked again, stops the stack there. A stack the lock check allows, for example in creative mode, is never reviewed.
 
 | Trigger | Started by | Current view | Removed on a fail |
 |---|---|---|---|
@@ -32,11 +34,11 @@ The server works the trigger out itself, from the menu the player has open on th
 | Container | A stack in an open container, or in the inventory while a container is open, including a furnace's output | The inventory and the open container | The reviewed item |
 | Crafting | The result slot of a menu that makes its result from input slots, like the crafting grid, a stonecutter or a smithing table | The inventory and the menu's input slots | The recipe's ingredients |
 
-The answer menu opens on top of the open container's screen and goes back to it when the review ends. Milestone 3b only opens it when no other screen is open, see [Fabric adapter](../architecture/fabric.md#the-answer-menu). The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, the review is cancelled.
+The answer menu opens on top of the open container's screen and goes back to it when the review ends, see [Fabric adapter](../architecture/fabric.md#the-answer-menu). The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, a review with a container or crafting trigger is cancelled. A review with an inventory trigger needs no menu, so closing one doesn't cancel it.
 
-For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then.
+For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then. Milestone 9, which removes them, notes them.
 
-While a review is going, the server refuses every click in the player's open menu, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
+While a review is going, the server refuses every click in the player's open menu, the recipe book, choosing a trade, a menu's buttons, dropping and swapping hands, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
 
 The worn armor slots are never part of the current view.
 
@@ -96,7 +98,7 @@ The Japanese name and reading are only sent to the client when it shows them: af
 
 - Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading are shown above the hotbar. Dying cancels the review.
 - Milestone 4: full answer checking, see [Answers](answers.md).
-- Milestone 6: the other triggers.
+- Milestone 6: starting a review from every interaction, the three triggers, the answer menu over an open menu's screen, refusing clicks in the open menu during a review, and cancelling a review whose menu closes.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
-- Milestone 9: two attempts, Don't know, fails and punishment.
+- Milestone 9: two attempts, Don't know, fails and punishment, and noting a crafting trigger's ingredients.
 - Milestone 10: the reading and the notification on a pass, in place of the text above the hotbar.

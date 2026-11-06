@@ -3,7 +3,10 @@
   "package": "io.github.willdalh.oboecraft.fabric.client.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "ClientItemStackMixin"
+    "ClientAbstractContainerMenuMixin",
+    "ClientItemStackMixin",
+    "GuiMixin",
+    "MultiPlayerGameModeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
