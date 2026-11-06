@@ -4,6 +4,7 @@ import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsRules;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
+import io.github.willdalh.oboecraft.core.text.JapaneseText;
 import java.time.Instant;
 
 /** The rules of a review: when one can start, and what an answer does. */
@@ -25,11 +26,11 @@ public final class ReviewRules {
     }
 
     /**
-     * Whether the typed text counts as an attempt. Blank text doesn't: pressing Enter with an empty typing bar does
-     * nothing.
+     * Whether the typed text counts as an attempt. Text with no letter or digit doesn't, like an empty typing bar or
+     * a stray {@code 。}, since answer checking ignores everything else: pressing Enter with it does nothing.
      */
     public static boolean isAttempt(String typed) {
-        return !typed.isBlank();
+        return !JapaneseText.normalize(typed).isEmpty();
     }
 
     /**
@@ -41,7 +42,7 @@ public final class ReviewRules {
     public static ReviewResult answer(
             NameListEntry entry, SrsState state, String typed, Instant now, Settings settings) {
         if (!isAttempt(typed)) {
-            throw new IllegalArgumentException("A blank answer isn't an attempt");
+            throw new IllegalArgumentException("An answer with no letter or digit isn't an attempt");
         }
         if (AnswerChecker.isCorrect(entry, typed)) {
             return new ReviewResult(ReviewOutcome.PASS, SrsRules.pass(state, now, settings));
