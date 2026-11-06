@@ -7,34 +7,56 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class LockCheckTest {
     private static final Instant NOW = Instant.parse("2026-11-06T12:00:00Z");
     private static final SrsState UNLOCKED = new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(60)));
     private static final SrsState LOCKED = new SrsState.Leveled(1, Optional.of(NOW));
+    private static final Settings DROP_IS_INTERACTION = new Settings(Settings.DEFAULTS.levels(), true);
 
-    private static LockDecision check(SrsState state, boolean locksActive) {
-        return LockCheck.check(state, NOW, locksActive, Settings.DEFAULTS);
+    private static LockDecision check(SrsState state, Interaction interaction, boolean locksActive) {
+        return LockCheck.check(state, interaction, NOW, locksActive, Settings.DEFAULTS);
     }
 
-    @Test
-    void everythingIsAllowedWhenLocksArentActive() {
-        assertEquals(LockDecision.ALLOW, check(LOCKED, false));
-        assertEquals(LockDecision.ALLOW, check(SrsState.Leveled.NEW, false));
+    @ParameterizedTest
+    @EnumSource(Interaction.class)
+    void everythingIsAllowedWhenLocksArentActive(Interaction interaction) {
+        assertEquals(LockDecision.ALLOW, check(LOCKED, interaction, false));
+        assertEquals(LockDecision.ALLOW, check(SrsState.Leveled.NEW, interaction, false));
+        assertEquals(LockDecision.ALLOW,
+                LockCheck.check(LOCKED, interaction, NOW, false, DROP_IS_INTERACTION));
     }
 
-    @Test
-    void anUnlockedItemIsAllowed() {
-        assertEquals(LockDecision.ALLOW, check(UNLOCKED, true));
+    @ParameterizedTest
+    @EnumSource(Interaction.class)
+    void anUnlockedItemIsAllowed(Interaction interaction) {
+        assertEquals(LockDecision.ALLOW, check(UNLOCKED, interaction, true));
     }
 
-    @Test
-    void aLockedItemOpensTheAnswerMenu() {
-        assertEquals(LockDecision.REVIEW, check(LOCKED, true));
+    @ParameterizedTest
+    @EnumSource(value = Interaction.class, names = "DROP", mode = EnumSource.Mode.EXCLUDE)
+    void aLockedItemOpensTheAnswerMenu(Interaction interaction) {
+        assertEquals(LockDecision.REVIEW, check(LOCKED, interaction, true));
     }
 
     @Test
     void aNewItemOpensTheAnswerMenu() {
-        assertEquals(LockDecision.REVIEW, check(SrsState.Leveled.NEW, true));
+        assertEquals(LockDecision.REVIEW, check(SrsState.Leveled.NEW, Interaction.PLACE, true));
+    }
+
+    @Test
+    void aLockedItemCanBeDroppedWhenDroppingIsntAnInteraction() {
+        assertEquals(LockDecision.ALLOW, check(LOCKED, Interaction.DROP, true));
+        assertEquals(LockDecision.ALLOW, check(SrsState.Leveled.NEW, Interaction.DROP, true));
+    }
+
+    @Test
+    void droppingALockedItemOpensTheAnswerMenuWhenDroppingIsAnInteraction() {
+        assertEquals(LockDecision.REVIEW,
+                LockCheck.check(LOCKED, Interaction.DROP, NOW, true, DROP_IS_INTERACTION));
+        assertEquals(LockDecision.ALLOW,
+                LockCheck.check(UNLOCKED, Interaction.DROP, NOW, true, DROP_IS_INTERACTION));
     }
 }

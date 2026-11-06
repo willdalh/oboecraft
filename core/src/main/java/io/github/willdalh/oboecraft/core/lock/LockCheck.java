@@ -14,17 +14,21 @@ public final class LockCheck {
     }
 
     /**
-     * Applies the lock check rules in order. The first that matches decides. Later milestones add what the player
-     * tries to do as an input, once a rule depends on it.
+     * Applies the lock check rules in order. The first that matches decides.
      *
      * @param state       the item's SRS state for the player
+     * @param interaction what the player tries to do with the stack
      * @param now         the current time
      * @param locksActive false in creative and spectator mode, and on the client before the server has sent the
      *                    player's SRS states
      * @param settings    the server settings
      */
-    public static LockDecision check(SrsState state, Instant now, boolean locksActive, Settings settings) {
+    public static LockDecision check(
+            SrsState state, Interaction interaction, Instant now, boolean locksActive, Settings settings) {
         if (!locksActive) {
+            return LockDecision.ALLOW;
+        }
+        if (interaction == Interaction.DROP && !settings.dropCountsAsInteraction()) {
             return LockDecision.ALLOW;
         }
         return SrsRules.isLocked(state, now, settings) ? LockDecision.REVIEW : LockDecision.ALLOW;

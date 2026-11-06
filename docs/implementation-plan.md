@@ -37,8 +37,8 @@ See the [architecture overview](architecture/overview.md) for the details.
 - The core never reads a clock and takes the current time as an input. `fabric` reads it from one clock that game tests replace. Every message from the server carries the server's time, and the client works out the server's time from the latest one with a timer that ignores changes to the client's clock. See [Time](design/time.md).
 - The client's locks are only active once the server has sent the player's SRS states for this connection, so a server without the mod, or the moment after joining, never locks anything on the client.
 - Client and server must run the same network protocol version of the mod. The server disconnects players who don't have the mod or have another protocol version. The version is part of the id of a configuration payload that the client registers, and goes up whenever a payload or its meaning changes. See [Fabric adapter](architecture/fabric.md#networking).
-- Minecraft sends a placement to the server even when the client's lock check stopped it, so the server checks it again and tells the client to open the answer menu whenever it stops one and no review is going. The client ignores that while any screen is open.
-- The client gives each review an id when it opens the answer menu, and every message about the review carries it, so a late message never acts on a newer review or answer menu. Milestone 6 checks whether this holds for each other interaction.
+- Minecraft sends placing and using to the server even when the client's lock check stopped them, so the server checks every action again and tells the client to open the answer menu whenever it stops one and no review is going. The client ignores that while an answer menu, or any screen other than the open menu's, is open.
+- The client gives each review an id when it opens the answer menu, and every message about the review carries it, so a late message never acts on a newer review or answer menu. Milestone 6 checked this for every interaction: a review starts from where the stack is, and if the server reads another item there, the answer menu closes.
 
 ### Dependencies and settings
 
@@ -89,9 +89,25 @@ See [SRS state](design/srs-state.md), [Lock check](design/lock-check.md) and [Re
 - A player has at most one review at a time. The server works out its trigger itself, from the open menu and the slot: inventory, container or crafting. The trigger stays in `fabric`, which turns it into counts for the core's punishment math. A crafting trigger notes the recipe's ingredients when the review starts, and the server refuses clicks in the open menu while a review is going.
 - The answer menu opens on top of an open container's screen, and the container stays open on the server for the whole review. If it closes on the server, the review is cancelled.
 - A pass only unlocks the item. The player repeats the interaction.
-- When the client asks to start a review, it says where the stack is, never which item it is or what the trigger is. The server reads both from its own state.
+- When the client asks to start a review, it says where the stack is, never which item it is or what the trigger is. The server reads both from its own state. It starts the review only at the location where it last stopped the player's action itself, or, for an action the client stopped without the server seeing it, after the lock check stops the stack at that location again. So a modified client can't start a review, or pick its trigger, at a location whose stack isn't stopped.
 - Name list entries can split and merge between Minecraft versions. A merged entry lists the other item id as a former id, and loading progress keeps the state that has the player review sooner. Translation keys whose Japanese text has format arguments, like the named player head, are added to the entry of the item they name. See [Items](design/items.md).
 - A progress file from a newer version of the mod is never overwritten, and the player is disconnected with a message. A broken file is kept as `.broken`, and the player is told in chat.
+
+### Interactions
+
+Decided in milestone 6, see [Lock check](design/lock-check.md#what-the-player-tries-to-do) and [Fabric adapter](architecture/fabric.md#the-lock-check-entry-point):
+
+- The core lock check takes the interaction as an input, and allows dropping unless the drop setting, `Settings.dropCountsAsInteraction`, is on. It is off by default.
+- An action is checked as the stacks it would interact with, each with its interaction and where it is. The first stack the lock check stops stops the whole action, and the answer menu opens for that stack.
+- Using a stack on an entity is checked before the entity reacts, since the game doesn't tell apart an entity that uses the held item from one that doesn't. So right-clicking a villager or a boat with a locked item in hand opens the answer menu. Checking after the entity reacted would let a cow eat locked wheat.
+- Attacking only counts for a stack with Minecraft's weapon component, and mining only for one with the tool component, so holding a locked block never stops a hit or breaking a block.
+- A menu click is checked before Minecraft carries it out, from the slot and the kind of click. What a slot does is worked out from its class, its container and the menu's class, so a menu from another mod counts as a container. A shift-click in the inventory is checked where the menu's code moves the stack, in `moveItemStackTo`.
+- Using a stack in the air is only checked for items whose use does something.
+- During a review, the server refuses every packet that moves stacks in the open menu or out of the inventory.
+- Ingredients are the input slots of menus that make their result from them, like the crafting grid and the stonecutter. A furnace's input and output are a container's slots, like its output in the trigger.
+- The recipe book and choosing a trade move stacks themselves, and the server skips a locked stack there and opens the answer menu for it.
+- A review starts from where the stack is: a slot of the inventory, a slot of the open menu, or the stack carried in it. The network protocol version went to 2.
+- The answer menu replaces an open menu's screen without closing the menu, and skips the `removed` call that would empty the menu's result slot on the client. It doesn't draw the menu's screen behind it.
 
 ### Settings
 
@@ -242,9 +258,13 @@ A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with 
 
 ### 6. All interactions
 
-**Status:** not started
+**Status:** done
 
-Crafting; chests and other containers; using, eating, attacking and mining; fuel and trades; the drop setting.
+Built: the core `Interaction` and the drop setting, with rule 3 of the lock check; a check for every interaction on both sides (placing, using and eating, putting on armor, ammo, using on an entity, attacking with a weapon, a spear's stab, mining with a tool, dropping, and every kind of click in a menu, including crafting results, fuel, trades and armor slots); the recipe book and choosing a trade skip locked stacks; reviews started from a slot of the inventory or the open menu or the carried stack; the three triggers; starting a review only where the server stopped the action or the lock check stops the stack again; the answer menu over an open menu's screen; refusing clicks during a review; and cancelling a review when its menu closes on the server. Game tests cover each interaction on the server, what each slot of Minecraft's menus does, and the recipe book. A client game test opens the answer menu over a chest and over the inventory's crafting grid and checks that the menu stays open and its result slot is kept.
+
+Where it differs from the plan: the recipe's ingredients for a crafting trigger aren't noted yet. Nothing reads them before milestone 9, which removes them, so milestone 9 notes them. Using on an entity, the weapon and tool rules, and how clicks are checked are new decisions, see [Interactions](#interactions). The answer menu doesn't draw the menu's screen behind it.
+
+What later milestones should know: every hook goes through `Locks.firstStopped` and then `ServerLockHooks.stops` or `ClientReviews.stops`, which treat every decision that isn't Allow as Review. Milestones 8 and 9 add the decision to `StoppedStack` and show Deny and Banned there. Milestone 8's right-click in the inventory can start a review with `StackLocation.MenuSlot`, which the server already accepts. Milestone 9 gets the trigger from `ServerReviews`. Game tests can't change the settings, so the drop setting turned on is only covered by core tests until milestone 12. Not tested in a client: the client's hooks for using, attacking, mining and dropping, which share their rules with the server's, a spear's stab, and choosing a trade. A client connected to a dedicated server over the network still hasn't been run.
 
 ### 7. Display
 

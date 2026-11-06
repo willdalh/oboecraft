@@ -31,7 +31,7 @@ public record ReviewRefused(Instant serverTime, int reviewId, Reason reason) imp
     public enum Reason {
         /** The item isn't locked. */
         NOT_LOCKED,
-        /** The stack isn't an item, or isn't there any more. */
+        /** The stack isn't an item, isn't there any more, or isn't somewhere the player can reach. */
         STACK_GONE,
         /** The player's progress isn't loaded, for example while they are being disconnected. */
         NO_PROGRESS;

@@ -41,7 +41,7 @@ The state of an item where the player can interact with it freely.
 _Avoid_: open, free, available
 
 **Interaction**:
-Any action where an item does something, like placing, eating, equipping, or moving it into or out of a container. Moving it within the inventory is not an interaction.
+Any action where an item does something, like placing, eating, equipping, attacking with a weapon, mining with a tool, or moving it into or out of a container. Moving it within the inventory is not an interaction.
 _Avoid_: use, action
 
 **Lock check**:
