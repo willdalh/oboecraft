@@ -102,18 +102,21 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 ## Item displays
 
-`client.display.ItemDisplay` reads the current connection's progress and estimated server time for a stack, and returns whether to hide its name and its optional core `LockTimer`. It uses `Locks.active(view, player)`, which the interaction checks also use, and asks `LockCheck` for a normal use interaction. So disabling locks, untracked stacks and expired intervals agree with interactions. Nothing is cached by stack or item: a new sync, game mode or elapsed interval is reflected on the next frame. No payloads or saved fields were added.
+`client.display.ItemDisplay` gathers the player and progress inputs and calls `Locks.display` or `Locks.closeToLocking`. The `Locks` instance owns item mapping, the game-mode/connection guards and settings for both displays and interactions. Display decisions come from core `DisplayRules`, independently of interaction permissions. Milestone 12 therefore changes one settings source for both paths.
 
-The client hooks are local to display calls:
+`GuiMixin` captures one immutable `ProgressView` from `ClientProgress.capture()` around each GUI frame. This reads the current connection and volatile snapshot once and estimates server time once. Every display call in that frame reuses it. Calls outside normal frame extraction capture a view for that call. The slot marker asks only for the boolean threshold, without building a full display result or timer. Nothing survives the frame, so sync, connection and time changes are reflected on the next frame.
 
-- `ClientItemStackMixin` wraps `getStyledHoverName` inside `ItemStack.getTooltipLines`, replacing only the tooltip title with `???` while keeping its style. `getHoverName` and `getItemName` themselves are unchanged.
-- `HudMixin` wraps `getHoverName` inside `Hud.extractSelectedItemName`, so the selected-item label uses the current lock state on every frame.
-- `ClientItemStackMixin` adds the timer to `ItemStack.getTooltipImage`, which both menu screens and direct item hovers read. For timed items, it adds a `LockTimerTooltip` that also holds the original image. Fabric's `ClientTooltipComponentCallback` builds a `ClientLockTimerTooltip`, which draws the translated time and bar and delegates the original image below them. The normal tooltip layout handles size, positioning and style.
-- Fabric's `ExtractItemDecorationsCallback` draws the slot marker in the top-left corner. This covers menu slots and the hotbar without replacing Minecraft's count, durability or cooldown drawing.
+Tooltip masking is scoped to drawing on the client thread, using `TooltipDisplayContext`'s Java scoped values. Bindings nest, restore automatically on exceptions, and do not reach background search tasks:
 
-All rendering classes are in `src/client`. Core tests check the timer boundaries and configured intervals. `ItemDisplayClientGameTest` runs the real rendering hooks in a client, captures extracted text and rectangles, and checks synced state/time changes, normal and custom names, timer and marker presence, creative/spectator/adventure modes, missing progress, untracked stacks, and a bundle's original tooltip. It also checks the inventory screen's actual rendering path and saves inventory screenshots.
+- `ScreenTooltipMixin` scopes the UI's `Screen.getTooltipFromItem` helper, including recipe-button and ghost-slot tooltips. `ContainerTooltipMixin` scopes menu tooltip extraction with the hovered stack, and `GraphicsTooltipMixin` scopes direct stack tooltip assembly.
+- Inside these scopes only, `ClientItemStackMixin` masks `getHoverName`. This covers the title and nested item names in container contents. `GraphicsTooltipMixin` also scopes deferred tooltip drawing, so bundle captions are masked when their names are read later. Outside drawing, names and raw `getTooltipLines` are unchanged, including for search indexes on background threads.
+- `GraphicsTooltipMixin` appends a separate `ClientLockTimerTooltip` to the assembled client components. `ItemStack.getTooltipImage` and its returned type are unchanged; bundle previews and any other vanilla image component remain separate. The timer follows the normal content so a bundle's selected-item caption cannot overlap it.
+- `HudMixin` masks only the selected-item label in `Hud.extractSelectedItemName`.
+- `ClientDisplayHooks` registers Fabric's `ExtractItemDecorationsCallback` to draw the marker without replacing count, durability or cooldown drawing. `TimerText` formats two nonzero units with a translated separator.
 
-See [Display](../design/display.md) for the visual rules. Milestone 8 extends the core timer switch for Known and Ignored, and milestone 12 supplies the display with synced settings.
+All rendering classes are in `src/client`. Core tests check display classification, intervals and marker boundaries. `DisplayGameTest` checks that display and interactions use the same custom settings instance. `ItemDisplayClientGameTest` checks actual tooltip, HUD and inventory rendering, nested container and bundle names, unchanged raw tooltip/image getters, background search indexing, scope cleanup, captured frame inputs, and English/Japanese labels. It also checks state/time updates, modes and missing sync and saves inventory screenshots.
+
+See [Display](../design/display.md) for the visual rules. No payloads or saved fields were added.
 
 ## Reviews on the server
 

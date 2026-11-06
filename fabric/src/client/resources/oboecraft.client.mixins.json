@@ -7,7 +7,10 @@
     "ClientItemStackMixin",
     "GuiMixin",
     "MultiPlayerGameModeMixin",
-    "HudMixin"
+    "HudMixin",
+    "ScreenTooltipMixin",
+    "ContainerTooltipMixin",
+    "GraphicsTooltipMixin"
   ],
   "injectors": {
     "defaultRequire": 1

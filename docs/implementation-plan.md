@@ -113,10 +113,10 @@ Decided in milestone 6, see [Lock check](design/lock-check.md#what-the-player-tr
 
 Decided in milestone 7, see [Display](design/display.md):
 
-- Hidden names only replace tooltip titles and the selected-item label above the hotbar. Other tooltip details and names elsewhere stay as Minecraft shows them.
-- The hover bar shows the remaining fraction of the current level's interval, with a translated time label rounded up to seconds. Mastered items have no timer.
+- Hidden names replace displayed tooltip titles, nested names in container and bundle previews, and the selected-item label above the hotbar. Other tooltip details and names elsewhere, including search indexes, stay as Minecraft shows them.
+- The hover bar shows the remaining fraction of the current level's interval, with a translated time label rounded up to seconds and limited to the two largest nonzero units. Mastered items have no timer.
 - Close to locking means the final 10% of the interval, including the boundary. The bar turns amber and a small amber marker appears at the top left of slots, including the hotbar. Both disappear at expiry, when the name becomes hidden.
-- Displays use the current connection's synced progress and estimated server time, with the same game-mode and connection guards as interactions. Milestone 12 also supplies the display with synced settings.
+- Displays use the current connection's synced progress and estimated server time, with the same game-mode and connection guards as interactions. Displays and interactions read settings from the same `Locks` instance, which milestone 12 supplies with synced settings.
 
 ### Settings
 
@@ -283,7 +283,7 @@ Built: `???` names in hover tooltips and above the hotbar, a draining hover bar 
 
 Where it differs from the plan: the timer also has a time label. The plan left the marker threshold open; it is the final 10% of the interval, see [Display](#display). No new payloads or saved fields were needed.
 
-What later milestones should know: `ItemDisplay` uses `Locks.active` and `LockCheck` for name hiding, and core `LockTimer` for timed displays. Milestone 8 extends the timer switch for Known and Ignored, and milestone 12 gives the display the server's settings. The display is tested in a real singleplayer client; a client connected to a dedicated server and compatibility with other mods' tooltip renderers have not been checked.
+What later milestones should know: `ItemDisplay` uses the shared `Locks` service and explicit core `DisplayRules` for Hidden, Timed and Normal states. Milestone 8 extends those rules for Known and Ignored; milestone 12 supplies one settings source for both interactions and displays. Tooltip masking is scoped to drawing, and raw tooltip getters retain their vanilla contract. Each GUI frame captures progress and time once, and slot markers do not build timers. The display is tested in a real singleplayer client; a client connected to a dedicated server and compatibility with other mods' tooltip renderers have not been checked.
 
 ### 8. Lessons, known and ignored items, word list
 

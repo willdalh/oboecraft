@@ -2,12 +2,17 @@ package io.github.willdalh.oboecraft.fabric.gametest;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
+import io.github.willdalh.oboecraft.core.srs.DisplayState;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.client.display.ClientLockTimerTooltip;
 import io.github.willdalh.oboecraft.fabric.client.display.ItemDisplay;
+import io.github.willdalh.oboecraft.fabric.client.display.ClientDisplayHooks;
+import io.github.willdalh.oboecraft.fabric.client.display.TooltipDisplayContext;
+import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +37,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.TooltipDisplay;
 import org.jspecify.annotations.Nullable;
@@ -54,6 +61,16 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
 
             sync(context, singleplayer, SrsState.Leveled.NEW, NOW);
             context.runOnClient(client -> {
+                ItemStack indexed = new ItemStack(Items.OAK_LOG);
+                check(indexed.getTooltipLines(net.minecraft.world.item.Item.TooltipContext.of(client.level),
+                        null, net.minecraft.world.item.TooltipFlag.NORMAL).getFirst().getString().equals("Oak Log"),
+                        "raw tooltip names used by search remain unchanged");
+                var searches = new net.minecraft.client.multiplayer.SessionSearchTrees();
+                searches.updateCreativeTooltips(client.level.registryAccess(), List.of(indexed));
+                check(searches.creativeNameSearch().search("oak log").contains(indexed), "background search indexes real names");
+                check(searches.creativeNameSearch().search("???").isEmpty(), "search never indexes masked names");
+                nestedNamesAndScopes(client);
+                timerTranslations();
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), true, false, false);
                 ItemStack renamed = new ItemStack(Items.OAK_LOG);
                 renamed.set(DataComponents.CUSTOM_NAME, Component.literal("A custom name"));
@@ -63,13 +80,19 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
                         .anyMatch(line -> line.getString().equals("Keep this lore")), "lore is preserved");
                 check(renamed.getHoverName().getString().equals("A custom name"), "the actual stack name is intact");
                 checkDisplay(client, OtherModStacks.of(Items.STONE), false, false, false);
-                check(!ItemDisplay.of(ItemStack.EMPTY).hidden(), "empty stacks are untouched");
+                check(!(ItemDisplay.of(ItemStack.EMPTY) instanceof DisplayState.Hidden), "empty stacks are untouched");
             });
             inventoryScreenshot(context, "display-locked", false);
 
             SrsState unlocked = new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(600)));
             sync(context, singleplayer, unlocked, NOW);
-            context.runOnClient(client -> checkDisplay(client, new ItemStack(Items.OAK_LOG), false, true, false));
+            context.runOnClient(client -> {
+                checkDisplay(client, new ItemStack(Items.OAK_LOG), false, true, false);
+                ItemStack box = new ItemStack(Items.SHULKER_BOX);
+                box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(new ItemStack(Items.OAK_LOG, 4))));
+                check(tooltip(client, box).texts.stream().anyMatch(text -> text.contains("Oak Log")),
+                        "unlocking restores nested names on the next draw");
+            });
             inventoryScreenshot(context, "display-timer", true);
 
             sync(context, singleplayer, unlocked, NOW.plusSeconds(570));
@@ -100,7 +123,14 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
             singleplayer.getServer().runCommand("gamemode survival @a");
             singleplayer.getConnection().waitForClientboundPackets();
             context.runOnClient(client -> {
-                OboecraftClient.progress().clear();
+                var captured = OboecraftClient.progress().capture();
+                Instant time = captured.now();
+                ItemDisplay.inFrame(() -> {
+                    check(ItemDisplay.of(new ItemStack(Items.OAK_LOG)) instanceof DisplayState.Hidden, "frame starts locked");
+                    OboecraftClient.progress().clear();
+                    check(ItemDisplay.of(new ItemStack(Items.OAK_LOG)) instanceof DisplayState.Hidden, "one snapshot per frame");
+                });
+                check(captured.hasProgress(client.player) && captured.now() == time, "captured view keeps its state and time");
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false);
                 OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, NOW);
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), true, false, false);
@@ -132,15 +162,15 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         RecordingGraphics tooltip = tooltip(client, stack);
         check(tooltip.texts.contains(expectedName), "the tooltip renders its name");
         check(tooltip.components.stream().anyMatch(ClientLockTimerTooltip.class::isInstance) == timed, "timer component presence");
-        check(tooltip.fills.stream().anyMatch(fill -> fill.color == ItemDisplay.TIMER_COLOR
-                || fill.color == ItemDisplay.WARNING_COLOR) == timed, "timer bar is rendered");
+        check(tooltip.fills.stream().anyMatch(fill -> fill.color == ClientDisplayHooks.TIMER_COLOR
+                || fill.color == ClientDisplayHooks.WARNING_COLOR) == timed, "timer bar is rendered");
         if (timed) {
             check(!tooltip.components.stream().filter(ClientLockTimerTooltip.class::isInstance)
                     .findFirst().orElseThrow().showTooltipWithItemInHand(),
                     "adding a timer doesn't enable ordinary tooltips with an item carried");
             check(tooltip.texts.stream().anyMatch(text -> text.startsWith("Locks in ")), "localized remaining time is rendered");
             Fill bar = tooltip.fills.stream().filter(fill -> fill.color == (marked
-                    ? ItemDisplay.WARNING_COLOR : ItemDisplay.TIMER_COLOR)).findFirst().orElseThrow();
+                    ? ClientDisplayHooks.WARNING_COLOR : ClientDisplayHooks.TIMER_COLOR)).findFirst().orElseThrow();
             if (marked) {
                 check(bar.width <= 16, "near-expiry bar is nearly empty");
             } else {
@@ -149,7 +179,7 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         }
         RecordingGraphics decorations = new RecordingGraphics(client);
         decorations.itemDecorations(client.font, stack, 10, 10);
-        check(decorations.fills.stream().anyMatch(fill -> fill.color == ItemDisplay.WARNING_COLOR
+        check(decorations.fills.stream().anyMatch(fill -> fill.color == ClientDisplayHooks.WARNING_COLOR
                 && fill.width == 3 && fill.height == 3) == marked, "slot marker presence");
 
         // A separate HUD observes the held stack and renders the real selected-item label hook.
@@ -180,13 +210,96 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         singleplayer.getConnection().waitForClientboundPackets();
         context.runOnClient(client -> {
             ItemStack bundle = new ItemStack(Items.BUNDLE);
-            ClientTooltipComponent original = ClientTooltipComponent.create(bundle.getItem().getTooltipImage(bundle).orElseThrow());
+            var rawImage = bundle.getTooltipImage().orElseThrow();
+            check(rawImage.getClass() == bundle.getItem().getTooltipImage(bundle).orElseThrow().getClass(),
+                    "the raw bundle image type stays unchanged while timed");
+            ClientTooltipComponent original = ClientTooltipComponent.create(rawImage);
             RecordingGraphics graphics = tooltip(client, bundle);
-            ClientTooltipComponent combined = graphics.components.stream()
-                    .filter(ClientLockTimerTooltip.class::isInstance).findFirst().orElseThrow();
-            check(combined.getHeight(client.font) > original.getHeight(client.font), "bundle image is kept below the timer");
+            check(graphics.components.stream().anyMatch(ClientLockTimerTooltip.class::isInstance), "bundle has a timer");
+            check(graphics.components.stream().anyMatch(component -> component.getClass() == original.getClass()),
+                    "the original bundle component is kept separately");
             check(graphics.texts.stream().anyMatch(text -> text.contains("Empty")), "bundle preview still renders");
+            BundleContents.Mutable contents = new BundleContents.Mutable();
+            contents.tryInsert(new ItemStack(Items.OAK_LOG, 4));
+            contents.toggleSelectedItem(0);
+            bundle.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            var preview = tooltip(client, bundle);
+            check(preview.texts.contains("???") && !preview.texts.contains("Oak Log"),
+                    "a timed bundle's selected locked item name is masked");
         });
+        singleplayer.getServer().runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            ItemStack bundle = new ItemStack(Items.BUNDLE);
+            BundleContents.Mutable contents = new BundleContents.Mutable();
+            contents.tryInsert(new ItemStack(Items.OAK_LOG, 4));
+            contents.toggleSelectedItem(0);
+            bundle.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            player.getInventory().setItem(0, bundle);
+            player.containerMenu.broadcastChanges();
+        });
+        singleplayer.getConnection().waitForClientboundPackets();
+        inventoryScreenshot(context, "display-bundle-locked-content", true);
+    }
+
+    private static void nestedNamesAndScopes(Minecraft client) {
+        ItemStack log = new ItemStack(Items.OAK_LOG, 4);
+        ItemStack box = new ItemStack(Items.SHULKER_BOX);
+        box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(log)));
+        var lines = tooltip(client, box).texts;
+        check(lines.stream().anyMatch(text -> text.contains("???") && text.contains("4")), "container counts keep masked names");
+        check(lines.stream().noneMatch(text -> text.contains("Oak Log")), "container does not leak the locked name");
+        ItemStack bundle = new ItemStack(Items.BUNDLE);
+        BundleContents.Mutable contents = new BundleContents.Mutable();
+        contents.tryInsert(log.copy());
+        contents.toggleSelectedItem(0);
+        bundle.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        var preview = tooltip(client, bundle).texts;
+        check(preview.stream().filter("???"::equals).count() >= 2, "bundle title and selected item are masked");
+        check(!preview.contains("Oak Log"), "bundle caption does not leak a locked name");
+        try {
+            TooltipDisplayContext.withNames(() -> {
+                check(log.getHoverName().getString().equals("???"), "names are hidden in the drawing scope");
+                String background = java.util.concurrent.CompletableFuture.supplyAsync(() ->
+                        Screen.getTooltipFromItem(client, log).getFirst().getString()).join();
+                check(background.equals("Oak Log"), "drawing scope never reaches background tooltip callers");
+                throw new IllegalStateException("test scope exit");
+            });
+        } catch (IllegalStateException expected) {
+            check(expected.getMessage().equals("test scope exit"), "expected scope exit");
+        }
+        check(log.getHoverName().getString().equals("Oak Log"), "drawing scope is restored after exceptions");
+    }
+
+    private static void timerTranslations() {
+        var previous = net.minecraft.locale.Language.getInstance();
+        try {
+            for (String language : List.of("en_us", "ja_jp")) {
+                java.util.Map<String, String> translations = new java.util.HashMap<>();
+                try (var stream = ItemDisplayClientGameTest.class.getResourceAsStream("/assets/oboecraft/lang/" + language + ".json")) {
+                    net.minecraft.locale.Language.loadFromJson(stream, translations::put);
+                } catch (java.io.IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+                net.minecraft.locale.Language.inject(new net.minecraft.locale.Language() {
+                    @Override public String getOrDefault(String key, String fallback) { return translations.getOrDefault(key, fallback); }
+                    @Override public boolean has(String key) { return translations.containsKey(key); }
+                    @Override public boolean isDefaultRightToLeft() { return false; }
+                    @Override public FormattedCharSequence getVisualOrder(net.minecraft.network.chat.FormattedText text) {
+                        return previous.getVisualOrder(text);
+                    }
+                });
+                boolean japanese = language.equals("ja_jp");
+                check(TimerText.format(Duration.ofSeconds(90)).getString().equals(japanese ? "1分30秒" : "1m 30s"),
+                        "translated separator");
+                check(TimerText.format(Duration.ofDays(30).minusSeconds(1)).getString().equals(japanese ? "29日23時間" : "29d 23h"),
+                        "long timers show only two units");
+                check(TimerText.format(Duration.ofMillis(1)).getString().equals(japanese ? "1秒" : "1s"), "positive time rounds up");
+                check(TimerText.format(Duration.ofHours(1).plusSeconds(1)).getString().equals(japanese ? "1時間1秒" : "1h 1s"),
+                        "zero units are omitted");
+            }
+        } finally {
+            net.minecraft.locale.Language.inject(previous);
+        }
     }
 
     private static RecordingGraphics tooltip(Minecraft client, ItemStack stack) {
@@ -257,7 +370,9 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         @Override
         public void tooltip(Font font, List<ClientTooltipComponent> lines, int x, int y,
                 ClientTooltipPositioner positioner, @Nullable Identifier style, boolean extraSpace) {
-            components = List.copyOf(lines);
+            if (components.isEmpty()) {
+                components = List.copyOf(lines);
+            }
             super.tooltip(font, lines, x, y, positioner, style, extraSpace);
         }
     }

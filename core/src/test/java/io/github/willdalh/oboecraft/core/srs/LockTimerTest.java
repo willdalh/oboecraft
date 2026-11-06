@@ -16,27 +16,32 @@ class LockTimerTest {
     private static final Instant NOW = Instant.parse("2026-11-06T12:00:00Z");
     private static final Settings SETTINGS = Settings.DEFAULTS;
 
+    private static Optional<LockTimer> timer(SrsState state, Instant now, Settings settings) {
+        return DisplayRules.of(state, now, settings) instanceof DisplayState.Timed timed
+                ? Optional.of(timed.timer()) : Optional.empty();
+    }
+
     @Test
     void aPassStartsAFullTimerWhichDrainsWithoutChangingTheState() {
         SrsState passed = SrsRules.pass(SrsState.Leveled.NEW, NOW, SETTINGS);
-        assertEquals(1.0, LockTimer.of(passed, NOW, SETTINGS).orElseThrow().fractionRemaining());
-        LockTimer halfway = LockTimer.of(passed, NOW.plusSeconds(300), SETTINGS).orElseThrow();
+        assertEquals(1.0, timer(passed, NOW, SETTINGS).orElseThrow().fractionRemaining());
+        LockTimer halfway = timer(passed, NOW.plusSeconds(300), SETTINGS).orElseThrow();
         assertEquals(Duration.ofMinutes(5), halfway.remaining());
         assertEquals(0.5, halfway.fractionRemaining());
         assertFalse(halfway.closeToLocking());
-        assertTrue(LockTimer.of(passed, NOW.plusSeconds(600), SETTINGS).isEmpty());
-        assertTrue(LockTimer.of(passed, NOW.plusSeconds(601), SETTINGS).isEmpty());
+        assertTrue(timer(passed, NOW.plusSeconds(600), SETTINGS).isEmpty());
+        assertTrue(timer(passed, NOW.plusSeconds(601), SETTINGS).isEmpty());
     }
 
     @Test
     void theMarkerStartsExactlyAtTheFinalTenthAndEndsAtExpiry() {
         SrsState passed = SrsRules.pass(SrsState.Leveled.NEW, NOW, SETTINGS);
-        assertFalse(LockTimer.of(passed, NOW.plusSeconds(540).minusNanos(1), SETTINGS)
+        assertFalse(timer(passed, NOW.plusSeconds(540).minusNanos(1), SETTINGS)
                 .orElseThrow().closeToLocking());
-        assertTrue(LockTimer.of(passed, NOW.plusSeconds(540), SETTINGS).orElseThrow().closeToLocking());
-        assertTrue(LockTimer.of(passed, NOW.plusSeconds(600).minusNanos(1), SETTINGS)
+        assertTrue(timer(passed, NOW.plusSeconds(540), SETTINGS).orElseThrow().closeToLocking());
+        assertTrue(timer(passed, NOW.plusSeconds(600).minusNanos(1), SETTINGS)
                 .orElseThrow().closeToLocking());
-        assertTrue(LockTimer.of(passed, NOW.plusSeconds(600), SETTINGS).isEmpty());
+        assertTrue(timer(passed, NOW.plusSeconds(600), SETTINGS).isEmpty());
     }
 
     @Test
@@ -46,7 +51,7 @@ class LockTimerTest {
                 new SrsState.Leveled(4, Optional.empty()),
                 new SrsState.Leveled(SETTINGS.topLevel(), Optional.empty()),
                 new SrsState.Leveled(SETTINGS.topLevel() + 1, Optional.of(NOW.plusSeconds(60))))) {
-            assertTrue(LockTimer.of(state, NOW, SETTINGS).isEmpty());
+            assertTrue(timer(state, NOW, SETTINGS).isEmpty());
         }
     }
 
@@ -55,10 +60,10 @@ class LockTimerTest {
         for (Duration interval : List.of(Duration.ofNanos(100), Duration.ofDays(1_000_000))) {
             Settings settings = new Settings(List.of(new LevelSettings(interval)), false);
             SrsState passed = SrsRules.pass(SrsState.Leveled.NEW, NOW, settings);
-            LockTimer timer = LockTimer.of(passed, NOW.plus(interval.dividedBy(2)), settings).orElseThrow();
+            LockTimer timer = timer(passed, NOW.plus(interval.dividedBy(2)), settings).orElseThrow();
             assertEquals(0.5, timer.fractionRemaining(), 0.000001);
             assertEquals(interval, timer.interval());
-            assertTrue(LockTimer.of(passed, NOW.plus(interval.minus(interval.dividedBy(10))), settings)
+            assertTrue(timer(passed, NOW.plus(interval.minus(interval.dividedBy(10))), settings)
                     .orElseThrow().closeToLocking());
         }
     }
@@ -66,7 +71,7 @@ class LockTimerTest {
     @Test
     void aBackwardClockJumpCannotOverfillTheBar() {
         SrsState passed = SrsRules.pass(SrsState.Leveled.NEW, NOW, SETTINGS);
-        LockTimer timer = LockTimer.of(passed, NOW.minusSeconds(60), SETTINGS).orElseThrow();
+        LockTimer timer = timer(passed, NOW.minusSeconds(60), SETTINGS).orElseThrow();
         assertEquals(1.0, timer.fractionRemaining());
         assertFalse(timer.closeToLocking());
     }

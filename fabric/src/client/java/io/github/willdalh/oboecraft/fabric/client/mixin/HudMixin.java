@@ -15,6 +15,6 @@ abstract class HudMixin {
     @WrapOperation(method = "extractSelectedItemName", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/item/ItemStack;getHoverName()Lnet/minecraft/network/chat/Component;"))
     private Component oboecraft$hideLockedName(ItemStack stack, Operation<Component> original) {
-        return ItemDisplay.of(stack).name(original.call(stack));
+        return ItemDisplay.name(stack, original.call(stack));
     }
 }

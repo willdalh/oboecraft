@@ -44,7 +44,9 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 - `Progress`: one player's SRS states, a map from `ItemId` to `SrsState`. An item with no entry is `Leveled.NEW`, and storing `Leveled.NEW` removes the entry, so only items the player has interacted with are kept. It also keeps states for item ids that aren't in the current name list, so they survive a name list change. `with(item, state)` returns new progress with one state changed.
 - `SrsRules`: `isLocked(state, now, settings)` and `pass(state, now, settings)`. Milestone 9 adds `fail`. Known, ignored and revert are plain new states and need no rule.
 
-`LockTimer.of(state, now, settings)` returns the remaining time and level interval for an unlocked, timed item, or empty for a locked or mastered item. It uses `SrsRules.isLocked`, so its expiry agrees with the lock check. `fractionRemaining()` clamps the bar to full and `closeToLocking()` checks the final tenth of the interval. Durations are not converted to a whole number of milliseconds or nanoseconds, so subsecond and very long configured intervals work too. The adapter decides whether displays are active and draws the timer.
+`DisplayRules.of(state, now, settings)` returns a sealed `DisplayState`: `Hidden` for locked items, `Timed(LockTimer)` for unlocked items with an interval, or `Normal` for mastered items. The rules use `SrsRules.isLocked` once, without inventing an interaction. The type cannot represent a hidden item with a running timer. Milestones 8 and 9 extend these explicit display rules for their new states.
+
+`LockTimer` holds the remaining time and level interval. `fractionRemaining()` clamps the bar to full and `closeToLocking()` checks the final tenth of the interval. `DisplayRules.closeToLocking` uses the same threshold for slot markers without constructing a full display state or timer. Durations are not converted to whole milliseconds or nanoseconds, so subsecond and very long configured intervals work too. The adapter decides whether displays are active and draws the result.
 
 ### Lock check
 

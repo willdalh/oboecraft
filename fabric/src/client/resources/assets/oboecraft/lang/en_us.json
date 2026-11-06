@@ -13,5 +13,6 @@
   "oboecraft.display.days": "%sd",
   "oboecraft.display.hours": "%sh",
   "oboecraft.display.minutes": "%sm",
-  "oboecraft.display.seconds": "%ss"
+  "oboecraft.display.seconds": "%ss",
+  "oboecraft.display.time_separator": " "
 }
