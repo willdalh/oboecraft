@@ -20,7 +20,6 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 |---|---|---|
 | `core.item` | `ItemId`, `NameListEntry`, `NameList` | 3b |
 | | `JapaneseName`, `NamePart` | 4 |
-| | `Renaming` | 11 |
 | `core.srs` | `SrsState`, `Progress`, `SrsRules` | 3b |
 | | `NotificationTiming` | 10 |
 | `core.lock` | `LockDecision`, `LockCheck` | 3b |
@@ -36,7 +35,6 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 - `NameListEntry`: the item id, its translation keys and its `JapaneseName`. It rejects an entry with no translation key, or a blank key.
 - `JapaneseName`: the Japanese name as a list of `NamePart`s, see [Name parts](../design/items.md#name-parts). `text()` is the parts' text joined, like オークの原木, and `reading()` their readings joined, like おーくのげんぼく. For answer checking, a position in the name is a position in its reading: `partAt(position)` is the part there, as a `PlacedPart` with its normalized text and where it starts and ends, and `vowelBefore(position)` is the vowel just before it in the same part, or none at the start of a part. All of this is worked out once when the name is built, since it never changes. It rejects a name with no parts.
 - `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, ー or ん, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.
-- `Renaming.mayRename(item)`: whether an anvil may rename a stack of the item, from an `Optional<ItemId>` that is empty for a stack that isn't an item. Only `Renaming.NAME_TAG`, `item.minecraft.name_tag`, may be renamed. See [Items](../design/items.md#renaming).
 - `NameList`: all entries, in order (`entries()`). Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
 
 Former ids, and moving states saved under a former id when progress is loaded (`Progress.withFormerIdsMerged(nameList)` in the design), are added with the first name list update that merges two entries. The name list has no merges yet, so they are left out, and the [name list tool](name-list-tool.md) stops if an update would merge two entries. See [Items](../design/items.md#name-list-entries).

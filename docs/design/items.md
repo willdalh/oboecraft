@@ -79,6 +79,6 @@ Some items are protected and never removed in a punishment: the dragon egg, shul
 
 ## Renaming
 
-Only a name tag can be renamed. Renaming any other item with an anvil would let the player give a stack a name of their own, so the anvil leaves the name of every other item as it is: it neither gives it a new name nor takes an existing custom name away, and naming costs nothing for it. Repairing and combining enchantments on an anvil work as normal, and the result keeps the input's name. Stacks that aren't items, like other mods' items, can't be renamed either.
+Only a name tag can be renamed. Renaming any other item with an anvil would let the player give a stack a name of their own, so the anvil leaves the name of every other item as it is: it neither gives it a new name nor takes an existing custom name away, and naming costs nothing for it. Repairing and combining enchantments on an anvil work as normal, and the result keeps the input's name. Only the Minecraft name tag item counts, whatever its item name says, so other mods' items can't be renamed either.
 
-The anvil's name field can only be typed in while a name tag is in its first slot. The server decides the result, so a modified client that sends a name anyway changes nothing. Name tags lock and unlock like any other item. This is a fixed rule, not a setting, and was added in milestone 11.
+The anvil's name field can only be typed in while a name tag is in its first slot. It shows a locked item's name as `???`, like its tooltip, and then can't be typed in either. The server decides the result, so a modified client that sends a name anyway changes nothing. Name tags lock and unlock like any other item. This is a fixed rule, not a setting, and was added in milestone 11.

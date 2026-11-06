@@ -89,7 +89,7 @@ See [SRS state](design/srs-state.md), [Lock check](design/lock-check.md) and [Re
 - A player has at most one review at a time. The server works out its trigger itself, from the open menu and the slot: inventory, container or crafting. The trigger stays in `fabric`, which turns it into counts for the core's punishment math. A crafting trigger notes the recipe's ingredients when the review starts, and the server refuses clicks in the open menu while a review is going.
 - The answer menu opens on top of an open container's screen, and the container stays open on the server for the whole review. If it closes on the server, the review is cancelled.
 - A pass only unlocks the item. The player repeats the interaction.
-- When the client asks to start a review, it says where the stack is, never which item it is or what the trigger is. The server reads both from its own state. It starts the review only at the location where it last stopped the player's action itself, or, for an action the client stopped without the server seeing it, after the lock check stops the stack at that location again. So a modified client can't start a review, or pick its trigger, at a location whose stack isn't stopped.
+- When the client asks to start a review, it says where the stack is, never which item it is or what the trigger is. The server reads both from its own state. It starts the review only after the lock check, asked again, stops the stack at that location. So a modified client can't start a review, or pick its trigger, at a location whose stack isn't stopped. Until milestone 11, a location where the server had stopped the action itself skipped that second check. With locks active, the second check always agrees with the server's stop, so it only made a difference in creative mode, where it let a review start, and milestone 11 removed it.
 - Name list entries can split and merge between Minecraft versions. A merged entry lists the other item id as a former id, and loading progress keeps the state that has the player review sooner. Translation keys whose Japanese text has format arguments, like the named player head, are added to the entry of the item they name. See [Items](design/items.md).
 - A progress file from a newer version of the mod is never overwritten, and the player is disconnected with a message. A broken file is kept as `.broken`, and the player is told in chat.
 
@@ -197,8 +197,8 @@ Decided in milestone 10, see [Display](design/display.md#notification):
 Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items](design/items.md#renaming):
 
 - Changing to creative or spectator mode cancels a review that is going, like closing the answer menu, so nothing is punished and the SRS state, with a saved wrong attempt, is kept. Changing between survival and adventure mode keeps it.
-- A stack the server stopped just before the change can still start its review, since the server already decided the action needed one.
-- The anvil leaves the name of every item except the name tag as it is. It neither renames it nor takes its custom name away, and charges nothing for naming. Repairing and combining enchantments are unchanged. Stacks that aren't items, like other mods' items, can't be renamed either. The rule is in core `Renaming`, and the anvil's name field only takes typing for a name tag.
+- No review starts while locks aren't active, also for a stack the server stopped just before the change: every start asks the lock check again. The server no longer remembers its own last stop.
+- The anvil leaves the name of every item except the name tag as it is. It neither renames it nor takes its custom name away, and charges nothing for naming. Repairing and combining enchantments are unchanged. Stacks that aren't items, like other mods' items, can't be renamed either. The rule goes by the stack's Minecraft item, `Items.NAME_TAG`, not its name list entry, since a data pack or command can give any stack a name tag's item name, so it is in `fabric` (`AnvilRenaming`). The anvil's name field only takes typing for a name tag, and shows `???` for a locked item.
 
 ### Progress
 
@@ -355,11 +355,11 @@ Show the notification at the top of the screen after a pass, in place of the tex
 
 **Status:** done
 
-Built: changing to creative or spectator mode cancels a review that is going, and the anvil only renames name tags, on both sides, with core `Renaming`. Creative mode already allowed every action and kept the SRS state since milestone 3b, through the lock check's rule 2, and displays are off there since milestone 7. Core tests cover `Renaming`. Game tests cover the game mode changes and the anvil's results for a name tag, a sword, a sword with a custom name and a repair. A client game test checks the anvil's name field for a sword and a name tag.
+Built: changing to creative or spectator mode cancels a review that is going, and the anvil only renames name tags, on both sides. A review the server stopped in survival mode no longer starts after a change to creative mode, since every start asks the lock check again. Creative mode already allowed every action and kept the SRS state since milestone 3b, through the lock check's rule 2, and displays are off there since milestone 7. Game tests cover the game mode changes, a stopped review asked for after a change to creative mode, and the anvil's results for a name tag, a sword, a sword with a custom name, a repair, and stacks whose item name says otherwise than their Minecraft item. A client game test checks the anvil's name field for a sword and a name tag, and a rename packet for the sword.
 
 Where it differs from the plan: the plan only named creative mode. Spectator mode has no locks either, so it cancels a review too. Taking a custom name away with an anvil counts as renaming, and other mods' items can't be renamed, see [Game modes and renaming](#game-modes-and-renaming).
 
-What later milestones should know: no payloads, saved fields or settings changed. The anvil's name field still shows the input's real name, also for a locked item, like other names outside tooltips and the hotbar label.
+What later milestones should know: no payloads, saved fields or settings changed. `ServerReviews.serverStopped` is gone: a review starts only where the lock check stops the stack when the client asks.
 
 Creative mode (no locks, SRS state kept), and anvil renaming removed for everything except name tags.
 

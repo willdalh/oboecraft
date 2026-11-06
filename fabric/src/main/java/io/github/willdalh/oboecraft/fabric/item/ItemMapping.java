@@ -2,7 +2,6 @@ package io.github.willdalh.oboecraft.fabric.item;
 
 import io.github.willdalh.oboecraft.core.item.NameList;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
-import io.github.willdalh.oboecraft.core.item.Renaming;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.network.chat.contents.TranslatableContents;
@@ -23,11 +22,6 @@ public final class ItemMapping {
     /** The stack's name list entry, or empty if the stack isn't an item. */
     public Optional<NameListEntry> entryOf(ItemStack stack) {
         return translationKeyOf(stack).flatMap(nameList::byTranslationKey);
-    }
-
-    /** Whether an anvil may rename the stack, by core {@link Renaming}: only a name tag. */
-    public boolean mayRename(ItemStack stack) {
-        return Renaming.mayRename(entryOf(stack).map(NameListEntry::id));
     }
 
     /**

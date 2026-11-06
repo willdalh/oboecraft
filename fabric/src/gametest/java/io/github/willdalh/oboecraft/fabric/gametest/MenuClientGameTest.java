@@ -21,6 +21,7 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundRenameItemPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AnvilMenu;
@@ -197,6 +198,11 @@ public class MenuClientGameTest implements FabricClientGameTest {
         }
         check(singleplayer, player -> player.containerMenu.getSlot(AnvilMenu.RESULT_SLOT).getItem().isEmpty(),
                 "the anvil has no result for a sword it can't rename");
+        // A modified client sends the new name anyway, and the server still doesn't rename the sword.
+        context.runOnClient(client -> client.getConnection().send(new ServerboundRenameItemPacket("Sting")));
+        singleplayer.getConnection().waitForServerboundPackets();
+        check(singleplayer, player -> player.containerMenu.getSlot(AnvilMenu.RESULT_SLOT).getItem().isEmpty(),
+                "the anvil has no result for a sword after a rename packet");
 
         click(context, AnvilMenu.INPUT_SLOT, PRIMARY, ContainerInput.PICKUP);
         click(context, swordSlot, PRIMARY, ContainerInput.PICKUP);

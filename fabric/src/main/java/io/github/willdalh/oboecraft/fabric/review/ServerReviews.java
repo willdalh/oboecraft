@@ -39,8 +39,8 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class ServerReviews {
     /**
-     * The interaction a review that the client started from its own stop is checked again with. A location doesn't
-     * say what the client tried to do there. The lock check treats every interaction the same, except dropping, which
+     * The interaction a review is checked again with when it starts. A location doesn't say what the player tried to
+     * do there. The lock check treats every interaction the same, except dropping, which
      * the client only stops when the drop setting is on, and then like every other.
      */
     private static final Interaction RECHECKED_INTERACTION = Interaction.USE;
@@ -50,8 +50,6 @@ public final class ServerReviews {
     private final ServerProgress progress;
     private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
-    /** Where the server last stopped each player's action and asked for the answer menu, until a review starts. */
-    private final Map<UUID, StackLocation> serverStops = new HashMap<>();
 
     /**
      * A review that is going.
@@ -81,24 +79,14 @@ public final class ServerReviews {
     }
 
     /**
-     * The server stopped the player's action at {@code location} and asked the client for the answer menu there, so
-     * the client's {@code StartReview} for it needs no second check. Only the latest stop is remembered.
-     */
-    public void serverStopped(ServerPlayer player, StackLocation location) {
-        serverStops.put(player.getUUID(), location);
-    }
-
-    /**
      * Starts the review {@code reviewId} of the stack at {@code location}, if it is a locked item whose interaction the
-     * lock check stops there. The server reads the stack and works out the trigger itself. At the location of the
-     * server's latest stop, the lock check already stopped the stack. At any other location, the client stopped the
-     * action itself and the server never saw it, so the lock check is asked again, and a stack it allows, for example
-     * in creative mode, is refused. A client only asks when it has no answer menu open, so a review that is still
-     * going is one the client has left: the new one replaces it.
+     * lock check stops there. The server reads the stack and works out the trigger itself. The lock check is always
+     * asked again, whether the server or only the client stopped the action, so a stack it allows now, for example in
+     * creative mode, is refused. A client only asks when it has no answer menu open, so a review that is still going
+     * is one the client has left: the new one replaces it.
      */
     public void start(ServerPlayer player, int reviewId, StackLocation location) {
         active.remove(player.getUUID());
-        boolean serverStopped = location.equals(serverStops.remove(player.getUUID()));
         if (!progress.isLoaded(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
@@ -110,7 +98,7 @@ public final class ServerReviews {
             return;
         }
         ItemId item = entry.get().id();
-        if (!serverStopped && !lockCheckStops(player, stack.get(), location)) {
+        if (!lockCheckStops(player, stack.get(), location)) {
             refuseNotLocked(player, reviewId, item);
             return;
         }
@@ -286,9 +274,8 @@ public final class ServerReviews {
         }
     }
 
-    /** Forgets the player's review and the server's latest stop when they leave. */
+    /** Forgets the player's review when they leave. */
     public void forget(UUID player) {
         active.remove(player);
-        serverStops.remove(player);
     }
 }

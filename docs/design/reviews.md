@@ -26,7 +26,7 @@ If the server refuses, it tells the client why (not locked, banned, or the stack
 
 The server remembers the review's trigger: what the player was doing when the review started. Punishment needs it to know the current view and what to remove.
 
-The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least. The client only says where the stack is, and the server starts a review there only if an action with that stack was stopped: either the server stopped it itself and asked for the answer menu there, or the lock check, asked again, stops the stack there. A stack the lock check allows, for example in creative mode, is never reviewed.
+The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least. The client only says where the stack is, and the server starts a review there only if the lock check, asked again, stops the stack there. A stack the lock check allows, for example in creative mode, is never reviewed.
 
 | Trigger | Started by | Current view | Removed on a fail |
 |---|---|---|---|
@@ -100,7 +100,7 @@ The Japanese name and reading are only sent to the client once the player has pa
 
 Locks are only active in survival and adventure mode, see [Lock check](lock-check.md#inputs). When a player changes to creative or spectator mode, a review that is going is cancelled, as if the player closed the answer menu, and the client's answer menu closes. Nothing is punished, the item stays locked and its SRS state, including a saved wrong attempt, is kept for when the player returns to survival or adventure mode. Changing between survival and adventure mode keeps the review going.
 
-In creative and spectator mode, the client's lock check allows every action, so it never opens the answer menu, and the server refuses a review the client asks for. The one exception is the stack the server itself stopped last, in survival or adventure mode: if the client asks for that review after the change, it starts and runs as normal, since the server already decided the action needed it.
+In creative and spectator mode, the client's lock check allows every action, so it never opens the answer menu, and the server refuses a review the client asks for, even one for an action the server stopped just before the change.
 
 ## What is built when
 

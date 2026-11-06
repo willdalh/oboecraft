@@ -93,4 +93,28 @@ public class AnvilGameTest {
         }
         helper.succeed();
     }
+
+    @GameTest
+    public void renamingGoesByTheMinecraftItemNotItsItemName(GameTestHelper helper) {
+        ServerPlayer player = TestPlayers.join(helper, UUID.randomUUID());
+        player.experienceLevel = 10;
+        try {
+            AnvilMenu anvil = openAnvil(player);
+            ItemStack swordNamedLikeANameTag = new ItemStack(Items.DIAMOND_SWORD);
+            swordNamedLikeANameTag.set(DataComponents.ITEM_NAME, Component.translatable("item.minecraft.name_tag"));
+            anvil.getSlot(AnvilMenu.INPUT_SLOT).set(swordNamedLikeANameTag);
+            anvil.setItemName("Sting");
+            helper.assertTrue(result(anvil).isEmpty(), "a sword with a name tag's item name isn't renamed");
+
+            ItemStack nameTagWithItsOwnName = new ItemStack(Items.NAME_TAG);
+            nameTagWithItsOwnName.set(DataComponents.ITEM_NAME, Component.literal("Special Tag"));
+            anvil.getSlot(AnvilMenu.INPUT_SLOT).set(nameTagWithItsOwnName);
+            anvil.setItemName("ポチ");
+            helper.assertValueEqual(result(anvil).get(DataComponents.CUSTOM_NAME), Component.literal("ポチ"),
+                    "a name tag with its own item name is renamed");
+        } finally {
+            TestPlayers.leave(player);
+        }
+        helper.succeed();
+    }
 }
