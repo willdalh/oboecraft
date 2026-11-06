@@ -36,7 +36,9 @@ See the [architecture overview](architecture/overview.md) for the details.
 - Time is real-world time from the server clock. The SRS state stores when the item locks next as a timestamp, and the item is locked when the current time is at or past it, so no timers need to run. Singleplayer uses the computer's clock, and changing it to cheat is left to the player.
 - The core never reads a clock and takes the current time as an input. `fabric` reads it from one clock that game tests replace. Every message from the server carries the server's time, and the client works out the server's time from the latest one with a timer that ignores changes to the client's clock. See [Time](design/time.md).
 - The client's locks are only active once the server has sent the player's SRS states for this connection, so a server without the mod, or the moment after joining, never locks anything on the client.
-- Client and server must run the same network protocol version of the mod. The server disconnects players who don't have the mod or have another protocol version.
+- Client and server must run the same network protocol version of the mod. The server disconnects players who don't have the mod or have another protocol version. The version is part of the id of a configuration payload that the client registers, and goes up whenever a payload or its meaning changes. See [Fabric adapter](architecture/fabric.md#networking).
+- Minecraft sends a placement to the server even when the client's lock check stopped it, so the server checks it again and tells the client to open the answer menu whenever it stops one and no review is going. The client ignores that while any screen is open.
+- The client gives each review an id when it opens the answer menu, and every message about the review carries it, so a late message never acts on a newer review or answer menu. Milestone 6 checks whether this holds for each other interaction.
 
 ### Dependencies and settings
 
@@ -47,8 +49,8 @@ See the [architecture overview](architecture/overview.md) for the details.
 ### Testing, CI and running
 
 - The repository is [willdalh/oboecraft](https://github.com/willdalh/oboecraft) on GitHub.
-- Core rules get plain unit tests. The `fabric` module uses Fabric game tests where they pay off.
-- GitHub Actions runs on every PR and every push to `main`: the build, the core tests and the Fabric game tests on a headless server. A PR with a failing check isn't merged. CI is set up in milestone 2.
+- Core rules get plain unit tests. The `fabric` module uses Fabric game tests where they pay off, and Fabric client game tests for what only a client can show, like the answer menu.
+- GitHub Actions runs on every PR and every push to `main`: the build, the core tests, the Fabric game tests on a headless server, and the client game tests in a virtual display. A PR with a failing check isn't merged. CI is set up in milestone 2, and the client game tests are added in 3b.
 - `./gradlew runClient` starts the game with the mod, and `./gradlew runServer` starts a local dedicated server. Both commands are added to AGENTS.md in milestone 2.
 - The build uses the Gradle wrapper and a Java 25 Gradle toolchain, so Gradle and Java 25 are downloaded automatically, whatever Java version is installed. Loom needs Gradle itself to run on Java 25, so the Gradle daemon has a Java 25 toolchain too (`gradle/gradle-daemon-jvm.properties`).
 
@@ -118,7 +120,7 @@ More rules:
 - Different kana with the same sound fail: ず/づ, じ/ぢ and を/お. For example, `みかずき` for みかづき and `はなじ` for はなぢ fail.
 - Romaji tells these kana apart too: づ is `du`, ぢ is `di` and を is `wo`, as when typing on a Japanese keyboard. Hepburn `zu`, `ji` and `o` fail for those kana: `mikazuki` fails for みかづき, and `mikaduki` passes.
 
-Since 26.3, Minecraft's window library has moved from GLFW to SDL3, and the keyboard's kanji conversion (IME) works on all operating systems. The answer menu uses Minecraft's normal text box to get it. Test early that pressing Enter to confirm a conversion doesn't submit the answer.
+Since 26.3, Minecraft's window library has moved from GLFW to SDL3, and the keyboard's kanji conversion (IME) works on all operating systems. The answer menu uses Minecraft's normal text box to get it. Minecraft hands every key to the screen without checking the conversion, so the answer menu ignores Enter while the conversion has text that isn't confirmed. A client game test checks this with a simulated conversion. A real IME on each operating system is only checked by hand.
 
 ### Voice
 
@@ -178,9 +180,13 @@ Until 3b is merged, these docs describe what 3b builds. 3b updates them where th
 
 ### 3b. Playable loop
 
-**Status:** not started
+**Status:** done
 
-Built on the design from milestone 3a.
+Built on the design from milestone 3a. Built: the core rules for items, SRS states, the lock check, reviews and settings; a hand-written name list of 10 blocks; mapping stacks to items; progress files; sync of SRS states and the server's time to the client; blocking placing on both sides; the answer menu with Answer and Close; and the network protocol check. Game tests run the loop on a headless server, and a client game test runs it through a real client in singleplayer.
+
+Where it differs from the 3a design, the docs were updated: each core type and setting only has what a milestone uses so far, and later milestones add values and fields; former ids wait for the first name list merge; the lock check takes the interaction once a rule depends on it (milestone 6); the answer menu only opens when no other screen is open, since replacing a container's screen breaks it, which milestone 6 has to solve to open it over containers; every review message carries a review id; the server tells the client to open the answer menu whenever it stops an action, since Minecraft sends the action even when the client stopped it; the payloads `ReviewAnswered` and `SubmitAnswer` replace `ReviewOutcome` and `ReviewAction`; and placing is checked in `ItemStack.useOn` instead of Fabric's `UseBlockCallback`, so opening a chest with a locked item in hand still works.
+
+What later milestones should know: the Minecraft 26.3 methods for translation keys work, and some items, like shields with a base color and the lodestone compass, have their own keys (see [Items](design/items.md#translation-keys)). Client game tests need a display, see AGENTS.md. The server side of the loop is tested on Minecraft's headless game test server, which loads only the server's code, and the client side in singleplayer. A client connected to a real dedicated server over the network hasn't been run yet, since running a dedicated server needs Minecraft's EULA accepted, which is the user's choice. Each payload's encoding is tested on its own instead.
 
 Punch a tree → get a locked oak log → try to place it → the answer menu opens → answer correctly → the oak log is unlocked and can be placed → it locks again after 10 minutes. Progress is saved, and the loop works on a dedicated server. A hand-written name list of about 10 items and simple answer checking (exact kana or kanji).
 

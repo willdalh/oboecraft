@@ -6,7 +6,15 @@
   "environment": "*",
   "entrypoints": {
     "fabric-gametest": [
-      "io.github.willdalh.oboecraft.fabric.gametest.ModLoadedGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.ModLoadedGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ItemMappingGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.PlacingGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ProgressFilesGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ServerProgressGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.PayloadCodecGameTest"
+    ],
+    "fabric-client-gametest": [
+      "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest"
     ]
   },
   "depends": {

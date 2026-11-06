@@ -8,7 +8,7 @@ More detail on each part:
 - [Fabric adapter](fabric.md): item mapping, the lock check entry point, progress, reviews, the answer menu and networking.
 - [Progress files](progress-files.md): where progress is saved and the file format.
 
-The parts on those pages were designed in milestone 3a. Until milestone 3b is merged, they describe what 3b builds.
+The parts on those pages were designed in milestone 3a and built in milestone 3b.
 
 ## Core and adapters
 
@@ -38,9 +38,10 @@ core/
   src/test/java             Unit tests (JUnit)
 fabric/
   src/main/java             Code for both sides, and code that only runs on the server
-  src/main/resources        fabric.mod.json
+  src/main/resources        fabric.mod.json, the mixin config, and the name list in oboecraft/name_list.json
   src/client/java           Code that only runs on the client
-  src/gametest/java         Fabric game tests, run on a headless server
+  src/client/resources      The client mixin config, and the language files in assets/oboecraft/lang
+  src/gametest/java         Fabric game tests, on a headless server and in a client
   src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
 ```
 
@@ -53,7 +54,9 @@ The mod has two entrypoints, listed in `fabric.mod.json`:
 | `main` | `io.github.willdalh.oboecraft.fabric.OboecraftMod` | Server and client |
 | `client` | `io.github.willdalh.oboecraft.fabric.client.OboecraftClient` | Client only |
 
-The game tests are their own small mod, `oboecraft-gametest`, which is only loaded by `runGameTest` and is not part of the released jar.
+The game tests are their own small mod, `oboecraft-gametest`, which is only loaded by `runGameTest` and `runClientGameTest` and is not part of the released jar.
+
+Mixins are listed in `oboecraft.mixins.json` (package `fabric.mixin`, both sides) and `oboecraft.client.mixins.json` (package `fabric.client.mixin`, client only).
 
 ## Build
 
@@ -86,13 +89,20 @@ Answers are checked on the server. The client sends the typed text, and the serv
 
 Intervals and bans run in real-world time from the server clock. The SRS state stores when an item locks next as a timestamp, and an item is locked when the current time is at or past it. No timers need to run.
 
-The core never reads a clock: its rules take the current time as an input. In `fabric`, all code reads the time from one clock, which game tests replace with one they control. The client adds the difference between the server's clock and its own. See [Time](../design/time.md).
+The core never reads a clock: its rules take the current time as an input. In `fabric`, all code reads the time from one clock, which game tests replace with one they control. The client works out the server's time from the time in the server's latest message, plus how long ago it arrived. See [Time](../design/time.md).
 
 ## Testing
 
-Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` module uses Fabric game tests where they pay off, in `fabric/src/gametest`. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod.
+Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` module uses Fabric game tests where they pay off, in `fabric/src/gametest`. There are two kinds:
 
-`./gradlew build` runs both kinds of tests. The game test results are written as a JUnit report to `fabric/build/test-results/gameTest/`, and the game test server's logs to `fabric/build/run/gameTest/logs/`. CI uploads both, along with any crash reports. GitHub Actions runs it on every PR and on every push to `main` (`.github/workflows/build.yml`).
+- **Game tests** run on a headless server. A game test is a public method annotated with `@GameTest` that takes a `GameTestHelper`, in a class listed under the `fabric-gametest` entrypoint of the test mod. Tests that need a player use one that joins over a connection that goes nowhere (`TestPlayers`), so the mod loads and saves its progress as for a real player.
+- **Client game tests** run a real client and drive it with key presses and mouse clicks. A client game test is a class that implements `FabricClientGameTest`, listed under the `fabric-client-gametest` entrypoint. Singleplayer passes payloads without encoding them, so a game test encodes and decodes each payload too.
+
+`./gradlew build` runs the core tests and the game tests. The game test results are written as a JUnit report to `fabric/build/test-results/gameTest/`, and the game test server's logs to `fabric/build/run/gameTest/logs/`.
+
+`./gradlew runClientGameTest` runs the client game tests. It needs a display. Without one, run it in a virtual display with Mesa's software Vulkan driver, as CI does: Minecraft can't get an OpenGL context from Xvfb's software GLX, which has no sRGB framebuffer, so it falls back to Vulkan. Screenshots the tests take are in `fabric/build/run/clientGameTest/screenshots/`.
+
+GitHub Actions runs both on every PR and on every push to `main` (`.github/workflows/build.yml`), and uploads the reports, logs, screenshots and any crash reports.
 
 ## Decisions
 

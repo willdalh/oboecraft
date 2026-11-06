@@ -26,7 +26,7 @@ fabricApi {
         createSourceSet = true
         modId = "oboecraft-gametest"
         enableGameTests = true
-        enableClientGameTests = false
+        enableClientGameTests = true
     }
 }
 
