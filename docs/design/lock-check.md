@@ -58,6 +58,12 @@ Picking a stack up from the ground isn't an interaction, but the lock check deci
 
 Milestone 3b checks only placing. Milestone 6 adds the rest, and may split or add kinds where the game needs it. A new kind only needs a new value here and, if it needs its own rule, a new rule above.
 
+Placing is checked when the stack is used on the block, after the block itself had its chance to react. So right-clicking a chest or crafting table with a locked item in hand still opens it, and only the placing is stopped.
+
+## What is built when
+
+Milestone 3b builds the decisions Allow and Review, and rules 1, 2, 7 and 9. Milestone 6 adds rule 3 with the drop setting, milestone 8 adds rules 4 to 6 with Deny and picking up, and milestone 9 adds rule 8 with Banned.
+
 ## Opening the answer menu on purpose
 
 Right-clicking a locked item in the inventory opens the answer menu without using the item. This is not an interaction, so it doesn't go through the lock check, but it uses the same rules to start the review: see [Starting a review](reviews.md#starting-a-review).
@@ -70,4 +76,4 @@ The check runs on both sides with the same rules.
 - The client's locks are only active once the server has sent the player's SRS states for this connection. Before that, and on a server without the mod, the client allows everything. Otherwise every item would count as level 0 and locked, and joining a vanilla server would stop every action and open answer menus nobody answers.
 - The server checks too and has the final say. A modified client can't get past it.
 
-If the server stops an action that the client allowed, for example because the item locked a moment before, the server sends the up-to-date SRS state and tells the client what to show: the answer menu, the ban message or nothing.
+Minecraft sends a placement to the server even when the client stopped it, so the server checks every placement again. When the server stops an action, it tells the client what to show: the answer menu, or later the ban message. The client ignores this while its answer menu is already open, which is the normal case. When the client allowed the action and the server didn't, for example because the item locked a moment before, the client opens the answer menu then, and the server sends the player's slots again so a stack the client already used up is put back.

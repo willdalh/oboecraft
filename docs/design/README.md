@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind. Until milestone 3b is merged, they describe what 3b builds, and 3b updates them where the code ends up different. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -17,7 +17,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 
 | Part | Milestone |
 |---|---|
-| Name list with about 10 hand-written items, stack to item mapping | 3b |
+| Name list with 10 hand-written items, stack to item mapping | 3b |
 | Levels, intervals, locking, saving progress, sync to the client | 3b |
 | Lock check, used for placing blocks | 3b |
 | Answer menu with Answer only, exact kana or kanji | 3b |

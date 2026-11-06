@@ -8,7 +8,7 @@ The server's clock decides the time. In singleplayer that is the computer's cloc
 
 All game code reads the current time from one clock. In the game it is the system clock. Tests replace it with a clock they control, so they can jump ahead ten minutes and check that an item has locked, without waiting.
 
-Times are stored to the millisecond, in UTC.
+The clock gives times to the millisecond, so they are the same in memory, in progress files, which store them in UTC, and in messages to the client.
 
 ## The client
 
