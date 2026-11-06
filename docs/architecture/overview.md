@@ -35,7 +35,8 @@ The released mod is one jar, built by `fabric`. It contains the classes of `core
 ## Source layout
 
 ```
-build.gradle.kts            Settings shared by both modules: group, version, Java 25 toolchain
+build.gradle.kts            Settings shared by all modules: group, Java 25 toolchain
+gradle.properties           The mod version and Gradle's settings
 settings.gradle.kts         The two modules and the toolchain download plugin
 gradle/libs.versions.toml   All dependency and plugin versions
 core/
@@ -49,7 +50,8 @@ tools/
   src/test/java             Unit tests (JUnit)
 fabric/
   src/main/java             Code for both sides, and code that only runs on the server
-  src/main/resources        fabric.mod.json, the mixin config, and the name list in oboecraft/name_list.json
+  src/main/resources        fabric.mod.json, the mixin config, the mod's icon in assets/oboecraft/icon.png, and the
+                            name list in oboecraft/name_list.json
   src/client/java           Code that only runs on the client
   src/client/resources      The client mixin config, and the language files in assets/oboecraft/lang
   src/gametest/java         Fabric game tests, on a headless server and in a client
@@ -73,7 +75,9 @@ Mixins are listed in `oboecraft.mixins.json` (package `fabric.mixin`, both sides
 
 The build uses Gradle through the wrapper and Fabric Loom's non-remapping plugin, `net.fabricmc.fabric-loom`, since Minecraft ships unobfuscated. Loom needs Gradle itself to run on Java 25. `gradle/gradle-daemon-jvm.properties` asks for that, and the compile toolchain asks for Java 25 too. If Java 25 isn't installed, Gradle downloads it.
 
-All versions live in `gradle/libs.versions.toml`. The mod version and the Minecraft and Fabric Loader versions in `fabric.mod.json` are filled in from there when the jar is built.
+Dependency and plugin versions live in `gradle/libs.versions.toml`, and the mod version in `gradle.properties`. The mod version and the Minecraft and Fabric Loader versions in `fabric.mod.json` are filled in from there when the jar is built.
+
+GitHub Actions runs two workflows. Build (`.github/workflows/build.yml`) builds and tests every PR and every push to `main`. Release (`.github/workflows/release.yml`) runs on every push to `main` and publishes a GitHub release with the mod jar when the mod version has no release yet, see [AGENTS.md](../../AGENTS.md#releases).
 
 ## A thin core
 
