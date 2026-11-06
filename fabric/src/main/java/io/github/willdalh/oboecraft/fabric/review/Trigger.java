@@ -1,9 +1,18 @@
 package io.github.willdalh.oboecraft.fabric.review;
 
+import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.punishment.Recipe;
+import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.lock.MenuSlots;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 
 /**
  * What the player was doing when a review started, which decides the current view for a punishment. The server works
@@ -28,8 +37,16 @@ public sealed interface Trigger {
         }
     }
 
-    /** The result slot of a menu that makes its result from input slots, like the crafting grid. */
-    record Crafting(int containerId) implements Trigger {
+    /**
+     * The result slot of a menu that makes its result from input slots, like the crafting grid.
+     *
+     * @param recipe what the menu's input slots held when the review started, which a fail removes from
+     */
+    record Crafting(int containerId, Recipe recipe) implements Trigger {
+        public Crafting {
+            Objects.requireNonNull(recipe, "recipe");
+        }
+
         @Override
         public boolean needsMenu(int menuId) {
             return containerId == menuId;
@@ -38,15 +55,34 @@ public sealed interface Trigger {
 
     /**
      * The trigger of a review of the stack at {@code location}, which must be a valid location for the player, see
-     * {@link StackLocation#stackIn}.
+     * {@link StackLocation#stackIn}. A crafting trigger notes the recipe from the menu's input slots.
      */
-    static Trigger of(ServerPlayer player, StackLocation location) {
+    static Trigger of(ServerPlayer player, StackLocation location, ItemMapping itemMapping) {
         AbstractContainerMenu menu = player.containerMenu;
         if (location instanceof StackLocation.MenuSlot slot
                 && MenuSlots.isCraftingResult(menu, menu.getSlot(slot.slot()))) {
-            return new Crafting(menu.containerId);
+            return new Crafting(menu.containerId, recipeOf(menu, itemMapping));
         }
         return menu == player.inventoryMenu ? new Inventory() : new Container(menu.containerId);
+    }
+
+    /**
+     * The recipe a menu's input slots make its result from. Each stack in an input slot is one use of its item, as
+     * one craft takes one item from each slot of a crafting grid. Stacks that aren't items count towards the total
+     * only, since they can't be removed.
+     */
+    private static Recipe recipeOf(AbstractContainerMenu menu, ItemMapping itemMapping) {
+        Map<ItemId, Integer> uses = new HashMap<>();
+        int totalUses = 0;
+        for (Slot slot : menu.slots) {
+            if (!MenuSlots.isInCurrentView(menu, slot) || slot.getItem().isEmpty()) {
+                continue;
+            }
+            totalUses++;
+            Optional<NameListEntry> entry = itemMapping.entryOf(slot.getItem());
+            entry.ifPresent(item -> uses.merge(item.id(), 1, Integer::sum));
+        }
+        return new Recipe(uses, totalUses);
     }
 
     /** Whether the review needs the menu with this container id to stay open, since its current view is in it. */

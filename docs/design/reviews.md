@@ -20,7 +20,7 @@ The client says where the stack is: a slot of the inventory, a slot of the open 
 
 A player has at most one review at a time. The client only asks to start a review when it has no answer menu open, so if a review is still going on the server, the player has left it, and the new review replaces it. Reviewing an item that isn't locked, to top up its timer early, isn't possible.
 
-If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it. A refusal because the item isn't locked also sends the item's state and the server's time, so the client's next check allows the action. See [Time](time.md#the-client).
+If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it. A refusal because the item isn't locked or is banned also sends the item's state and the server's time, so the client's next check agrees with the server. After a refusal because of a ban, the client tells the player how long the ban has left. See [Time](time.md#the-client).
 
 ## The trigger
 
@@ -36,7 +36,7 @@ The server works the trigger out itself, from the menu the player has open on th
 
 The answer menu opens on top of the open container's screen and goes back to it when the review ends, see [Fabric adapter](../architecture/fabric.md#the-answer-menu). The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, a review with a container or crafting trigger is cancelled. A review with an inventory trigger needs no menu, so closing one doesn't cancel it.
 
-For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then. Milestone 9, which removes them, notes them.
+For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts: each stack in an input slot is one use of its item. On a fail, it removes from those ingredients, whatever is in the input slots by then. See [Punishment](punishment.md).
 
 While a review is going, the server refuses every click in the player's open menu, the recipe book, choosing a trade, a menu's buttons, dropping and swapping hands, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
 
@@ -61,7 +61,7 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 | Action | Default key | Result |
 |---|---|---|
 | Answer | Enter | An attempt |
-| Don't know | Delete | A fail at once |
+| Don't know | Delete | A fail at once, or in a lesson, shows the Japanese name. Only while the typing bar is empty, so Delete still deletes typed text and fixing a typo never fails the review. |
 | Already known | F7 | The item becomes known and is unlocked forever, and the review ends |
 | Ignore | F8 | The item becomes ignored, and the review ends |
 | Show answer | F9 | Lessons only: shows the Japanese name |
@@ -69,7 +69,7 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 
 All keys can be rebound in Minecraft's Controls screen, including mouse buttons. Already known, Ignore and Show answer default to F7, F8 and F9 so vanilla Controls shows no false conflicts with movement keys. Both Enter keys submit on the default Answer binding; rebinding Answer removes that fallback. The hint shows the current binding. Close remains available with Esc as on other Minecraft screens.
 
-Don't know is available in lessons now. From level 1, it waits for milestone 9's punishment rules.
+The hint line lists Don't know at every level. Show answer is only listed in lessons.
 
 ## Lessons
 
@@ -81,7 +81,7 @@ A review of an item at level 0 is a lesson:
 
 ## What the client is told
 
-The answer menu shows the item's level. When a review starts, the server sends the level, whether it is a lesson, and how many attempts are left.
+The answer menu shows the item's level, and "one attempt left" when a wrong attempt is saved. When a review starts, the server sends the level, which says whether it is a lesson, and how many attempts are left.
 
 The Japanese name and reading are only sent to the client when it shows them: after a pass, after a fail, and in a lesson when the answer is shown.
 
@@ -91,7 +91,7 @@ The Japanese name and reading are only sent to the client when it shows them: af
 |---|---|
 | Pass | The item is unlocked, see [Pass](srs-state.md#pass). The reading is played and the Japanese name is shown at the top of the screen. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
-| Fail | Punishment: part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the Japanese name is shown. |
+| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name and reading until the player closes it with Answer or Close. Only a new press closes it, not a key still held from the last answer, and not in the first half second, so the answer is always seen. The review is already over, so closing it changes nothing. |
 | Lesson answer shown | The Japanese name is shown, and the lesson goes on. |
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |
@@ -102,5 +102,5 @@ The Japanese name and reading are only sent to the client when it shows them: af
 - Milestone 4: full answer checking, see [Answers](answers.md).
 - Milestone 6: starting a review from every interaction, the three triggers, the answer menu over an open menu's screen, refusing clicks in the open menu during a review, and cancelling a review whose menu closes.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.
-- Milestone 9: two attempts, Don't know, fails and punishment, and noting a crafting trigger's ingredients.
+- Milestone 9: two attempts with a wrong attempt saved, Don't know, fails and punishment, bans, and noting a crafting trigger's ingredients.
 - Milestone 10: the notification on a pass, in place of the text above the hotbar.

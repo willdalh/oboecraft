@@ -6,6 +6,8 @@ public enum LockDecision {
     ALLOW,
     /** The action is stopped, and the answer menu opens for the item. */
     REVIEW,
+    /** The action is stopped, and the player is told how long the item's ban has left. No answer menu opens. */
+    BANNED,
     /** Blocked without opening a review. */
     DENY
 }

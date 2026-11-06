@@ -1,10 +1,12 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.punishment.Recipe;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
 import io.github.willdalh.oboecraft.fabric.review.Trigger;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -189,7 +191,8 @@ public class MenuGameTest {
             reviews().start(player, 1, new StackLocation.MenuSlot(menu.containerId, InventoryMenu.RESULT_SLOT));
             helper.assertValueEqual(ActiveReviews.item(player), Optional.of(CRAFTING_TABLE), "item under review");
             helper.assertValueEqual(ActiveReviews.trigger(player),
-                    Optional.of(new Trigger.Crafting(menu.containerId)), "trigger");
+                    Optional.of(new Trigger.Crafting(menu.containerId, new Recipe(Map.of(OAK_PLANKS, 4), 4))),
+                    "trigger with the recipe noted");
         } finally {
             TestPlayers.leave(player);
         }

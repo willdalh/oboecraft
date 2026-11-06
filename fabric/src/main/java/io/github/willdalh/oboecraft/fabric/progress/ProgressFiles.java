@@ -31,7 +31,7 @@ import java.util.Optional;
 /** Reads and writes progress files: JSON with a format version. See {@code docs/architecture/progress-files.md}. */
 public final class ProgressFiles {
     /** The format version this version of the mod writes. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     /** ISO 8601 in UTC, to the millisecond, so times can be read and fixed by hand. */
@@ -109,10 +109,16 @@ public final class ProgressFiles {
             throw new IllegalArgumentException("Unknown kind of state " + kind);
         }
         int level = state.getAsJsonPrimitive("level").getAsInt();
-        Optional<Instant> locksAt = state.has("locksAt")
-                ? Optional.of(Instant.parse(state.getAsJsonPrimitive("locksAt").getAsString()))
+        boolean demoted = state.has("demoted") && state.getAsJsonPrimitive("demoted").getAsBoolean();
+        int wrongAttempts = state.has("wrongAttempts") ? state.getAsJsonPrimitive("wrongAttempts").getAsInt() : 0;
+        return new SrsState.Leveled(
+                level, parseTime(state, "locksAt"), demoted, wrongAttempts, parseTime(state, "bannedUntil"));
+    }
+
+    private static Optional<Instant> parseTime(JsonObject state, String field) {
+        return state.has(field)
+                ? Optional.of(Instant.parse(state.getAsJsonPrimitive(field).getAsString()))
                 : Optional.empty();
-        return new SrsState.Leveled(level, locksAt);
     }
 
     /** The JSON of a progress file. States that are new are left out, and so are unset fields. */
@@ -135,11 +141,21 @@ public final class ProgressFiles {
             case SrsState.Leveled leveled -> {
                 json.addProperty("kind", "leveled");
                 json.addProperty("level", leveled.level());
-                leveled.locksAt().ifPresent(locksAt -> json.add("locksAt", new JsonPrimitive(
-                        TIME_FORMAT.format(locksAt))));
+                leveled.locksAt().ifPresent(locksAt -> json.add("locksAt", time(locksAt)));
+                if (leveled.demoted()) {
+                    json.addProperty("demoted", true);
+                }
+                if (leveled.wrongAttempts() > 0) {
+                    json.addProperty("wrongAttempts", leveled.wrongAttempts());
+                }
+                leveled.bannedUntil().ifPresent(bannedUntil -> json.add("bannedUntil", time(bannedUntil)));
             }
         }
         return json;
+    }
+
+    private static JsonPrimitive time(Instant instant) {
+        return new JsonPrimitive(TIME_FORMAT.format(instant));
     }
 
     /**

@@ -35,19 +35,46 @@ class SettingsTest {
 
     @Test
     void theTopLevelIsOneMoreThanTheNumberOfLevels() {
-        Settings settings = new Settings(List.of(new LevelSettings(Duration.ofMinutes(1))), false);
+        Settings settings = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(Duration.ofMinutes(1), 1)));
 
         assertEquals(2, settings.topLevel());
     }
 
     @Test
     void rejectsNoLevels() {
-        assertThrows(IllegalArgumentException.class, () -> new Settings(List.of(), false));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withLevels(List.of()));
     }
 
     @Test
     void rejectsAnIntervalThatIsntLongerThanZero() {
-        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ZERO));
-        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ofMinutes(-1)));
+        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ZERO, 1));
+        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ofMinutes(-1), 1));
+    }
+
+    @Test
+    void theDefaultsDemoteOneLevelUpToFourAndTwoFromFive() {
+        for (int level = 1; level <= 4; level++) {
+            assertEquals(1, Settings.DEFAULTS.demotion(level));
+        }
+        for (int level = 5; level <= 8; level++) {
+            assertEquals(2, Settings.DEFAULTS.demotion(level));
+        }
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.demotion(0));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.demotion(9));
+    }
+
+    @Test
+    void theDefaultBanIsFiveMinutesAndThePercentageFactorFive() {
+        assertEquals(Duration.ofMinutes(5), Settings.DEFAULTS.banLength());
+        assertEquals(5, Settings.DEFAULTS.percentageFactor());
+    }
+
+    @Test
+    void rejectsANegativeDemotionBanLengthOrPercentageFactor() {
+        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ofMinutes(1), -1));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withBanLength(Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withPercentageFactor(-1));
+        assertEquals(Duration.ZERO, Settings.DEFAULTS.withBanLength(Duration.ZERO).banLength());
+        assertEquals(0, new LevelSettings(Duration.ofMinutes(1), 0).demotion());
     }
 }

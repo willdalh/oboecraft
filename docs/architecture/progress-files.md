@@ -2,7 +2,7 @@
 
 Progress is saved as JSON files with a format version, see [ADR: Progress saved as versioned JSON files](../decisions/20261105-progress-save-format.md). `ProgressFiles` in `fabric` reads and writes them and turns them into core `Progress` values.
 
-Format 2 stores leveled, known and ignored states. Format 1 files are read unchanged and written as format 2 on the next save. The version increases because older code treats an unknown kind as a broken file; it must instead refuse a newer save without replacing it. Demotion, wrong attempts and bans in the example below are still planned for milestone 9.
+Format 3 stores leveled, known and ignored states, and for a leveled state also whether it is demoted, its wrong attempts and its ban. Format 1 and 2 files are read unchanged and written as format 3 on the next save. Format 2 added known and ignored states, since older code treats an unknown kind as a broken file. Format 3 added `demoted`, `wrongAttempts` and `bannedUntil` in milestone 9: a format 2 reader would ignore them and save the file again without them, so after a downgrade every demotion, ban and wrong attempt would be lost. With the new version, an older mod refuses the file instead of replacing it, see [Versions](#versions).
 
 ## Where the files are
 
@@ -19,7 +19,7 @@ The server tells the host apart from LAN guests by whether the player owns the s
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "items": {
     "block.minecraft.oak_log": {
       "kind": "leveled",
@@ -42,7 +42,7 @@ The server tells the host apart from LAN guests by whether the player owns the s
 
 - `items` is keyed by item id. Items at `Leveled.NEW` are left out.
 - `kind` is `leveled`, `known` or `ignored`. A kind this version of the mod doesn't know makes the file broken, see below.
-- Fields that are unset, false or 0 are left out.
+- Fields that are unset, false or 0 are left out. `wrongAttempts` is 0 or 1, and any other value makes the file broken.
 - Times are ISO 8601 in UTC, to the millisecond, so they can be read and fixed by hand.
 - Items are written in the order of their ids, so a file changes little between saves.
 - Items whose ids aren't in the current name list are read and written back unchanged. Once the name list has former ids, states saved under a former id are moved to the current item id when the file is read, see [Items](../design/items.md#name-list-entries).

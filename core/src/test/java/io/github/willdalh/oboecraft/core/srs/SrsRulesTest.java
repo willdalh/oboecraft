@@ -58,7 +58,7 @@ class SrsRulesTest {
 
     @Test
     void aLevelAboveTheTopLevelCountsAsMastered() {
-        Settings fewerLevels = new Settings(List.of(new LevelSettings(Duration.ofMinutes(10))), false);
+        Settings fewerLevels = Settings.DEFAULTS.withLevels(List.of(new LevelSettings(Duration.ofMinutes(10), 1)));
 
         assertFalse(SrsRules.isLocked(leveled(5, NOW.minusSeconds(1)), NOW, fewerLevels));
     }
@@ -66,8 +66,8 @@ class SrsRulesTest {
     @Test
     void anItemMasteredBeforeLevelsWereAddedIsLocked() {
         List<LevelSettings> nineLevels = new java.util.ArrayList<>(SETTINGS.levels());
-        nineLevels.add(new LevelSettings(Duration.ofDays(60)));
-        Settings moreLevels = new Settings(nineLevels, false);
+        nineLevels.add(new LevelSettings(Duration.ofDays(60), 1));
+        Settings moreLevels = Settings.DEFAULTS.withLevels(nineLevels);
 
         assertTrue(SrsRules.isLocked(new SrsState.Leveled(9, Optional.empty()), NOW, moreLevels));
     }
@@ -99,8 +99,8 @@ class SrsRulesTest {
     @Test
     void aPassOfAnItemMasteredBeforeLevelsWereAddedReachesTheNewTopLevel() {
         List<LevelSettings> nineLevels = new java.util.ArrayList<>(SETTINGS.levels());
-        nineLevels.add(new LevelSettings(Duration.ofDays(60)));
-        Settings moreLevels = new Settings(nineLevels, false);
+        nineLevels.add(new LevelSettings(Duration.ofDays(60), 1));
+        Settings moreLevels = Settings.DEFAULTS.withLevels(nineLevels);
 
         assertEquals(new SrsState.Leveled(10, Optional.empty()),
                 SrsRules.pass(new SrsState.Leveled(9, Optional.empty()), NOW, moreLevels));
@@ -109,5 +109,92 @@ class SrsRulesTest {
     @Test
     void aLevelCantBeNegative() {
         assertThrows(IllegalArgumentException.class, () -> new SrsState.Leveled(-1, Optional.empty()));
+    }
+
+    @Test
+    void wrongAttemptsAreFromZeroToOne() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new SrsState.Leveled(1, Optional.empty(), false, -1, Optional.empty()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new SrsState.Leveled(1, Optional.empty(), false, 2, Optional.empty()));
+    }
+
+    @Test
+    void aFailDemotesOneLevelBelowLevelFiveAndBansTheItem() {
+        SrsState.Leveled failed = SrsRules.fail(
+                new SrsState.Leveled(3, Optional.of(NOW.minusSeconds(5)), false, 1, Optional.empty()), NOW, SETTINGS);
+
+        assertEquals(new SrsState.Leveled(
+                2, Optional.of(NOW.minusSeconds(5)), true, 0, Optional.of(NOW.plus(Duration.ofMinutes(5)))), failed);
+        assertTrue(SrsRules.isLocked(failed, NOW, SETTINGS));
+        assertTrue(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5)).minusMillis(1)));
+        assertFalse(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5))));
+    }
+
+    @Test
+    void aFailDemotesTwoLevelsFromLevelFive() {
+        assertEquals(3, SrsRules.fail(leveled(5, NOW), NOW, SETTINGS).level());
+        assertEquals(6, SrsRules.fail(leveled(8, NOW), NOW, SETTINGS).level());
+    }
+
+    @Test
+    void aFailNeverDemotesBelowLevelOne() {
+        assertEquals(1, SrsRules.fail(leveled(1, NOW), NOW, SETTINGS).level());
+        Settings bigDemotion = SETTINGS.withLevels(List.of(
+                new LevelSettings(Duration.ofMinutes(10), 1), new LevelSettings(Duration.ofHours(1), 5)));
+        assertEquals(1, SrsRules.fail(leveled(2, NOW), NOW, bigDemotion).level());
+    }
+
+    @Test
+    void aZeroDemotionKeepsTheLevelButStillDemotes() {
+        Settings noDemotion = SETTINGS.withLevels(List.of(
+                new LevelSettings(Duration.ofMinutes(10), 0), new LevelSettings(Duration.ofHours(1), 0)));
+
+        SrsState.Leveled failed = SrsRules.fail(leveled(2, NOW), NOW, noDemotion);
+
+        assertEquals(2, failed.level());
+        assertTrue(failed.demoted());
+    }
+
+    @Test
+    void aZeroBanLengthBansNothing() {
+        SrsState.Leveled failed = SrsRules.fail(leveled(2, NOW), NOW, SETTINGS.withBanLength(Duration.ZERO));
+
+        assertFalse(SrsRules.isBanned(failed, NOW));
+    }
+
+    @Test
+    void onlyALeveledItemFromLevelOneBelowTheTopCanFail() {
+        assertThrows(IllegalArgumentException.class, () -> SrsRules.fail(SrsState.Leveled.NEW, NOW, SETTINGS));
+        assertThrows(IllegalArgumentException.class,
+                () -> SrsRules.fail(new SrsState.Leveled(9, Optional.empty()), NOW, SETTINGS));
+        assertThrows(IllegalArgumentException.class, () -> SrsRules.fail(new SrsState.Known(), NOW, SETTINGS));
+    }
+
+    @Test
+    void aPassAfterAFailUnlocksAtTheNewLevelWithoutPromoting() {
+        SrsState.Leveled failed = SrsRules.fail(leveled(5, NOW), NOW, SETTINGS);
+        Instant later = NOW.plus(Duration.ofMinutes(10));
+
+        SrsState passed = SrsRules.pass(failed, later, SETTINGS);
+
+        assertEquals(new SrsState.Leveled(3, Optional.of(later.plus(Duration.ofHours(4))), false, 0,
+                failed.bannedUntil()), passed);
+        SrsState passedAgain = SrsRules.pass(passed, later.plus(Duration.ofDays(1)), SETTINGS);
+        assertEquals(4, ((SrsState.Leveled) passedAgain).level());
+    }
+
+    @Test
+    void aPassClearsWrongAttempts() {
+        SrsState passed = SrsRules.pass(
+                new SrsState.Leveled(2, Optional.of(NOW), false, 1, Optional.empty()), NOW, SETTINGS);
+
+        assertEquals(0, ((SrsState.Leveled) passed).wrongAttempts());
+    }
+
+    @Test
+    void anItemThatWasNeverFailedIsntBanned() {
+        assertFalse(SrsRules.isBanned(SrsState.Leveled.NEW, NOW));
+        assertFalse(SrsRules.isBanned(new SrsState.Known(), NOW));
     }
 }
