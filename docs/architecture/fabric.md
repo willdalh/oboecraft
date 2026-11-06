@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, and milestone 9 fails, punishment and bans. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -58,7 +58,7 @@ Two classes turn an action into its stacks, with the rules in [Lock check](../de
 
 Every hook calls `firstStopped` through one of two classes, which only decide what stopping the action looks like:
 
-- `ServerLockHooks` acts for a `ServerPlayer`. When it stops an action, it sends a stopped stack's inventory slot again, since the client may already have used it up, and unless a review is going, it sends `ShowReview` with the location. After a stopped menu click, Minecraft's own click handler sends the menu's real contents, so no resend is needed. Before `ShowReview`, it sends the stack's real place: the inventory slot, or the open menu's whole contents. While a review is going, `ServerLockHooks.refusedDuringReview` refuses menu clicks and, in `ServerGamePacketListenerImplMixin`, the recipe book, choosing a trade, menu buttons, dropping and swapping hands.
+- `ServerLockHooks` acts for a `ServerPlayer`. When it stops an action, it sends a stopped stack's inventory slot again, since the client may already have used it up, and unless a review is going, it sends `ShowReview` with the location when the decision is Review. A Banned decision stops the action without `ShowReview`: the client tells the player about the ban from its own state. After a stopped menu click, Minecraft's own click handler sends the menu's real contents, so no resend is needed. Before `ShowReview`, it sends the stack's real place: the inventory slot, or the open menu's whole contents. While a review is going, `ServerLockHooks.refusedDuringReview` refuses menu clicks and, in `ServerGamePacketListenerImplMixin`, the recipe book, choosing a trade, menu buttons, dropping and swapping hands.
 - `ClientReviews.stops` in `src/client` acts for the `LocalPlayer`. When it stops an action, it opens the answer menu at once and sends `StartReview`.
 
 Hooks use mixins where Fabric API has no event at the right moment:
@@ -81,7 +81,7 @@ Placing is checked in `ItemStack.useOn`, which is where a stack is used on a blo
 
 The client returns a failed result before it predicts placing or using, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while an answer menu or any screen other than the open menu's is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
 
-`Locks.mayPickUp` asks the shared lock check with `PICK_UP`. Item entity and arrow pickup mixins leave denied pickups on the ground. `StoppedStack` carries its decision so a denial never opens a review.
+`Locks.mayPickUp` asks the shared lock check with `PICK_UP`. Item entity and arrow pickup mixins leave denied pickups on the ground. `StoppedStack` carries its decision so a denial or a ban never opens a review.
 
 ## Progress on the server
 
@@ -123,12 +123,14 @@ See [Display](../design/display.md) for the visual rules. No payloads or saved f
 `ServerReviews` holds each player's active review, the review id, item and trigger. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
 - starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. When `ServerLockHooks.stops` sends `ShowReview`, it calls `serverStopped(player, location)`, and `ServerReviews` remembers that location until the next `StartReview`. A start at that location is the client answering the server's stop. A start anywhere else is for an action the client stopped itself, which the server never saw, so the lock check is asked again for the stack there, and a stack it allows is refused as not locked. The location doesn't say what the client tried, so the second check uses `USE`: the lock check treats every interaction alike except dropping, which the client only stops when the drop setting is on, and then like every other. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
-- passes each answer to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome,
+- passes each answer and Don't know to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome. A wrong first answer is stored as a wrong attempt. On a fail, it first removes part of the current view, see below, then stores the failed state and ends the review. A start of a banned item is refused as banned, after a `StateUpdate` with its state,
 - cancels the review when the player closes its answer menu, dies or leaves, and when the menu its trigger needs closes on the server. Every way a menu closes on the server ends in `ServerPlayer.doCloseContainer`, which `ServerPlayerMixin` hooks to call `ServerReviews.menuClosing`.
 
 Each active review has its [trigger](../design/reviews.md#the-trigger), a sealed `Trigger` in `fabric.review` with `Inventory`, `Container(containerId)` and `Crafting(containerId)`. `Trigger.of(player, location)` works it out when the review starts, from the player's open menu and the location: a crafting result slot is `Crafting`, anything else with a menu open is `Container`, and with only the inventory open it is `Inventory`. `isReviewing(player)` tells the click hook to refuse clicks.
 
-Milestone 9 adds the recipe's ingredients for a crafting trigger, and turns the trigger into counts for core punishment on a fail.
+A `Crafting` trigger also holds the core `Recipe` it noted when the review started: `Trigger.of` counts each stack in the menu's input slots as one use of its item. The input slots, and the container slots of the current view, are the slots `MenuSlots.isInCurrentView` accepts: every slot of the menu that isn't the player's inventory, an armor slot, like a mount's saddle and armor, or a result, including a trade's result.
+
+On a fail, `CurrentView.of(player, trigger, itemMapping)` gathers the slots of the [current view](../design/punishment.md#the-current-view): the slots of the trigger's menu that `MenuSlots.isInCurrentView` accepts, or with an inventory trigger those of the inventory's own menu, which are its crafting grid, then the inventory's 36 slots and the offhand, and the carried stack. Worn armor is never in it. `counts()` adds up each item there, which `ServerReviews` hands core `Punishment` with the level before the fail, and `remove(counts)` takes the result from the stacks in that order, through `Container.setItem` so a crafting grid updates its result, and sends the changed slots.
 
 ## The answer menu
 
@@ -140,7 +142,7 @@ The screen only sends what the player does and shows what the server sends. It n
 
 Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't check whether the IME is converting. The IME's text that isn't confirmed yet reaches the screen as a `PreeditEvent`, and the answer menu ignores every key while one is shown, since the keys belong to the conversion. So an Enter that confirms a conversion never submits the answer, an Esc that cancels it never closes the menu, and a Backspace never deletes confirmed text, on any platform, whether or not SDL3 also passes those keys on. The client game test checks Enter and Esc with a simulated conversion.
 
-`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it shows the Japanese name and reading above the hotbar, until milestone 10 adds the notification.
+`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it shows the Japanese name and reading above the hotbar, until milestone 10 adds the notification. After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
 
 ## Networking
 
@@ -153,9 +155,9 @@ Server to client:
 | `ProgressSync` | The player joins | Every SRS state that isn't `Leveled.NEW` |
 | `StateUpdate` | An SRS state changes, or before `ReviewRefused` because the item isn't locked | The item id and its state |
 | `ShowReview` | The server stopped an action because the item is locked | The stack's location. The client opens the answer menu for it, unless an answer menu or another screen than the open menu's is open. |
-| `ReviewStarted` | A review starts | The review id, item id and level. Later: whether it is a lesson and attempts left. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
-| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player's progress isn't loaded. A refusal because the item isn't locked comes right after a `StateUpdate` with its state. Later: banned. |
-| `ReviewAnswered` | After an answer | The review id, pass or wrong, and the Japanese name and reading after a pass |
+| `ReviewStarted` | A review starts | The review id, item id, level and attempts left. Level 0 is a lesson. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
+| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player's progress isn't loaded. Or the item is banned. A refusal because the item isn't locked or is banned comes right after a `StateUpdate` with its state. |
+| `ReviewAnswered` | After an answer or Don't know | The review id, pass, wrong, lesson or fail, and the Japanese name and reading after a pass, a fail or a lesson reveal |
 | `ReviewCancelled` | The server cancels the review, or the client answers in a review that isn't going | The review id |
 
 Every server to client payload also carries the server's current time, so the client keeps its idea of the server's time up to date.
@@ -168,9 +170,9 @@ Client to server:
 | `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
 | `CloseReview` | The player closes the answer menu | The review id |
 
-`ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer and Don't know only reveal answers at level 0; milestone 9 adds Don't know at higher levels. `RevertItem` carries an item id, checked against the sender's progress and the name list. The server sends its settings in milestone 12.
+`ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer only reveals the answer at level 0. Don't know reveals it at level 0, and is a fail from level 1. `RevertItem` carries an item id, checked against the sender's progress and the name list. The server sends its settings in milestone 12.
 
-Protocol 3 adds tagged SRS states and the lesson result. `ReviewAnswered` carries the Japanese name and reading after a pass or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
+Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
 `ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 

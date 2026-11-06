@@ -14,7 +14,9 @@ class LockCheckTest {
     private static final Instant NOW = Instant.parse("2026-11-06T12:00:00Z");
     private static final SrsState UNLOCKED = new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(60)));
     private static final SrsState LOCKED = new SrsState.Leveled(1, Optional.of(NOW));
-    private static final Settings DROP_IS_INTERACTION = new Settings(Settings.DEFAULTS.levels(), true);
+    private static final SrsState BANNED = new SrsState.Leveled(
+            1, Optional.of(NOW.minusSeconds(60)), true, 0, Optional.of(NOW.plusSeconds(1)));
+    private static final Settings DROP_IS_INTERACTION = Settings.DEFAULTS.withDropCountsAsInteraction(true);
 
     private static LockDecision check(SrsState state, Interaction interaction, boolean locksActive) {
         return LockCheck.check(state, interaction, NOW, locksActive, Settings.DEFAULTS);
@@ -58,5 +60,33 @@ class LockCheckTest {
                 LockCheck.check(LOCKED, Interaction.DROP, NOW, true, DROP_IS_INTERACTION));
         assertEquals(LockDecision.ALLOW,
                 LockCheck.check(UNLOCKED, Interaction.DROP, NOW, true, DROP_IS_INTERACTION));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Interaction.class, names = {"DROP", "PICK_UP"}, mode = EnumSource.Mode.EXCLUDE)
+    void aBannedItemIsStoppedWithoutTheAnswerMenu(Interaction interaction) {
+        assertEquals(LockDecision.BANNED, check(BANNED, interaction, true));
+    }
+
+    @Test
+    void aBannedItemCanBePickedUpAndDroppedAndIsAllowedWhenLocksArentActive() {
+        assertEquals(LockDecision.ALLOW, check(BANNED, Interaction.PICK_UP, true));
+        assertEquals(LockDecision.ALLOW, check(BANNED, Interaction.DROP, true));
+        assertEquals(LockDecision.ALLOW, check(BANNED, Interaction.PLACE, false));
+        assertEquals(LockDecision.BANNED, LockCheck.check(BANNED, Interaction.DROP, NOW, true, DROP_IS_INTERACTION));
+    }
+
+    @Test
+    void anItemOpensTheAnswerMenuOnceItsBanHasEnded() {
+        assertEquals(LockDecision.REVIEW,
+                LockCheck.check(BANNED, Interaction.PLACE, NOW.plusSeconds(1), true, Settings.DEFAULTS));
+    }
+
+    @Test
+    void aBanOnAnUnlockedItemDoesntMatter() {
+        SrsState unlockedAfterBan = new SrsState.Leveled(
+                1, Optional.of(NOW.plusSeconds(60)), false, 0, Optional.of(NOW.plusSeconds(30)));
+
+        assertEquals(LockDecision.ALLOW, check(unlockedAfterBan, Interaction.PLACE, true));
     }
 }

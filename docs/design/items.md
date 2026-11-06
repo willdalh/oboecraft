@@ -75,4 +75,4 @@ The Japanese name is the text of its parts joined, like オークの原木, and 
 
 ## Protected items
 
-Some items are protected and never removed in a punishment: the dragon egg, shulker boxes and bundles. Which items are protected is a fixed list of item ids in the core, not a setting. Milestone 9 adds it.
+Some items are protected and never removed in a punishment: the dragon egg, shulker boxes and bundles. They are still demoted and banned. Which items are protected is a fixed list of item ids in the core, not a setting: `block.minecraft.dragon_egg`, `block.minecraft.shulker_box` and the 16 colored shulker boxes, and `item.minecraft.bundle` and the 16 colored bundles. A game test checks that each is in the name list. See [Punishment](punishment.md#protected-items).

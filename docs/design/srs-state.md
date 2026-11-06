@@ -30,7 +30,7 @@ A leveled state has these fields:
 | Wrong attempts | Wrong attempts so far in the current review, 0 or 1. Cleared by a pass or a fail. |
 | Banned until | When the current ban ends. Empty if there has never been a ban. |
 
-Milestone 3b builds the level and locks-at time. Demoted, wrong attempts and banned until are added in milestone 9, which uses them. Progress files leave out unset fields, so adding them needs no upgrade of saved progress.
+Milestone 3b built the level and locks-at time, and milestone 9 added demoted, wrong attempts and banned until. Progress files leave out unset fields, so adding them needed no upgrade of saved progress.
 
 ## Levels and intervals
 
@@ -88,8 +88,8 @@ A fail only happens from level 1 and up, see [Reviews](reviews.md). On a fail at
 - Wrong attempts are cleared.
 - Locks at is unchanged. It is in the past, so the item stays locked.
 
-Punishment uses level `L`, the level before the demotion. Milestone 9 adds fails.
+[Punishment](punishment.md) uses level `L`, the level before the demotion. A demotion of 0 keeps the level, but still sets demoted. Fails were added in milestone 9.
 
 ## Bans
 
-A banned item can't be reviewed, and interactions with it are stopped, until the ban ends. A ban only matters while the item is locked, and an item is always locked during its ban, since bans only come from fails.
+A banned item can't be reviewed, and interactions with it are stopped, until the ban ends: it is banned while the current time is before its banned-until time. A ban only matters while the item is locked, and an item is always locked during its ban, since bans only come from fails. A ban length of 0 bans nothing. A pass keeps the banned-until time, which is then in the past.

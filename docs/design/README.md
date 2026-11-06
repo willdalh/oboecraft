@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, and milestone 7 item displays. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, and milestone 9 punishment. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -10,6 +10,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [SRS state](srs-state.md) | Levels, intervals, locking, demotion, bans, and known and ignored items |
 | [Lock check](lock-check.md) | The one check that decides what happens when a player interacts with a stack |
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
+| [Punishment](punishment.md) | What a fail removes from the current view, protected items and bans |
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
 | [Settings](settings.md) | The values that settings control and their defaults |
 | [Display](display.md) | Hidden names, the lock timer and the slot marker |
