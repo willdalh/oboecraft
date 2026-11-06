@@ -1,0 +1,90 @@
+name: Release
+
+# Publishes a GitHub release for the version in gradle.properties when it has none yet, so raising the version and
+# merging to main makes a release. See AGENTS.md.
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Runs one at a time, so two pushes in a row never create the same release twice.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Read the version and check for its release
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/^version=//p' gradle.properties)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=gradle.properties::The version '$version' isn't a version like 1.2.3."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if found=$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json tagName 2>&1); then
+            echo "The release v$version already exists, so there is nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$found" == "release not found" ]]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$found"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        if: steps.version.outputs.release == 'true'
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v6
+        if: steps.version.outputs.release == 'true'
+
+      - if: steps.version.outputs.release == 'true'
+        run: ./gradlew build
+
+      - uses: actions/upload-artifact@v7
+        if: steps.version.outputs.release == 'true'
+        with:
+          name: mod-jar
+          path: fabric/build/libs/oboecraft-${{ steps.version.outputs.version }}.jar
+          if-no-files-found: error
+
+  # Only this job can write to the repository, and it runs none of the project's code.
+  release:
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: mod-jar
+
+      - name: Create the release and its tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "oboecraft-$VERSION.jar" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Oboecraft $VERSION" \
+            --generate-notes
