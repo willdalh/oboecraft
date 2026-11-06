@@ -52,6 +52,16 @@ _Avoid_: lock test, permission check
 An item that is already doing something when it becomes locked, like worn armor or an item in a furnace. The lock only applies at its next interaction.
 _Avoid_: active, equipped
 
+### Display
+
+**Lock timer**:
+The remaining time before an unlocked item locks, shown as a time label and draining bar in its hover tooltip. It is different from the interval, which is the whole time granted by a pass.
+_Avoid_: cooldown
+
+**Slot marker**:
+The small amber mark on a stack during the final tenth of its interval. It disappears when the item locks.
+_Avoid_: badge, warning icon
+
 ### Reviews
 
 **Review**:
@@ -112,7 +122,7 @@ _Avoid_: SRS level, stage, rank
 
 **Interval**:
 How long an item stays unlocked after a pass, set by its level.
-_Avoid_: lock timer, cooldown, time until locked again
+_Avoid_: cooldown, time until locked again
 
 **Mastered**:
 An item that has reached the top level. It stays unlocked forever.
