@@ -81,6 +81,10 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             singleplayer.getConnection().waitForServerboundPackets();
             assertStillReviewing(context, singleplayer);
 
+            // A boss bar is shown, so the notification after the pass must be drawn below it.
+            singleplayer.getServer().runCommand("bossbar add oboecraft:test \"Boss\"");
+            singleplayer.getServer().runCommand("bossbar set oboecraft:test players @a");
+
             // The conversion is cancelled, so numpad Enter now submits the answer, which passes.
             context.runOnClient(client -> client.keyboardHandler.textEditing(client.getWindow().handle(), null));
             context.getInput().pressKey(InputConstants.KEY_NUMPADENTER);
@@ -91,6 +95,17 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             if (!(clientState instanceof SrsState.Leveled leveled) || leveled.level() != 1) {
                 throw new AssertionError("The client should have the oak log at level 1, not " + clientState);
             }
+
+            // The pass shows the Japanese name, with its kanji, at the top of the screen, and it goes away again.
+            Optional<String> notified = context.computeOnClient(client -> OboecraftClient.notification().shown());
+            if (!notified.equals(Optional.of("オークの原木"))) {
+                throw new AssertionError("A pass should show オークの原木 in the notification, not " + notified);
+            }
+            NotificationPixels.assertShown(context, "pass-notification");
+            singleplayer.getServer().runCommand("bossbar remove oboecraft:test");
+            singleplayer.getConnection().waitForClientboundPackets();
+            context.waitFor(client -> OboecraftClient.notification().shown().isEmpty());
+            NotificationPixels.assertNotShown(context, "pass-notification-gone");
 
             // The oak log is unlocked, so it is placed.
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);

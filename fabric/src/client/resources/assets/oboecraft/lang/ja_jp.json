@@ -7,7 +7,6 @@
   "oboecraft.answer_menu.failed": "不正解でした。正解は:",
   "oboecraft.answer_menu.close_hint": "%s: 閉じる",
   "oboecraft.review.banned": "不正解のため、あと%sは解答できません。",
-  "oboecraft.review.passed": "正解: %s（%s）",
   "oboecraft.progress.broken": "Oboecraftの進行状況ファイルを読み込めなかったため、進行状況は空から始まります。壊れたファイルは %s として保存されています。",
   "oboecraft.progress.too_new": "Oboecraftの進行状況は新しいバージョンのOboecraftで保存されています。ここで遊ぶにはOboecraftを更新してください。",
   "oboecraft.progress.unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。サーバーの管理者にサーバーのログを確認してもらってください。",

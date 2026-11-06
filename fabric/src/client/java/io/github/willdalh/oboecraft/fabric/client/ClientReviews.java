@@ -7,6 +7,7 @@ import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
+import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
@@ -39,13 +40,16 @@ public final class ClientReviews {
     private final Locks locks;
     private final ClientProgress progress;
     private final Settings settings;
+    private final PassNotification notification;
     private int lastReviewId;
 
-    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, Settings settings) {
+    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, Settings settings,
+            PassNotification notification) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.notification = Objects.requireNonNull(notification, "notification");
     }
 
     /**
@@ -149,10 +153,14 @@ public final class ClientReviews {
     }
 
     /**
-     * The server checked an answer. A pass closes the menu and shows the Japanese name and reading. After a fail, the
-     * menu stays open and shows them, until the player closes it.
+     * The server checked an answer. A pass closes the menu and shows the Japanese name in the notification. After a
+     * fail, the menu stays open and shows the Japanese name and reading, until the player closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
+        // The server passed the item even if the player closed the menu before the reply came, so the name is shown.
+        if (outcome == ReviewOutcome.PASS) {
+            answer.ifPresent(shown -> notification.show(shown.japaneseName()));
+        }
         AnswerScreen screen = answerScreen(reviewId);
         if (screen == null) {
             return;
@@ -161,16 +169,7 @@ public final class ClientReviews {
             case LESSON -> answer.ifPresent(screen::showAnswer);
             case WRONG -> screen.answeredWrong();
             case FAIL -> answer.ifPresent(screen::failed);
-            case PASS -> passed(screen, answer);
-        }
-    }
-
-    private static void passed(AnswerScreen screen, Optional<ReviewAnswered.Answer> answer) {
-        screen.end();
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null) {
-            answer.ifPresent(shown -> player.sendOverlayMessage(Component.translatable(
-                    "oboecraft.review.passed", shown.japaneseName(), shown.reading())));
+            case PASS -> screen.end();
         }
     }
 

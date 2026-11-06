@@ -71,7 +71,7 @@ The Japanese name is stored split into name parts, so that each part has its own
 - The small ヵ and ヶ, which are counters in names, like 三ヶ月, need their reading given, since it is か, が or こ.
 - Punctuation, like the ・ in ジャック・オ・ランタン, stays in the part's text and is left out of its reading.
 
-The Japanese name is the text of its parts joined, like オークの原木, and its reading is their readings joined, like おーくのげんぼく. The reading is what is shown after a pass.
+The Japanese name is the text of its parts joined, like オークの原木, and its reading is their readings joined, like おーくのげんぼく. After a pass, the [notification](display.md#notification) shows the Japanese name, and after a fail, the answer menu shows the name and its reading.
 
 ## Protected items
 
