@@ -4,6 +4,7 @@ import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
+import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
@@ -23,7 +24,6 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.world.InteractionHand;
 
 /**
  * Every payload survives being encoded and decoded. Singleplayer passes payloads without encoding them, so only a
@@ -50,7 +50,8 @@ public class PayloadCodecGameTest {
         assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress));
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
-        assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, InteractionHand.OFF_HAND));
+        assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.InventorySlot(40)));
+        assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.MenuSlot(3, 12)));
         assertRoundTrip(helper, ReviewStarted.STREAM_CODEC, new ReviewStarted(TIME, 7, OAK_LOG, 4));
         assertRoundTrip(helper, ReviewRefused.STREAM_CODEC,
                 new ReviewRefused(TIME, 7, ReviewRefused.Reason.NO_PROGRESS));
@@ -64,9 +65,28 @@ public class PayloadCodecGameTest {
 
     @GameTest
     public void clientToServerPayloadsRoundTrip(GameTestHelper helper) {
-        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, InteractionHand.MAIN_HAND));
+        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, new StackLocation.InventorySlot(4)));
+        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, new StackLocation.MenuSlot(3, 0)));
+        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, new StackLocation.Carried(3)));
         assertRoundTrip(helper, SubmitAnswer.STREAM_CODEC, new SubmitAnswer(300, "オークの原木"));
         assertRoundTrip(helper, CloseReview.STREAM_CODEC, new CloseReview(300));
+        helper.succeed();
+    }
+
+    @GameTest
+    public void aKindOfStackLocationThatDoesntExistIsRefused(GameTestHelper helper) {
+        ByteBuf buffer = Unpooled.buffer();
+        ByteBufCodecs.VAR_INT.encode(buffer, 1);
+        ByteBufCodecs.VAR_INT.encode(buffer, 3);
+        ByteBufCodecs.VAR_INT.encode(buffer, 0);
+        boolean refused;
+        try {
+            StartReview.STREAM_CODEC.decode(buffer);
+            refused = false;
+        } catch (RuntimeException e) {
+            refused = true;
+        }
+        helper.assertTrue(refused, "an unknown kind of stack location is refused");
         helper.succeed();
     }
 
