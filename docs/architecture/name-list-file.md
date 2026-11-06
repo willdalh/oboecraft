@@ -2,6 +2,8 @@
 
 The name list ships in the mod's resources as `fabric/src/main/resources/oboecraft/name_list.json`. `NameListFile` in `fabric` loads it once when the mod starts and turns it into a core `NameList`. What an entry means is in [Items](../design/items.md#name-list-entries).
 
+The readings and name parts in the file are under CC BY-SA 4.0, since they are adapted from JMdict and KANJIDIC2, see [ADR: The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md) and [`CREDITS.md`](../../CREDITS.md).
+
 The format was decided in milestone 4. The [name list tool](name-list-tool.md) writes the file from Minecraft's `ja_jp.json`, and an agent reviews every entry it generates and corrects the file by hand.
 
 ## Format

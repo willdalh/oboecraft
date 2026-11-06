@@ -115,3 +115,4 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 - [Stack](../decisions/20261105-stack.md)
 - [Progress save format](../decisions/20261105-progress-save-format.md)
 - [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
+- [The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md)
