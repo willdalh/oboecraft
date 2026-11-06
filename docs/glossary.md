@@ -10,6 +10,14 @@ A Minecraft mod for learning Japanese, using spaced repetition on the items in t
 Anything in Minecraft with its own Japanese name, like oak log or potion of healing. Each item has its own SRS state per player.
 _Avoid_: item type, word, card
 
+**Minecraft item**:
+One of Minecraft's own kinds of item, like `minecraft:potion`. One Minecraft item can be several items, like the potions, and several Minecraft items can be one item, like the music discs.
+_Avoid_: item type, vanilla item
+
+**Item id**:
+The name that identifies an item, like `block.minecraft.oak_log`. It is one of the translation keys of the item's Japanese name.
+_Avoid_: item key, Minecraft id
+
 **Stack**:
 One or more copies of the same item in a single slot.
 _Avoid_: copy, item stack
@@ -39,8 +47,12 @@ _Avoid_: active, equipped
 ### Reviews
 
 **Review**:
-One round in the answer menu for a locked item, ending in a pass or a fail.
+One round in the answer menu for a locked item, ending in a pass or a fail, or cancelled when the player closes the menu.
 _Avoid_: quiz, test, check
+
+**Trigger**:
+What the player was doing when a review started: an interaction in the inventory, moving a stack to or from a container, or crafting. It decides the current view for a punishment.
+_Avoid_: source, cause, reason
 
 **Pass**:
 A review that ends with a correct answer.
@@ -51,7 +63,7 @@ A review that ends without a correct answer, after both attempts are wrong or th
 _Avoid_: miss, wrong answer, failed review
 
 **Attempt**:
-One submitted answer in a review. A review has up to two attempts.
+One submitted answer in a review. An item has up to two attempts until it is passed or failed, even if the answer menu is closed in between.
 _Avoid_: try, guess
 
 **Don't know**:
@@ -94,8 +106,12 @@ _Avoid_: lock timer, cooldown, time until locked again
 An item that has reached the top level. It stays unlocked forever.
 _Avoid_: finished, burned, learned
 
+**Leveled**:
+The state of an item that has a level, from level 0 up to mastered. Every item starts leveled, and known and ignored items are not.
+_Avoid_: learning, active, in review
+
 **SRS state**:
-Everything tracked about one item for one player: its level, whether it is locked, unlocked, known or ignored, when it locks next, and any ban.
+Everything tracked about one item for one player: whether it is leveled, known or ignored, and for a leveled item its level, when it locks next, whether it was demoted, its wrong attempts, and any ban.
 _Avoid_: card, item progress
 
 **Progress**:
