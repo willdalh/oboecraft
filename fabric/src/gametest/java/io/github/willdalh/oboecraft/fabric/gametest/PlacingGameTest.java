@@ -121,10 +121,10 @@ public class PlacingGameTest {
         helper.setBlock(new BlockPos(0, 0, 0), Blocks.STONE);
         ServerPlayer player = playerWithOakLogs(helper);
         try {
-            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.ANDESITE));
+            player.setItemInHand(InteractionHand.MAIN_HAND, OtherModStacks.of(Items.ANDESITE));
 
             helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)).consumesAction(),
-                    "placing andesite succeeds");
+                    "placing a block from another mod succeeds");
             helper.assertBlockPresent(Blocks.ANDESITE, new BlockPos(0, 1, 0));
             reviews().start(player, 1, InteractionHand.MAIN_HAND);
             helper.assertValueEqual(reviews().activeItem(player), Optional.empty(), "item under review");
