@@ -1,0 +1,12 @@
+[
+  {"id": "block.minecraft.oak_log", "translationKeys": ["block.minecraft.oak_log"], "japaneseName": "オークの原木", "reading": "おーくのげんぼく"},
+  {"id": "block.minecraft.birch_log", "translationKeys": ["block.minecraft.birch_log"], "japaneseName": "シラカバの原木", "reading": "しらかばのげんぼく"},
+  {"id": "block.minecraft.spruce_log", "translationKeys": ["block.minecraft.spruce_log"], "japaneseName": "トウヒの原木", "reading": "とうひのげんぼく"},
+  {"id": "block.minecraft.oak_planks", "translationKeys": ["block.minecraft.oak_planks"], "japaneseName": "オークの板材", "reading": "おーくのいたざい"},
+  {"id": "block.minecraft.crafting_table", "translationKeys": ["block.minecraft.crafting_table"], "japaneseName": "作業台", "reading": "さぎょうだい"},
+  {"id": "block.minecraft.torch", "translationKeys": ["block.minecraft.torch"], "japaneseName": "松明", "reading": "たいまつ"},
+  {"id": "block.minecraft.dirt", "translationKeys": ["block.minecraft.dirt"], "japaneseName": "土", "reading": "つち"},
+  {"id": "block.minecraft.cobblestone", "translationKeys": ["block.minecraft.cobblestone"], "japaneseName": "丸石", "reading": "まるいし"},
+  {"id": "block.minecraft.sand", "translationKeys": ["block.minecraft.sand"], "japaneseName": "砂", "reading": "すな"},
+  {"id": "block.minecraft.gravel", "translationKeys": ["block.minecraft.gravel"], "japaneseName": "砂利", "reading": "じゃり"}
+]
