@@ -26,10 +26,19 @@ final class NetworkCodecs {
             ByteBufCodecs.optional(INSTANT), SrsState.Leveled::locksAt,
             SrsState.Leveled::new);
 
-    /** Only leveled states exist so far. A new kind of state changes this codec and the protocol version. */
-    static final StreamCodec<ByteBuf, SrsState> SRS_STATE = LEVELED.map(leveled -> leveled, state -> switch (state) {
-        case SrsState.Leveled leveled -> leveled;
-    });
+    /** State tags are checked before any state is constructed. */
+    static final StreamCodec<ByteBuf, SrsState> SRS_STATE = ByteBufCodecs.VAR_INT.<SrsState>dispatch(
+            state -> switch (state) {
+                case SrsState.Leveled leveled -> 0;
+                case SrsState.Known known -> 1;
+                case SrsState.Ignored ignored -> 2;
+            },
+            kind -> switch (kind) {
+                case 0 -> LEVELED;
+                case 1 -> StreamCodec.unit(new SrsState.Known());
+                case 2 -> StreamCodec.unit(new SrsState.Ignored());
+                default -> throw new IllegalArgumentException("Unknown state kind " + kind);
+            });
 
     private NetworkCodecs() {
     }

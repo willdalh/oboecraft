@@ -40,9 +40,9 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### SRS state
 
-- `SrsState`: a sealed interface. So far it has one record, `Leveled`, with the level and the locks-at time. `Leveled.NEW` is level 0 with no locks-at time. Milestone 8 adds the `Known` and `Ignored` records, and milestone 9 adds the demoted flag, wrong attempts and banned-until time to `Leveled`, from [SRS state](../design/srs-state.md#leveled-state).
+- `SrsState`: a sealed interface. It has `Leveled`, with the level and locks-at time, and stateless `Known` and `Ignored` records. `Leveled.NEW` is level 0 with no locks-at time. Milestone 9 adds the demoted flag, wrong attempts and banned-until time to `Leveled`, from [SRS state](../design/srs-state.md#leveled-state).
 - `Progress`: one player's SRS states, a map from `ItemId` to `SrsState`. An item with no entry is `Leveled.NEW`, and storing `Leveled.NEW` removes the entry, so only items the player has interacted with are kept. It also keeps states for item ids that aren't in the current name list, so they survive a name list change. `with(item, state)` returns new progress with one state changed.
-- `SrsRules`: `isLocked(state, now, settings)` and `pass(state, now, settings)`. Milestone 9 adds `fail`. Known, ignored and revert are plain new states and need no rule.
+- `SrsRules`: `isLocked(state, now, settings)` and `pass(state, now, settings)`. Milestone 9 adds `fail`. `canRevert(state, settings)` restricts the word list and Revert to known, ignored and mastered states.
 
 `DisplayRules.of(state, now, settings)` returns a sealed `DisplayState`: `Hidden` for locked items, `Timed(LockTimer)` for unlocked items with an interval, or `Normal` for mastered items. The rules use `SrsRules.isLocked` once, without inventing an interaction. The type cannot represent a hidden item with a running timer. Milestones 8 and 9 extend these explicit display rules for their new states.
 
@@ -50,11 +50,11 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### Lock check
 
-- `LockDecision`: `ALLOW` or `REVIEW`. Milestone 8 adds `DENY` and milestone 9 adds `BANNED`.
+- `LockDecision`: `ALLOW`, `REVIEW` or `DENY`. Milestone 9 adds `BANNED`.
 - `Interaction`: what the player tries to do, one value per kind in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do), like `PLACE`, `INGREDIENT` or `DROP`. Which game action is which interaction is a Minecraft question, so `fabric` decides it.
 - `LockCheck.check(state, interaction, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) for an item, in order. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states. A stack that isn't in the name list has no SRS state, so `fabric` allows it before it gets here (rule 1). `DROP` is allowed unless `Settings.dropCountsAsInteraction()` is on (rule 3).
 
-Each input is added when a rule first depends on it. Milestone 8 adds `LockCheck.checkPickUp(state, locksActive)`, the same rules for picking up, which isn't an interaction, so ignored items and creative mode are decided once.
+`Interaction.PICK_UP` goes through the same check: ignored items are denied, other items are allowed without a review. `ReviewRules.isLesson` identifies level 0; wrong lesson answers return `LESSON` without changing the state.
 
 `LockCheck` is the only place that decides whether an action is allowed. Every caller in `fabric`, on both sides, goes through it.
 
@@ -62,7 +62,7 @@ Each input is added when a rule first depends on it. Milestone 8 adds `LockCheck
 
 - `ReviewRules.start(state, now, settings)`: whether a review can start, as a `ReviewStart`: `Started` with the level, or `NotLocked`. It decides "not locked" with `SrsRules.isLocked`, so it agrees with the lock check when settings change the top level. Later milestones add whether it is a lesson and the attempts left to `Started`, and a `Banned` result.
 - `ReviewRules.isAttempt(typed)`: whether typed text counts as an attempt. Text that normalizes to nothing, with `JapaneseText.normalize`, doesn't, so the client and server agree with answer checking about what is empty.
-- `ReviewRules.answer(entry, state, typed, now, settings)`: the result of an answer as a `ReviewResult`, which holds the `ReviewOutcome` (`PASS` or `WRONG` so far) and the new state. Milestone 9 adds the fail outcome, `dontKnow`, and the level before the review, which punishment needs.
+- `ReviewRules.answer(entry, state, typed, now, settings)`: the result of an answer as a `ReviewResult`, which holds the `ReviewOutcome` (`PASS`, `WRONG` or `LESSON`) and the new state. Milestone 9 adds the fail outcome, `dontKnow`, and the level before the review, which punishment needs.
 - `AnswerChecker.isCorrect(entry, typed)`: whether a typed answer is correct, with the rules in [Answers](../design/answers.md). See [Answer checking](#answer-checking).
 
 The trigger isn't in the core. It is a Minecraft concept, about menus and slots, so `fabric` keeps it and turns it into counts for punishment.

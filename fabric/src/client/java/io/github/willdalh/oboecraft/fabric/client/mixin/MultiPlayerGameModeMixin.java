@@ -24,6 +24,12 @@ abstract class MultiPlayerGameModeMixin {
     @Inject(method = "handleContainerInput", at = @At("HEAD"), cancellable = true)
     private void oboecraft$checkLockBeforeClick(
             int containerId, int slot, int button, ContainerInput input, Player player, CallbackInfo ci) {
+        if (player instanceof LocalPlayer local && player.containerMenu.containerId == containerId
+                && input == ContainerInput.PICKUP && button == 1
+                && OboecraftClient.reviews().reviewInventorySlot(local, slot)) {
+            ci.cancel();
+            return;
+        }
         if (player instanceof LocalPlayer localPlayer && player.containerMenu.containerId == containerId
                 && OboecraftClient.reviews().stops(
                         localPlayer, MenuClicks.stacksOf(player.containerMenu, slot, button, input, player))) {

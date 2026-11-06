@@ -81,7 +81,7 @@ Placing is checked in `ItemStack.useOn`, which is where a stack is used on a blo
 
 The client returns a failed result before it predicts placing or using, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while an answer menu or any screen other than the open menu's is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
 
-Milestone 8 adds `Locks.checkPickUp(view, player, stack)` with core `LockCheck.checkPickUp`.
+`Locks.mayPickUp` asks the shared lock check with `PICK_UP`. Item entity and arrow pickup mixins leave denied pickups on the ground. `StoppedStack` carries its decision so a denial never opens a review.
 
 ## Progress on the server
 
@@ -120,7 +120,7 @@ See [Display](../design/display.md) for the visual rules. No payloads or saved f
 
 ## Reviews on the server
 
-`ServerReviews` holds each player's active review, so far the review id and the item. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
+`ServerReviews` holds each player's active review, the review id, item and trigger. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
 - starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. When `ServerLockHooks.stops` sends `ShowReview`, it calls `serverStopped(player, location)`, and `ServerReviews` remembers that location until the next `StartReview`. A start at that location is the client answering the server's stop. A start anywhere else is for an action the client stopped itself, which the server never saw, so the lock check is asked again for the stack there, and a stack it allows is refused as not locked. The location doesn't say what the client tried, so the second check uses `USE`: the lock check treats every interaction alike except dropping, which the client only stops when the drop setting is on, and then like every other. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
 - passes each answer to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome,
@@ -168,7 +168,11 @@ Client to server:
 | `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
 | `CloseReview` | The player closes the answer menu | The review id |
 
-Milestones 8 and 9 add a payload for each other action, like Don't know. The server sends its settings in milestone 12.
+`ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer and Don't know only reveal answers at level 0; milestone 9 adds Don't know at higher levels. `RevertItem` carries an item id, checked against the sender's progress and the name list. The server sends its settings in milestone 12.
+
+Protocol 3 adds tagged SRS states and the lesson result. `ReviewAnswered` carries the Japanese name and reading after a pass or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
+
+`ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 
 A `StackLocation` is sent as its kind and its numbers. Decoding refuses a kind that doesn't exist, which disconnects the sender.
 

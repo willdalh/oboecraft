@@ -1,6 +1,10 @@
 package io.github.willdalh.oboecraft.fabric.review;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.srs.SrsState;
+import io.github.willdalh.oboecraft.core.srs.SrsRules;
+import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
+import io.github.willdalh.oboecraft.fabric.lock.IgnoredItems;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
@@ -156,11 +160,41 @@ public final class ServerReviews {
         if (result.outcome() == ReviewOutcome.PASS) {
             active.remove(player.getUUID());
             progress.update(player, entry.id(), result.newState());
+        }
+        if (result.outcome() == ReviewOutcome.PASS || result.outcome() == ReviewOutcome.LESSON) {
             shownAnswer = Optional.of(new ReviewAnswered.Answer(
                     entry.japaneseName().text(), entry.japaneseName().reading()));
         }
         ServerPlayNetworking.send(
                 player, new ReviewAnswered(progress.now(), reviewId, result.outcome(), shownAnswer));
+    }
+
+    /** Applies only to the matching active review, never a client-supplied item. */
+    public void action(ServerPlayer player, int reviewId, ReviewAction.Action action) {
+        ActiveReview review = active.get(player.getUUID());
+        if (review == null || review.reviewId() != reviewId || !progress.isLoaded(player)) return;
+        ItemId item = review.entry().id();
+        if (action == ReviewAction.Action.SHOW_ANSWER || action == ReviewAction.Action.DONT_KNOW) {
+            if (ReviewRules.isLesson(progress.state(player, item))) {
+                var name = review.entry().japaneseName();
+                ServerPlayNetworking.send(player, new ReviewAnswered(progress.now(), reviewId, ReviewOutcome.LESSON,
+                        Optional.of(new ReviewAnswered.Answer(name.text(), name.reading()))));
+            }
+            return;
+        }
+        progress.update(player, item, action == ReviewAction.Action.KNOWN
+                ? new SrsState.Known() : new SrsState.Ignored());
+        active.remove(player.getUUID());
+        if (action == ReviewAction.Action.IGNORE) IgnoredItems.drop(player, item);
+        ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
+    }
+
+    /** Only known, ignored and mastered entries belonging to the sender can be reverted. */
+    public void revert(ServerPlayer player, ItemId item) {
+        if (!progress.isLoaded(player) || isReviewing(player) || itemMapping.nameList().byId(item).isEmpty()) return;
+        if (SrsRules.canRevert(progress.state(player, item), settings)) {
+            progress.update(player, item, SrsState.Leveled.NEW);
+        }
     }
 
     /** Cancels the review {@code reviewId} because the player closed its answer menu. Nothing changes. */

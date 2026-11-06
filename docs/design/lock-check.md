@@ -5,7 +5,7 @@ Every time a player interacts with a stack, or picks one up, one lock check deci
 ## Inputs
 
 - The item, or none if the stack isn't in the name list. See [Items](items.md).
-- The interaction, from the list [below](#what-the-player-tries-to-do), or picking up.
+- The interaction, from the list [below](#what-the-player-tries-to-do), including picking up.
 - The item's [SRS state](srs-state.md) for that player.
 - The current time. See [Time](time.md).
 - Whether locks are active for the player. They are active in survival and adventure mode, and not in creative or spectator mode. On the client, they are also only active once the server has sent the player's SRS states, see [Both sides](#both-sides).
@@ -52,9 +52,10 @@ The check is told which interaction the player is trying, since the rules depend
 | Trade | Putting the stack into a payment slot of a trade, the payment that choosing a trade moves there, and taking the trade's result |
 | Put in container | Moving the stack from the inventory into any other slot of an open menu, like a chest, a furnace's input or an enchanting table |
 | Take from container | Moving the stack out of a slot of an open menu into the inventory, other than a result. This includes taking a stack back out of a crafting grid or a furnace. |
+| Pick up | Picking up an item entity, arrow or trident. Locked items are allowed; ignored items are denied. |
 | Drop | Throwing the stack out of the inventory, with the drop key or from a menu. It only counts as an interaction when the drop setting is on. |
 
-Picking a stack up from the ground isn't an interaction, but the lock check decides it too, so ignored items are handled in the same place. Moving a stack within the inventory is never checked, and neither is moving it between the inventory and the offhand.
+Picking up is represented by `Interaction.PICK_UP` in the shared lock check. Unlike use, it never starts a review, so a locked item can still be picked up. Moving a stack within the inventory is never checked, and neither is moving it between the inventory and the offhand.
 
 A new kind only needs a new value here and, if it needs its own rule, a new rule above.
 
