@@ -1,12 +1,10 @@
 # Settings
 
-Values that the [idea](../idea.md) says should be settings are read from one place, which holds the defaults. Until milestone 12, the defaults are the only values. Milestone 12 adds the settings files, sends the server settings to players, and adds the screens, without changing the code that reads the values.
-
-Each server setting is added to that place by the milestone that first uses it: the levels and their intervals in 3b, the drop setting in 6, and the demotions, the ban length and `percentageFactor` in 9.
+Values that the [idea](../idea.md) says should be settings are read from one place, which holds the defaults. Server settings are one value that every rule takes as an input, on both sides. Client settings belong to each player's computer. Milestone 12 added the settings files, sending the server settings to players, and the settings screen.
 
 ## Server settings
 
-On a server, the server owner controls these. In singleplayer they belong to the built-in server, and the player controls them.
+On a dedicated server, the server owner controls these. In singleplayer and in a world opened to LAN they belong to the built-in server, and the player who runs it controls them.
 
 | Setting | Default | Used by |
 |---|---|---|
@@ -19,18 +17,47 @@ The removal rate on a fail at level `L` is `50% - (L - 1) × percentageFactor%`,
 
 The top level, mastered, is always one more than the number of levels in the setting.
 
-The server sends its settings to each player when they join, since the client's lock check needs them too. Until milestone 12, both sides use the defaults.
+### Checks
 
-Settings are checked when they are read. A level must have an interval longer than zero and a demotion of at least 0, there must be at least one level, the ban length must be at least 0, and `percentageFactor` must be at least 0. Invalid settings are rejected as a whole, and the defaults are used instead. Milestone 3b checks the levels and intervals, and each later setting is checked when it is added. Milestone 9 added the demotions, the ban length and `percentageFactor`, with their checks.
+Settings are checked as a whole when they are read, from the file, from the screen or from the network:
+
+- There must be from 1 to 100 levels.
+- A level's interval must be longer than zero, and a level's demotion from 0 to 100.
+- The ban length must be from 0 up.
+- Intervals and the ban length can be at most 1,000,000 days, so the times worked out from them never overflow.
+- `percentageFactor` must be from 0 to 100. Above 50, the removal rate is 0 from level 2 anyway.
+
+### The settings file
+
+The server reads its settings from `config/oboecraft/server.json` when it starts. On a dedicated server, that is in the server's folder. In singleplayer, it is in the game folder, so every singleplayer world uses the same settings, like the singleplayer progress. Durations are written like `10m`, `1h 30m` or `14d`, with the units `d`, `h`, `m` and `s`. See [Settings files](../architecture/settings-files.md) for the format.
+
+- A missing file is written with the defaults, so the server owner has a file to edit.
+- A file that can't be read or isn't valid settings is logged with what is wrong, and the defaults are used. The file is left as it is, so a typo never loses the owner's other values.
+- A dedicated server reads the file again only when it starts. The settings screen changes the settings of a running singleplayer world or world opened to LAN at once.
+
+### Sending them to players
+
+The client's lock check and displays need the server settings, so the server sends them to each player together with their progress when they join, and to every player again when they change. The client uses the settings of the current connection only. Until they arrive, its locks aren't active, so they never run on settings from another server. The client never changes them.
 
 ## Client settings
 
-Each player chooses these on their own computer.
+Each player chooses these on their own computer. They are saved in `config/oboecraft/client.json` in the game folder. A missing or invalid file means the defaults, and an invalid file is logged and left as it is.
 
 | Setting | Default | Used by |
 |---|---|---|
-| Clickable buttons | Off | The answer menu shows buttons for the actions |
+| Clickable buttons | Off | The answer menu shows a button for each action it can do, besides the keys |
+
+With clickable buttons on, the answer menu has buttons for Answer, Don't know, Already known, Ignore, Show answer (in lessons) and Close at the bottom of the screen, and after a fail only Close. A button does what its key does. Unlike the key, the Don't know button works with text in the typing bar, since a click can't be a typo.
+
+## The settings screen
+
+The mod has its own settings screen. [Mod Menu](https://modrinth.com/mod/modmenu), an optional mod, opens it from the mod list. Without Mod Menu, the settings are changed in the files.
+
+The screen shows the clickable buttons setting and the server settings. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
+
+- Away from a server, or in singleplayer or a world opened to LAN that the player runs, the server settings are this computer's settings file, and can be changed. Saving checks them first. Invalid settings aren't saved, and the screen stays open and says what is wrong. A running world uses saved settings at once and sends them to its players.
+- On another server, the screen shows that server's settings and can't change them, since only the server owner can.
 
 ## Not settings
 
-These are fixed rules, not settings: the two attempts, level 0 being a lesson, the base removal rate of 50%, and the list of protected items.
+These are fixed rules, not settings: the two attempts, level 0 being a lesson, the base removal rate of 50%, the list of protected items, the notification after a pass, and that only name tags can be renamed.

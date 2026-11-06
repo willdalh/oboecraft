@@ -12,7 +12,6 @@ import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
@@ -48,7 +47,6 @@ public final class ServerReviews {
     private final ItemMapping itemMapping;
     private final Locks locks;
     private final ServerProgress progress;
-    private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
 
     /**
@@ -61,11 +59,10 @@ public final class ServerReviews {
     public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
-    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress, Settings settings) {
+    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
-        this.settings = Objects.requireNonNull(settings, "settings");
     }
 
     /** Whether the player has a review going. */
@@ -102,7 +99,7 @@ public final class ServerReviews {
             refuseNotLocked(player, reviewId, item);
             return;
         }
-        switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
+        switch (ReviewRules.start(progress.state(player, item), progress.now(), progress.settings())) {
             case ReviewStart.Started started -> {
                 Trigger trigger = Trigger.of(player, location, itemMapping);
                 active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
@@ -149,7 +146,7 @@ public final class ServerReviews {
         }
         NameListEntry entry = review.entry();
         finish(player, review, ReviewRules.answer(
-                entry, progress.state(player, entry.id()), typed, progress.now(), settings));
+                entry, progress.state(player, entry.id()), typed, progress.now(), progress.settings()));
     }
 
     /** Applies only to the matching active review, never a client-supplied item. */
@@ -164,7 +161,7 @@ public final class ServerReviews {
                 }
             }
             case DONT_KNOW -> finish(player, review,
-                    ReviewRules.dontKnow(progress.state(player, item), progress.now(), settings));
+                    ReviewRules.dontKnow(progress.state(player, item), progress.now(), progress.settings()));
             case KNOWN, IGNORE -> {
                 progress.update(player, item, action == ReviewAction.Action.KNOWN
                         ? new SrsState.Known() : new SrsState.Ignored());
@@ -207,14 +204,14 @@ public final class ServerReviews {
         Map<ItemId, Integer> inView = view.counts();
         ItemId item = review.entry().id();
         Map<ItemId, Integer> removed = switch (review.trigger()) {
-            case Trigger.Crafting crafting -> Punishment.removedIngredients(crafting.recipe(), inView, level, settings);
+            case Trigger.Crafting crafting -> Punishment.removedIngredients(crafting.recipe(), inView, level, progress.settings());
             case Trigger.Inventory _, Trigger.Container _ -> removedOfItem(item, inView, level);
         };
         view.remove(removed);
     }
 
     private Map<ItemId, Integer> removedOfItem(ItemId item, Map<ItemId, Integer> inView, int level) {
-        int count = Punishment.removedCount(item, inView.getOrDefault(item, 0), level, settings);
+        int count = Punishment.removedCount(item, inView.getOrDefault(item, 0), level, progress.settings());
         return count > 0 ? Map.of(item, count) : Map.of();
     }
 
@@ -231,7 +228,7 @@ public final class ServerReviews {
     /** Only known, ignored and mastered entries belonging to the sender can be reverted. */
     public void revert(ServerPlayer player, ItemId item) {
         if (!progress.isLoaded(player) || isReviewing(player) || itemMapping.nameList().byId(item).isEmpty()) return;
-        if (SrsRules.canRevert(progress.state(player, item), settings)) {
+        if (SrsRules.canRevert(progress.state(player, item), progress.settings())) {
             progress.update(player, item, SrsState.Leveled.NEW);
         }
     }

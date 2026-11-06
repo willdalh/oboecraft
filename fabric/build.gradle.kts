@@ -43,6 +43,15 @@ interface ArchiveServices {
     val archives: ArchiveOperations
 }
 
+repositories {
+    // Mod Menu, an optional dependency that opens the mod's settings screen.
+    maven("https://maven.terraformersmc.com/releases") {
+        content {
+            includeGroup("com.terraformersmc")
+        }
+    }
+}
+
 val bundled = configurations.create("bundled") {
     isCanBeConsumed = false
     isTransitive = false
@@ -57,6 +66,11 @@ dependencies {
     bundled(project(":core"))
     implementation(project(":json"))
     bundled(project(":json"))
+
+    // Only its API is compiled against. Players who have Mod Menu installed get the settings screen from it.
+    "clientCompileOnly"(libs.modmenu) {
+        isTransitive = false
+    }
 }
 
 tasks.withType<ProcessResources>().configureEach {

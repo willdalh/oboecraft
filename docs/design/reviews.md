@@ -71,6 +71,8 @@ All keys can be rebound in Minecraft's Controls screen, including mouse buttons.
 
 The hint line lists Don't know at every level. Show answer is only listed in lessons.
 
+With the [clickable buttons](settings.md#client-settings) setting on, the answer menu also has a button for each of these actions, which does what its key does. Since milestone 12.
+
 ## Lessons
 
 A review of an item at level 0 is a lesson:
@@ -111,3 +113,4 @@ In creative and spectator mode, the client's lock check allows every action, so 
 - Milestone 9: two attempts with a wrong attempt saved, Don't know, fails and punishment, bans, and noting a crafting trigger's ingredients.
 - Milestone 10: the [notification](display.md#notification) on a pass, in place of the text above the hotbar.
 - Milestone 11: cancelling a review when the player changes to a game mode without locks.
+- Milestone 12: the clickable buttons.

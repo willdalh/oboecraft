@@ -52,6 +52,8 @@ Run these from the repository root. The first run downloads Gradle, Java 25 and 
 
 The first `runServer` stops and asks you to accept Minecraft's EULA. Set `eula=true` in `fabric/run/eula.txt` to accept it, then run it again. That is the user's choice, so agents never accept the EULA for them.
 
+The mod's settings files are in the run folder's `config/oboecraft/`: `fabric/run/config/oboecraft/server.json` for `runClient` and `runServer`. A missing server settings file is written with the defaults when the server starts. See `docs/architecture/settings-files.md`.
+
 Versions of Minecraft, Fabric and libraries are in `gradle/libs.versions.toml`.
 
 ### Name list

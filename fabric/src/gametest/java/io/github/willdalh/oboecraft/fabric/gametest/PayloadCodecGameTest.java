@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -54,7 +55,8 @@ public class PayloadCodecGameTest {
         }
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.LESSON,
                 Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
-        assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress));
+        assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress, Settings.DEFAULTS.withBanLength(java.time.Duration.ofSeconds(30))
+                .withDropCountsAsInteraction(true)));
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
         assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.InventorySlot(40)));

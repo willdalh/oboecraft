@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, and milestone 11 the game mode and renaming rules. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, milestone 11 the game mode and renaming rules, and milestone 12 the settings files, sync and screen. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -12,7 +12,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
 | [Punishment](punishment.md) | What a fail removes from the current view, protected items and bans |
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
-| [Settings](settings.md) | The values that settings control and their defaults |
+| [Settings](settings.md) | The values that settings control, their defaults, the settings files and the settings screen |
 | [Display](display.md) | Hidden names, the lock timer, the slot marker and the notification after a pass |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
 

@@ -20,6 +20,9 @@
     ],
     "client": [
       "io.github.willdalh.oboecraft.fabric.client.OboecraftClient"
+    ],
+    "modmenu": [
+      "io.github.willdalh.oboecraft.fabric.client.settings.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -34,5 +37,8 @@
     "minecraft": "~${minecraft_version}",
     "java": ">=25",
     "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
   }
 }

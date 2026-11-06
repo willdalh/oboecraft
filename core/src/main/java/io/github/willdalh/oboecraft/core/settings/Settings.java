@@ -16,7 +16,14 @@ import java.util.Objects;
  */
 public record Settings(
         List<LevelSettings> levels, Duration banLength, int percentageFactor, boolean dropCountsAsInteraction) {
-    /** The default settings, which are the only ones until settings files are added. */
+    /** The most levels there can be. */
+    public static final int MAX_LEVELS = 100;
+    /** The longest interval or ban there can be, so the times worked out from them never overflow. */
+    public static final Duration MAX_DURATION = Duration.ofDays(1_000_000);
+    /** The highest percentage factor there can be. Above 50, the removal rate is 0 from level 2 anyway. */
+    public static final int MAX_PERCENTAGE_FACTOR = 100;
+
+    /** The default settings, used when no settings file says otherwise. */
     public static final Settings DEFAULTS = new Settings(List.of(
             new LevelSettings(Duration.ofMinutes(10), 1),
             new LevelSettings(Duration.ofHours(1), 1),
@@ -36,11 +43,16 @@ public record Settings(
         if (levels.isEmpty()) {
             throw new IllegalArgumentException("There must be at least one level");
         }
-        if (banLength.isNegative()) {
-            throw new IllegalArgumentException("The ban length can't be negative, not " + banLength);
+        if (levels.size() > MAX_LEVELS) {
+            throw new IllegalArgumentException("There can be at most " + MAX_LEVELS + " levels, not " + levels.size());
         }
-        if (percentageFactor < 0) {
-            throw new IllegalArgumentException("The percentage factor can't be negative, not " + percentageFactor);
+        if (banLength.isNegative() || banLength.compareTo(MAX_DURATION) > 0) {
+            throw new IllegalArgumentException(
+                    "The ban length must be from 0 to " + MAX_DURATION.toDays() + " days, not " + banLength);
+        }
+        if (percentageFactor < 0 || percentageFactor > MAX_PERCENTAGE_FACTOR) {
+            throw new IllegalArgumentException("The percentage factor must be from 0 to " + MAX_PERCENTAGE_FACTOR
+                    + ", not " + percentageFactor);
         }
     }
 
