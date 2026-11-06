@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -99,6 +99,24 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 ## Progress on the client
 
 `ClientProgress` holds what the server sent on the current connection: the SRS states, the server's time from the latest message, and the `System.nanoTime` value when it arrived. It keeps these in one immutable snapshot that also records the connection it came from. States from an earlier connection are never used, so the client's locks are off on a new connection until its `ProgressSync` arrives, even if a message from the old connection is handled late. The snapshot is also cleared when the player leaves a world or server. It never changes a state on its own: only messages from the server do.
+
+## Item displays
+
+`client.display.ItemDisplay` gathers the player and progress inputs and calls `Locks.display` or `Locks.closeToLocking`. The `Locks` instance owns item mapping, the game-mode/connection guards and settings for both displays and interactions. Display decisions come from core `DisplayRules`, independently of interaction permissions. Milestone 12 therefore changes one settings source for both paths.
+
+`GuiMixin` captures one immutable `ProgressView` from `ClientProgress.capture()` around each GUI frame. This reads the current connection and volatile snapshot once and estimates server time once. Every display call in that frame reuses it. Calls outside normal frame extraction capture a view for that call. The slot marker asks only for the boolean threshold, without building a full display result or timer. Nothing survives the frame, so sync, connection and time changes are reflected on the next frame.
+
+Tooltip masking is scoped to drawing on the client thread, using `TooltipDisplayContext`'s Java scoped values. Bindings nest, restore automatically on exceptions, and do not reach background search tasks:
+
+- `ScreenTooltipMixin` scopes the UI's `Screen.getTooltipFromItem` helper, including recipe-button and ghost-slot tooltips. `ContainerTooltipMixin` scopes menu tooltip extraction with the hovered stack, and `GraphicsTooltipMixin` scopes direct stack tooltip assembly.
+- Inside these scopes only, `ClientItemStackMixin` masks `getHoverName`. This covers the title and nested item names in container contents. `GraphicsTooltipMixin` also scopes deferred tooltip drawing, so bundle captions are masked when their names are read later. Outside drawing, names and raw `getTooltipLines` are unchanged, including for search indexes on background threads.
+- `GraphicsTooltipMixin` appends a separate `ClientLockTimerTooltip` to the assembled client components. `ItemStack.getTooltipImage` and its returned type are unchanged; bundle previews and any other vanilla image component remain separate. The timer follows the normal content so a bundle's selected-item caption cannot overlap it.
+- `HudMixin` masks only the selected-item label in `Hud.extractSelectedItemName`.
+- `ClientDisplayHooks` registers Fabric's `ExtractItemDecorationsCallback` to draw the marker without replacing count, durability or cooldown drawing. `TimerText` formats two nonzero units with a translated separator.
+
+All rendering classes are in `src/client`. Core tests check display classification, intervals and marker boundaries. `DisplayGameTest` checks that display and interactions use the same custom settings instance. `ItemDisplayClientGameTest` checks actual tooltip, HUD and inventory rendering, nested container and bundle names, unchanged raw tooltip/image getters, background search indexing, scope cleanup, captured frame inputs, and English/Japanese labels. It also checks state/time updates, modes and missing sync and saves inventory screenshots.
+
+See [Display](../design/display.md) for the visual rules. No payloads or saved fields were added.
 
 ## Reviews on the server
 

@@ -6,7 +6,11 @@
     "ClientAbstractContainerMenuMixin",
     "ClientItemStackMixin",
     "GuiMixin",
-    "MultiPlayerGameModeMixin"
+    "MultiPlayerGameModeMixin",
+    "HudMixin",
+    "ScreenTooltipMixin",
+    "ContainerTooltipMixin",
+    "GraphicsTooltipMixin"
   ],
   "injectors": {
     "defaultRequire": 1

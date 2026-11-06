@@ -4,11 +4,14 @@ import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.lock.LockCheck;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.core.settings.Settings;
+import io.github.willdalh.oboecraft.core.srs.DisplayRules;
+import io.github.willdalh.oboecraft.core.srs.DisplayState;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * The lock check entry point that every interaction hook on both sides calls. It gathers the inputs from the game
@@ -37,15 +40,37 @@ public final class Locks {
         return Optional.empty();
     }
 
+    /** Whether locks and their displays apply to this player on this side of the connection. */
+    public static boolean active(ProgressView view, Player player) {
+        return !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
+    }
+
+    /** Uses exactly the same mapping, game-mode guards and settings as interactions. */
+    public DisplayState display(ProgressView view, Player player, ItemStack stack) {
+        return activeEntry(view, player, stack)
+                .map(entry -> DisplayRules.of(view.state(player, entry.id()), view.now(), settings))
+                .orElse(DisplayState.Normal.INSTANCE);
+    }
+
+    /** The hot path for slot decorations: no timer or full display result is built. */
+    public boolean closeToLocking(ProgressView view, Player player, ItemStack stack) {
+        return activeEntry(view, player, stack)
+                .map(entry -> DisplayRules.closeToLocking(view.state(player, entry.id()), view.now(), settings))
+                .orElse(false);
+    }
+
+    private Optional<NameListEntry> activeEntry(ProgressView view, Player player, ItemStack stack) {
+        return active(view, player) ? itemMapping.entryOf(stack) : Optional.empty();
+    }
+
     /** The stack, if the lock check stops the player's interaction with it on {@code view}'s side. */
     private Optional<StoppedStack> stopped(ProgressView view, Player player, CheckedStack checked) {
-        Optional<NameListEntry> entry = itemMapping.entryOf(checked.stack());
+        Optional<NameListEntry> entry = activeEntry(view, player, checked.stack());
         if (entry.isEmpty()) {
             return Optional.empty();
         }
-        boolean locksActive = !player.isCreative() && !player.isSpectator() && view.hasProgress(player);
         LockDecision decision = LockCheck.check(
-                view.state(player, entry.get().id()), checked.interaction(), view.now(), locksActive, settings);
+                view.state(player, entry.get().id()), checked.interaction(), view.now(), true, settings);
         return decision == LockDecision.ALLOW
                 ? Optional.empty()
                 : Optional.of(new StoppedStack(checked, entry.get()));
