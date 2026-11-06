@@ -184,6 +184,14 @@ Decided in milestone 9, see [Punishment](design/punishment.md):
 - A banned item shows how long its ban has left above the hotbar. Only the client shows it, from its own state: the server stops the action without a message.
 - The progress format went to version 3 for the new fields. A format 2 reader would ignore them and save the file without them, losing every demotion, ban and wrong attempt after a downgrade, so an older mod must refuse the file instead. The network protocol went to 4.
 
+### Notification
+
+Decided in milestone 10, see [Display](design/display.md#notification):
+
+- The notification is only the Japanese name, as written in the name list with its kanji, in plain white text with Minecraft's text shadow, centered at the top of the screen at twice the normal text size. It has no reading, icon, box or background.
+- It is shown for 3 seconds of client ticks and fades out in the last second. A new pass replaces it. It is a HUD element, so it hides with the HUD.
+- Only a pass shows it. After a fail the answer menu already shows the name and reading.
+
 ### Progress
 
 See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
@@ -325,7 +333,13 @@ The removal math in core, removing from the current view, removing crafting ingr
 
 ### 10. Notification
 
-**Status:** not started
+**Status:** done
+
+Built: `PassNotification` on the client, which shows the Japanese name from the server's pass at the top of the screen as a HUD element, for 3 seconds with a fade in the last second, and replaces the text above the hotbar. The client game test checks that a pass shows オークの原木 and that it goes away, and takes a screenshot.
+
+Where it differs from the plan: the plan left the look open. It is only the name as plain text, see [Notification](#notification). The reading is no longer shown after a pass. No payloads or saved fields changed, since `ReviewAnswered` already carried the name.
+
+What later milestones should know: the notification's length and look are fixed, not settings. A notification over another mod's HUD has not been checked.
 
 Show the notification at the top of the screen after a pass, in place of the text above the hotbar. The spoken reading from `idea.md` is not part of this plan, see [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
 

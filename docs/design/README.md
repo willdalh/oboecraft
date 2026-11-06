@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, and milestone 9 punishment. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, and milestone 10 the notification after a pass. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -13,7 +13,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Punishment](punishment.md) | What a fail removes from the current view, protected items and bans |
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
 | [Settings](settings.md) | The values that settings control and their defaults |
-| [Display](display.md) | Hidden names, the lock timer and the slot marker |
+| [Display](display.md) | Hidden names, the lock timer, the slot marker and the notification after a pass |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
 
 ## What is built when
@@ -30,6 +30,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Hidden names, lock timer and slot marker | 7 |
 | Lessons, Already known, Ignore, the word list | 8 |
 | Two attempts, Don't know, punishment, demotion and bans | 9 |
+| The notification after a pass | 10 |
 | Creative mode | 11 |
 | Settings files, sync and screens | 12 |
 

@@ -6,6 +6,7 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.AnswerScreen;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
+import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -90,6 +91,18 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
                     client -> OboecraftClient.progress().state(client.player, OAK_LOG));
             if (!(clientState instanceof SrsState.Leveled leveled) || leveled.level() != 1) {
                 throw new AssertionError("The client should have the oak log at level 1, not " + clientState);
+            }
+
+            // The pass shows the Japanese name, with its kanji, at the top of the screen, and it goes away again.
+            Optional<String> notified = context.computeOnClient(client -> OboecraftClient.notification().shown());
+            if (!notified.equals(Optional.of("オークの原木"))) {
+                throw new AssertionError("A pass should show オークの原木 in the notification, not " + notified);
+            }
+            context.takeScreenshot("pass-notification");
+            context.waitTicks(PassNotification.SHOWN_TICKS);
+            if (context.computeOnClient(client -> OboecraftClient.notification().shown().isPresent())) {
+                throw new AssertionError("The notification should be gone after " + PassNotification.SHOWN_TICKS
+                        + " ticks");
             }
 
             // The oak log is unlocked, so it is placed.
