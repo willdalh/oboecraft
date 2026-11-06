@@ -13,6 +13,7 @@
     "sources": "https://github.com/willdalh/oboecraft"
   },
   "license": "MIT",
+  "icon": "assets/oboecraft/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [

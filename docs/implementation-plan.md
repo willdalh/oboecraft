@@ -224,6 +224,12 @@ See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-sa
 - Server support is a priority from the start.
 - The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list keeps its own terms, listed in the credits file [`CREDITS.md`](../CREDITS.md), which ships in the mod jar: Mojang for the Japanese names, and JMdict and KANJIDIC2 (EDRDG) and SudachiDict for the readings.
 - JMdict and KANJIDIC2 are licensed CC BY-SA 4.0, so the readings and name parts in the name list are under CC BY-SA 4.0 too, separate from the MIT code. The Japanese names stay Mojang's. See [ADR: The name list's readings are under CC BY-SA 4.0](decisions/20261106-name-list-under-cc-by-sa.md) and [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20).
+- The mod is published only as a GitHub release of the repository, with the mod jar attached and GitHub's generated release notes. It isn't published on Modrinth or CurseForge.
+- The mod version is in `gradle.properties`. A release is made by raising the version and merging to `main`. A workflow runs on every push to `main` and reads the version. If that version has a release already, it does nothing. Otherwise it runs the build and creates the release and its tag `v<version>`. Nobody pushes tags by hand, and agents only change the version when the user asks for a release. How to make a release is in [AGENTS.md](../AGENTS.md#releases).
+- The release workflow has only the permissions it needs. The job that builds can only read the repository, and the job that creates the release can write to it but runs none of the project's code.
+- The first release is 0.1.0, made after milestones 10, 11 and 12. The spoken reading ([willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25)) isn't part of it.
+- The mod's icon is a 128×128 PNG, scaled down with nearest-neighbor so it stays pixel art, in `assets/oboecraft/icon.png`, which Fabric and Mod Menu show.
+- The README has a section for players: what the mod does, the Minecraft version it needs, how to install it with Fabric Loader and Fabric API, and a short guide to playing.
 
 ## Milestones
 
@@ -386,9 +392,13 @@ Server settings JSON synced to players, the client setting for clickable buttons
 
 ### 13. Release
 
-**Status:** not started
+**Status:** done
 
-A release build. The credits file `CREDITS.md` exists since milestone 5, with the name list's license.
+Built: the release workflow, which publishes a GitHub release with the mod jar and its tag for every new version merged to `main`; the mod's icon in `fabric.mod.json`; and a section for players in the README. The version moved from `build.gradle.kts` to `gradle.properties`, so the workflow reads it without running Gradle. AGENTS.md says how to make a release. The release decisions are under [Release and licenses](#release-and-licenses).
+
+Where it differs from the plan: the plan only said a release build. The icon came with a checkerboard painted in place of transparency, which was removed before scaling it down.
+
+What later milestones should know: merging a PR that raises the version publishes that version right away, so a PR that raises it is merged last. The release runs `./gradlew build`, which includes the game tests on a headless server but not the client game tests, which the Build workflow runs on the same push. The README's guide to playing describes keys and rules, so a change to them updates the README too. The credits file `CREDITS.md` exists since milestone 5, with the name list's license.
 
 ## Working on a milestone
 
