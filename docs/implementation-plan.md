@@ -1,6 +1,8 @@
 # Implementation plan
 
-This plan describes how Oboecraft is built: the decisions behind the code and the order of work. [`idea.md`](idea.md) describes what the mod should do. The decisions below are settled.
+This plan describes how Oboecraft is built: the decisions behind the code and the order of work. [`idea.md`](idea.md) describes what the mod should do. The decisions below are settled. Agents add new ones as they work, see [Working on a milestone](#working-on-a-milestone).
+
+Where this plan and `idea.md` disagree, this plan wins. Where `docs/design/` and `docs/architecture/` describe how something works, they win over both.
 
 The plan is a living document. Each milestone's status is updated as its PRs merge.
 
@@ -51,7 +53,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 
 - The Japanese names come from Minecraft's `ja_jp.json`. That file has no readings, and dedicated servers don't have it.
 - The mod ships a reviewed name list file with each item's id, Japanese name and reading. This puts Mojang's names inside the mod, which is a small legal grey area. If that becomes a problem, the server can download the lang file at start instead, and only the code that loads the file changes.
-- A script generates the readings, and they are then reviewed by hand. A Japanese text splitter (for example Sudachi) splits each name into words and guesses their readings. JMdict, the dictionary data behind Jisho, used as an offline file, checks each word. Words where the two disagree, or that are missing from JMdict, go on a "check by hand" list.
+- A script generates the readings, and an agent then reviews them. A Japanese text splitter (for example Sudachi) splits each name into words and guesses their readings. JMdict, the dictionary data behind Jisho, used as an offline file, checks each word. Words where the two disagree, or that are missing from JMdict, go on a list to check closely.
 - The script is re-run for each new Minecraft version, and only new items need review.
 - Readings are stored per kanji (原 = げん, 木 = ぼく), so answers can mix kanji and kana. Words that can't be split per kanji, like 今日 = きょう, are stored as one unit.
 
@@ -107,14 +109,14 @@ See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-sa
 
 ### Release and licenses
 
-- The mod is built to be published, for example on Modrinth, with clean licenses and credits from the start.
+- The mod is built to be published, with clean licenses and credits from the start.
 - Server support is a priority from the start.
 - The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list and voice files keep their own terms, listed in a credits file: Mojang for the Japanese names, JMdict for the readings and VOICEVOX for the voice.
 - JMdict is licensed CC BY-SA 4.0, so the readings in the name list may need to be under CC BY-SA too. This is checked in milestone 5, when the script is written.
 
 ## Milestones
 
-A milestone is something you can play and see working. The agent working on a milestone decides whether it is done as one PR or several.
+Most milestones are something you can play and see working. The agent working on a milestone decides whether it is done as one PR or several.
 
 ### 1. Docs foundation
 
@@ -124,13 +126,30 @@ Added the [architecture overview](architecture/overview.md), the [stack](decisio
 
 ### 2. Project setup
 
-**Status:** in progress
+**Status:** done ([#11](https://github.com/willdalh/oboecraft/pull/11))
 
 Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-remapping Fabric Loom. An empty mod that starts with `./gradlew runClient` and on a dedicated server with `./gradlew runServer`. One sample core test and one Fabric game test. GitHub Actions runs the build and tests on every PR. AGENTS.md gets the run and test commands, and `docs/architecture/` is updated to match the real code.
 
-### 3. Playable loop
+### 3a. Foundations design
 
 **Status:** not started
+
+Milestone 3b lays the foundations the later milestones build on. Before any code, this milestone describes them in `docs/design/` and `docs/architecture/`, with ADRs for decisions that meet the criteria. Design them with the whole plan in mind, even where 3b only needs a small part:
+
+- How an item stack maps to its name list entry, since one item is one Japanese name (see [Items](#items)), not one Minecraft item id.
+- The SRS state, which later also needs demotion, bans, and known and ignored items.
+- The review, which later gets two attempts, the extra actions, lessons and punishment. Punishment needs to know what started the review, like the recipe being crafted or the open container.
+- One lock check that every interaction and both sides use, so creative mode, ignored items and bans can change it in one place.
+- Settings: values like the intervals are read from one place that holds the defaults, so milestone 12 only adds the file, the sync and the screens.
+- Time comes from a clock that tests can control.
+
+Until 3b is merged, these docs describe what 3b builds. 3b updates them where the code ends up different.
+
+### 3b. Playable loop
+
+**Status:** not started
+
+Built on the design from milestone 3a.
 
 Punch a tree → get a locked oak log → try to place it → the answer menu opens → answer correctly → the oak log is unlocked and can be placed → it locks again after 10 minutes. Progress is saved, and the loop works on a dedicated server. A hand-written name list of about 10 items and simple answer checking (exact kana or kanji).
 
@@ -146,13 +165,13 @@ Parts:
 
 **Status:** not started
 
-First the name list file format is agreed (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in the agreed format.
+First the agent decides the name list file format (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in that format.
 
 ### 5. Name list script
 
 **Status:** not started
 
-A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with JMdict, and writes the name list and a "check by hand" list. Then a review of all ~1,500 readings, which can be several PRs, for example by item group. This milestone also settles the JMdict CC BY-SA question and adds the credits.
+A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with JMdict, and writes the name list and a list of words to check closely. Then an agent reviews all ~1,500 readings, which can be several PRs, for example by item group. This milestone also settles the JMdict CC BY-SA question and adds the credits.
 
 ### 6. All interactions
 
@@ -200,11 +219,20 @@ Server settings JSON synced to players, the client setting for clickable buttons
 
 **Status:** not started
 
-A credits file (Mojang names, JMdict, VOICEVOX), the Modrinth page and a release build.
+A credits file (Mojang names, JMdict, VOICEVOX) and a release build.
 
-## In every milestone
+## Working on a milestone
 
-Follow the Docs section of [AGENTS.md](../AGENTS.md): when behavior, structure or terms change, update `docs/design/`, `docs/architecture/` and `docs/glossary.md` in the same PR, and write an ADR when a decision meets its three criteria. Update the milestone's status in this plan when its PRs are merged.
+A milestone is implemented from this plan, [`idea.md`](idea.md) and the docs, without further instructions. The agent working on it makes the open decisions itself.
+
+- Read `idea.md` and the whole plan before starting, not only your milestone. Build only what your milestone needs, but avoid choices that later milestones would have to undo.
+- Work from `main`. Open PRs are not part of the plan, so don't follow them or build on them.
+- Make the decisions the plan leaves open. Add the ones later milestones need to know about to the Decisions section, and write an ADR when a decision meets the three criteria in AGENTS.md.
+- If a decision in this plan turns out to be wrong, change it here in a PR that explains why, instead of working around it in the code.
+- Show that the milestone works with tests where you can: core unit tests for the rules, and Fabric game tests for what happens in the game. The PR description says what was only checked by hand, or not at all.
+- Follow the Docs section of [AGENTS.md](../AGENTS.md): when behavior, structure or terms change, update `docs/design/`, `docs/architecture/` and `docs/glossary.md` in the same PR.
+- In the milestone's last PR, set its status to done and add a short outcome under it: what was built, where it differs from the plan, and what later milestones should know.
+- Some choices are the user's: accepting the EULA, the JMdict license question in milestone 5 and the VOICEVOX voice in milestone 10. For these, open an issue that explains the choice, and carry on with the work that doesn't depend on it.
 
 ## Open questions
 
