@@ -209,7 +209,7 @@ Parts:
 
 ### 4. Answer checking
 
-**Status:** done
+**Status:** done ([#18](https://github.com/willdalh/oboecraft/pull/18))
 
 Built: name parts in the core (`JapaneseName` and `NamePart`), the name list file format with readings per kanji, and full answer checking in the core: kanji and kana mixed per part, the optional particle の, romaji in both styles with du/di/wo, ん as n, nn or n', っ as a doubled consonant, long vowels written any way, and spaces, case, width and punctuation ignored. The 10 hand-written entries use the new format, with 松明 and 砂利 as one part each. Core unit tests cover every rule and example in [Answers](design/answers.md), and game tests check the loaded name list and a romaji answer through a review on the server.
 
