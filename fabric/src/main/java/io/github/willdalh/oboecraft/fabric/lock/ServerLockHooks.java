@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.lock;
 
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.network.ShowReview;
+import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
 import java.util.List;
 import java.util.Optional;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -43,7 +44,8 @@ public final class ServerLockHooks {
      * Checks an action that would interact with these stacks. When the lock check stops it, the client is sent the
      * stack's real place again, since it may already have used up the stack or moved it, and unless a review is going,
      * it is told to open the answer menu for the stack. The resend comes first, so the client finds the stack where
-     * the server says it is.
+     * the server says it is. {@link ServerReviews} remembers the location,
+     * so the review the client then starts there needs no second check.
      *
      * @return whether the action is stopped
      */
@@ -60,7 +62,9 @@ public final class ServerLockHooks {
             case StackLocation.MenuSlot menuSlot -> player.containerMenu.sendAllDataToRemote();
             case StackLocation.Carried carried -> player.containerMenu.sendAllDataToRemote();
         }
-        if (!OboecraftMod.serverReviews().isReviewing(player)) {
+        ServerReviews reviews = OboecraftMod.serverReviews();
+        if (!reviews.isReviewing(player)) {
+            reviews.serverStopped(player, location);
             ServerPlayNetworking.send(player, new ShowReview(OboecraftMod.clock().instant(), location));
         }
         return true;

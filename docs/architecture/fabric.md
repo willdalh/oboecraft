@@ -104,7 +104,7 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 `ServerReviews` holds each player's active review, so far the review id and the item. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
-- starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
+- starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. When `ServerLockHooks.stops` sends `ShowReview`, it calls `serverStopped(player, location)`, and `ServerReviews` remembers that location until the next `StartReview`. A start at that location is the client answering the server's stop. A start anywhere else is for an action the client stopped itself, which the server never saw, so the lock check is asked again for the stack there, and a stack it allows is refused as not locked. The location doesn't say what the client tried, so the second check uses `USE`: the lock check treats every interaction alike except dropping, which the client only stops when the drop setting is on, and then like every other. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
 - passes each answer to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome,
 - cancels the review when the player closes its answer menu, dies or leaves, and when the menu its trigger needs closes on the server. Every way a menu closes on the server ends in `ServerPlayer.doCloseContainer`, which `ServerPlayerMixin` hooks to call `ServerReviews.menuClosing`.
 
@@ -146,7 +146,7 @@ Client to server:
 
 | Payload | When | Contents |
 |---|---|---|
-| `StartReview` | The client opens an answer menu | A new review id, and the stack's location. Never the item id or the trigger, which the server works out itself. |
+| `StartReview` | The client opens an answer menu | A new review id, and the stack's location. Never the item id or the trigger, which the server works out itself, and only at a location where an action was stopped. |
 | `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
 | `CloseReview` | The player closes the answer menu | The review id |
 

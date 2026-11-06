@@ -26,7 +26,7 @@ If the server refuses, it tells the client why (not locked, banned, or the stack
 
 The server remembers the review's trigger: what the player was doing when the review started. Punishment needs it to know the current view and what to remove.
 
-The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least.
+The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least. The client only says where the stack is, and the server starts a review there only if an action with that stack was stopped: either the server stopped it itself and asked for the answer menu there, or the lock check, asked again, stops the stack there. A stack the lock check allows, for example in creative mode, is never reviewed.
 
 | Trigger | Started by | Current view | Removed on a fail |
 |---|---|---|---|

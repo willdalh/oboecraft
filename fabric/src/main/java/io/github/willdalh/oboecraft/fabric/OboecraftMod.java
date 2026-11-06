@@ -42,9 +42,9 @@ public final class OboecraftMod implements ModInitializer {
         Settings settings = Settings.DEFAULTS;
         ItemMapping itemMapping = new ItemMapping(NameListFile.load());
         ServerProgress serverProgress = new ServerProgress(clock);
-        ServerReviews serverReviews = new ServerReviews(itemMapping, serverProgress, settings);
-        services = new Services(
-                clock, settings, itemMapping, new Locks(itemMapping, settings), serverProgress, serverReviews);
+        Locks locks = new Locks(itemMapping, settings);
+        ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress, settings);
+        services = new Services(clock, settings, itemMapping, locks, serverProgress, serverReviews);
 
         ServerNetworking.registerPayloadTypes();
         ServerNetworking.registerReceivers(serverReviews);

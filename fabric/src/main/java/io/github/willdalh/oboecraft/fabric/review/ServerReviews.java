@@ -2,12 +2,15 @@ package io.github.willdalh.oboecraft.fabric.review;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
+import io.github.willdalh.oboecraft.fabric.lock.Locks;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
@@ -15,6 +18,7 @@ import io.github.willdalh.oboecraft.fabric.network.ReviewRefused;
 import io.github.willdalh.oboecraft.fabric.network.ReviewStarted;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,10 +33,20 @@ import net.minecraft.world.item.ItemStack;
  * message about it carries that id. Only used on the server thread.
  */
 public final class ServerReviews {
+    /**
+     * The interaction a review that the client started from its own stop is checked again with. A location doesn't
+     * say what the client tried to do there. The lock check treats every interaction the same, except dropping, which
+     * the client only stops when the drop setting is on, and then like every other.
+     */
+    private static final Interaction RECHECKED_INTERACTION = Interaction.USE;
+
     private final ItemMapping itemMapping;
+    private final Locks locks;
     private final ServerProgress progress;
     private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
+    /** Where the server last stopped each player's action and asked for the answer menu, until a review starts. */
+    private final Map<UUID, StackLocation> serverStops = new HashMap<>();
 
     /**
      * A review that is going.
@@ -44,8 +58,9 @@ public final class ServerReviews {
     public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
-    public ServerReviews(ItemMapping itemMapping, ServerProgress progress, Settings settings) {
+    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress, Settings settings) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+        this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.settings = Objects.requireNonNull(settings, "settings");
     }
@@ -61,12 +76,24 @@ public final class ServerReviews {
     }
 
     /**
-     * Starts the review {@code reviewId} of the stack at {@code location}, if it is a locked item. The server reads
-     * the stack and works out the trigger itself. A client only asks when it has no answer menu open, so a review that
-     * is still going is one the client has left: the new one replaces it.
+     * The server stopped the player's action at {@code location} and asked the client for the answer menu there, so
+     * the client's {@code StartReview} for it needs no second check. Only the latest stop is remembered.
+     */
+    public void serverStopped(ServerPlayer player, StackLocation location) {
+        serverStops.put(player.getUUID(), location);
+    }
+
+    /**
+     * Starts the review {@code reviewId} of the stack at {@code location}, if it is a locked item whose interaction the
+     * lock check stops there. The server reads the stack and works out the trigger itself. At the location of the
+     * server's latest stop, the lock check already stopped the stack. At any other location, the client stopped the
+     * action itself and the server never saw it, so the lock check is asked again, and a stack it allows, for example
+     * in creative mode, is refused. A client only asks when it has no answer menu open, so a review that is still
+     * going is one the client has left: the new one replaces it.
      */
     public void start(ServerPlayer player, int reviewId, StackLocation location) {
         active.remove(player.getUUID());
+        boolean serverStopped = location.equals(serverStops.remove(player.getUUID()));
         if (!progress.isLoaded(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
@@ -78,6 +105,10 @@ public final class ServerReviews {
             return;
         }
         ItemId item = entry.get().id();
+        if (!serverStopped && !lockCheckStops(player, stack.get(), location)) {
+            refuseNotLocked(player, reviewId, item);
+            return;
+        }
         switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
             case ReviewStart.Started started -> {
                 Trigger trigger = Trigger.of(player, location);
@@ -85,11 +116,20 @@ public final class ServerReviews {
                 ServerPlayNetworking.send(
                         player, new ReviewStarted(progress.now(), reviewId, item, started.level()));
             }
-            case ReviewStart.NotLocked notLocked -> {
-                progress.sendState(player, item);
-                refuse(player, reviewId, ReviewRefused.Reason.NOT_LOCKED);
-            }
+            case ReviewStart.NotLocked notLocked -> refuseNotLocked(player, reviewId, item);
         }
+    }
+
+    /** Whether the lock check stops an interaction with the stack at the location, see {@link #RECHECKED_INTERACTION}. */
+    private boolean lockCheckStops(ServerPlayer player, ItemStack stack, StackLocation location) {
+        List<CheckedStack> checked = List.of(new CheckedStack(stack, RECHECKED_INTERACTION, location));
+        return locks.firstStopped(progress, player, checked).isPresent();
+    }
+
+    /** Refuses a review because the item isn't locked for the player, and sends its state so the client agrees. */
+    private void refuseNotLocked(ServerPlayer player, int reviewId, ItemId item) {
+        progress.sendState(player, item);
+        refuse(player, reviewId, ReviewRefused.Reason.NOT_LOCKED);
     }
 
     private void refuse(ServerPlayer player, int reviewId, ReviewRefused.Reason reason) {
@@ -150,8 +190,9 @@ public final class ServerReviews {
         }
     }
 
-    /** Forgets the player's review when they leave. */
+    /** Forgets the player's review and the server's latest stop when they leave. */
     public void forget(UUID player) {
         active.remove(player);
+        serverStops.remove(player);
     }
 }

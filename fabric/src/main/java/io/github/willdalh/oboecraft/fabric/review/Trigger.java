@@ -7,7 +7,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /**
  * What the player was doing when a review started, which decides the current view for a punishment. The server works
- * it out itself from the menu the player has open and where the stack is, never from what the client says.
+ * it out itself from the menu the player has open and where the stack is. The client only names the location, and
+ * {@link ServerReviews#start} only starts a review where the server stopped an action or the lock check stops the
+ * stack, never at a location the client merely picked.
  */
 public sealed interface Trigger {
     /** A stack in a hand or the inventory, with no other menu open. */

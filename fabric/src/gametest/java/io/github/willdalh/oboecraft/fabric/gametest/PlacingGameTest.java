@@ -163,6 +163,56 @@ public class PlacingGameTest {
         helper.succeed();
     }
 
+    @GameTest
+    public void aReviewIsOnlyStartedWhereTheLockCheckStopsTheStack(GameTestHelper helper) {
+        ServerPlayer player = playerWithOakLogs(helper);
+        try {
+            player.setGameMode(GameType.CREATIVE);
+
+            // Locks aren't active in creative mode, so no action with the locked oak logs is ever stopped.
+            reviews().start(player, 1, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(), "item under review in creative");
+
+            player.setGameMode(GameType.SURVIVAL);
+            reviews().start(player, 2, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.of(OAK_LOG), "item under review");
+        } finally {
+            TestPlayers.leave(player);
+        }
+        helper.succeed();
+    }
+
+    @GameTest
+    public void aReviewWhereTheServerStoppedTheActionStartsWithoutASecondCheck(GameTestHelper helper) {
+        helper.setBlock(new BlockPos(0, 0, 0), Blocks.STONE);
+        ServerPlayer player = playerWithOakLogs(helper);
+        try {
+            player.getInventory().setItem(1, new ItemStack(Items.DIRT));
+            helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)) instanceof InteractionResult.Fail,
+                    "placing a locked oak log fails");
+            // Creative mode makes a second lock check allow the stacks, so only the server's stop starts a review.
+            player.setGameMode(GameType.CREATIVE);
+
+            reviews().start(player, 1, new StackLocation.InventorySlot(1));
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(),
+                    "item under review at a location the server didn't stop");
+            reviews().start(player, 2, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.empty(),
+                    "item under review once a start used up the server's stop");
+
+            player.setGameMode(GameType.SURVIVAL);
+            helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)) instanceof InteractionResult.Fail,
+                    "placing a locked oak log fails");
+            player.setGameMode(GameType.CREATIVE);
+            reviews().start(player, 3, MAIN_HAND);
+            helper.assertValueEqual(ActiveReviews.item(player), Optional.of(OAK_LOG),
+                    "item under review at the location the server stopped");
+        } finally {
+            TestPlayers.leave(player);
+        }
+        helper.succeed();
+    }
+
     private static ServerReviews reviews() {
         return OboecraftMod.serverReviews();
     }
