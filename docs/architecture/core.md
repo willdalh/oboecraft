@@ -35,7 +35,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 - `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, ー or ん, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.
 - `NameList`: all entries. Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
 
-Former ids, and moving states saved under a former id when progress is loaded (`Progress.withFormerIdsMerged(nameList)` in the design), are added with the first name list update that merges two entries. The hand-written name list has no merges, so 3b leaves them out. See [Items](../design/items.md#name-list-entries).
+Former ids, and moving states saved under a former id when progress is loaded (`Progress.withFormerIdsMerged(nameList)` in the design), are added with the first name list update that merges two entries. The name list has no merges yet, so they are left out, and the [name list tool](name-list-tool.md) stops if an update would merge two entries. See [Items](../design/items.md#name-list-entries).
 
 ### SRS state
 

@@ -78,4 +78,8 @@ tasks.jar {
     from(rootProject.file("LICENSE")) {
         rename { "LICENSE_oboecraft" }
     }
+    // The credits for the Japanese names and readings in the name list.
+    from(rootProject.file("CREDITS.md")) {
+        rename { "CREDITS_oboecraft.md" }
+    }
 }

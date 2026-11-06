@@ -63,6 +63,14 @@ See the [architecture overview](architecture/overview.md) for the details.
 - Readings are stored per kanji (原 = げん, 木 = ぼく), so answers can mix kanji and kana. Words that can't be split per kanji, like 今日 = きょう, are stored as one unit.
 - Each Japanese name is stored as a list of name parts: one kanji with its reading, kanji read together with their reading, a run of kana, or the particle の, which is its own part so it can be optional. In the file, a part in kana is a string and any other part is an array of its text and its reading in hiragana: `["オーク", "の", ["原", "げん"], ["木", "ぼく"]]`. The Japanese name and its reading are the parts joined, so they can't disagree. Letters and digits, like TNT, are a part with a reading too. See [Items](design/items.md#name-parts) and [Name list file](architecture/name-list-file.md).
 
+Decided in milestone 5, see [Name list tool](architecture/name-list-tool.md):
+
+- The tool is Java, in a `tools` Gradle module that depends on `core`, so every entry it writes passes the mod's own checks. It runs with `./gradlew :tools:generateNameList`.
+- Which translation keys name stacks comes from the game itself: Minecraft's data generator reports each item's default name, and the data in the server jar gives names like the abandoned camp maps. The names the game's code gives stacks from their components (potions, tipped arrows, shields by color, the lodestone compass and the named player head) are a hand-kept list, checked by a game test.
+- KANJIDIC2, also from EDRDG, splits each word's reading between its kanji, with rendaku and a small っ allowed. Kanji whose readings don't add up are read together.
+- The tool keeps an entry's reviewed parts as long as its Japanese name is unchanged, so a corrected entry stays corrected, and only new and changed names are guessed. Every generated entry is reviewed, not only the ones with notes.
+- Air is left out of the name list. Every other Minecraft item is in it, including spawn eggs and items only found in creative mode.
+
 ### Items
 
 - One item is one Japanese name. Each potion effect is its own item (治癒のポーション, 暗視のポーション), and the same goes for splash and lingering potions and tipped arrows, around 150 names in total. Healing I and II share a name, so they share an SRS state.
@@ -150,8 +158,8 @@ See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-sa
 
 - The mod is built to be published, with clean licenses and credits from the start.
 - Server support is a priority from the start.
-- The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list and voice files keep their own terms, listed in a credits file: Mojang for the Japanese names, JMdict for the readings and VOICEVOX for the voice.
-- JMdict is licensed CC BY-SA 4.0, so the readings in the name list may need to be under CC BY-SA too. This is checked in milestone 5, when the script is written.
+- The mod's code is under the MIT license ([`LICENSE`](../LICENSE)). The name list and voice files keep their own terms, listed in the credits file [`CREDITS.md`](../CREDITS.md), which ships in the mod jar: Mojang for the Japanese names, JMdict and KANJIDIC2 (EDRDG) and SudachiDict for the readings, and VOICEVOX for the voice.
+- JMdict and KANJIDIC2 are licensed CC BY-SA 4.0, so the readings in the name list may need to be under CC BY-SA too. This is the user's choice, in [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20). Until it is decided, the credits name the sources but no license for the name list. It must be decided before the release in milestone 13.
 
 ## Milestones
 
@@ -222,7 +230,13 @@ First the agent decides the name list file format (readings per kanji, units lik
 
 ### 5. Name list script
 
-**Status:** not started
+**Status:** done
+
+Built: the name list tool in a new `tools` module (`./gradlew :tools:generateNameList`), described in [Name list tool](architecture/name-list-tool.md). It downloads Minecraft's `ja_jp.json` and server jar, runs the data generator to find every item name key, splits names with Sudachi, checks words with JMdict, splits readings per kanji with KANJIDIC2, and writes the name list and a review list. Every one of the 1,724 generated entries was reviewed and about 20 kinds of mistakes were corrected by hand, see [Reviewing](architecture/name-list-tool.md#reviewing). The name list now has every item of Minecraft 26.3, 1,734 entries. [`CREDITS.md`](../CREDITS.md) credits the sources and ships in the jar, and the JMdict license question is [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20). A game test checks that every stack the game names is in the name list.
+
+Where it differs from the plan: the readings are split per kanji with KANJIDIC2, which the plan didn't name. The review was done in one PR, not several. The tool doesn't build the merge of two entries, since that needs former ids: it stops and says so, and the first update that merges entries builds them.
+
+What later milestones should know: every vanilla item is now in the name list, so a test that needs a stack that isn't uses a stack named like another mod's item (`OtherModStacks` in the game tests). Some items share an entry because they share a name, like the brick item and the bricks block (レンガ) and all smithing templates (鍛冶型). After a Minecraft update, run the tool, review every generated entry and check `ItemNameKeys.CODE_NAMES`. Milestone 10 can speak `JapaneseName.reading()` for every item. Milestone 13 needs [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20) decided.
 
 A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with JMdict, and writes the name list and a list of words to check closely. Then an agent reviews all ~1,500 readings, which can be several PRs, for example by item group. This milestone also settles the JMdict CC BY-SA question and adds the credits.
 
@@ -272,7 +286,7 @@ Server settings JSON synced to players, the client setting for clickable buttons
 
 **Status:** not started
 
-A credits file (Mojang names, JMdict, VOICEVOX) and a release build.
+A credits file (Mojang names, JMdict, VOICEVOX) and a release build. `CREDITS.md` exists since milestone 5, and the release adds VOICEVOX and the name list's license from [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20).
 
 ## Working on a milestone
 
@@ -290,6 +304,7 @@ A milestone is implemented from this plan, [`idea.md`](idea.md) and the docs, wi
 ## Open questions
 
 - Which VOICEVOX voice to use. Decided in milestone 10.
+- Which license the readings in the name list are under, [willdalh/oboecraft#20](https://github.com/willdalh/oboecraft/issues/20). Decided before milestone 13.
 
 ## References
 

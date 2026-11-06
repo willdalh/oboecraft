@@ -2,7 +2,7 @@
 
 The name list ships in the mod's resources as `fabric/src/main/resources/oboecraft/name_list.json`. `NameListFile` in `fabric` loads it once when the mod starts and turns it into a core `NameList`. What an entry means is in [Items](../design/items.md#name-list-entries).
 
-The format was decided in milestone 4. So far the file is written by hand. Milestone 5's script writes it from `ja_jp.json`, and an agent then reviews it.
+The format was decided in milestone 4. The [name list tool](name-list-tool.md) writes the file from Minecraft's `ja_jp.json`, and an agent reviews every entry it generates and corrects the file by hand.
 
 ## Format
 
@@ -44,4 +44,4 @@ Former ids are added with the first name list update that merges two entries, se
 - A string part is only kana and punctuation. A part with a kanji, a letter, a digit or the counters ヵ and ヶ needs its reading.
 - A part in kana can't be given another reading than its kana.
 
-Parts must be split as [Items](../design/items.md#name-parts) describes, with the particle の as its own part. The checks can't tell whether a kanji's reading is right or whether kanji were split correctly. That is what the review in milestone 5 is for.
+Parts must be split as [Items](../design/items.md#name-parts) describes, with the particle の as its own part. The checks can't tell whether a kanji's reading is right or whether kanji were split correctly. That is what the review of each generated entry is for, see [Name list tool](name-list-tool.md#reviewing).
