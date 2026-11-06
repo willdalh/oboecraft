@@ -25,11 +25,12 @@ public final class SrsRules {
     }
 
     /**
-     * Whether the item is locked and banned at {@code now}, so it can't be reviewed. Only a fail bans an item, and it
-     * leaves the item locked.
+     * Whether the item is banned at {@code now}, so it can't be reviewed. A ban only matters while the item is locked,
+     * so callers check {@link #isLocked} first. Only a fail bans an item, and it leaves the item locked until a pass,
+     * which can't happen during the ban.
      */
-    public static boolean isBanned(SrsState state, Instant now, Settings settings) {
-        return state instanceof SrsState.Leveled leveled && leveled.isBannedAt(now) && isLocked(state, now, settings);
+    public static boolean isBanned(SrsState state, Instant now) {
+        return state instanceof SrsState.Leveled leveled && leveled.isBannedAt(now);
     }
 
     /** Only these states appear in the word list and can be reverted. */

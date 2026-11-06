@@ -25,7 +25,7 @@ public final class ReviewRules {
             return new ReviewStart.NotLocked();
         }
         return switch (state) {
-            case SrsState.Leveled leveled when SrsRules.isBanned(leveled, now, settings) ->
+            case SrsState.Leveled leveled when SrsRules.isBanned(leveled, now) ->
                     new ReviewStart.Banned(leveled.bannedUntil().orElseThrow());
             case SrsState.Leveled leveled -> new ReviewStart.Started(
                     leveled.level(), isLesson(leveled) ? ATTEMPTS : ATTEMPTS - leveled.wrongAttempts());

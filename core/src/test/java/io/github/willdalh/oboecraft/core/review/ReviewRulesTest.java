@@ -114,6 +114,14 @@ class ReviewRulesTest {
     }
 
     @Test
+    void aBanOnAnUnlockedItemDoesntMatter() {
+        SrsState unlocked = new SrsState.Leveled(
+                2, Optional.of(NOW.plusSeconds(60)), false, 0, Optional.of(NOW.plusSeconds(30)));
+
+        assertEquals(new ReviewStart.NotLocked(), ReviewRules.start(unlocked, NOW, SETTINGS));
+    }
+
+    @Test
     void onlyLeveledItemsAreAnswered() {
         assertThrows(IllegalArgumentException.class,
                 () -> ReviewRules.answer(OAK_LOG, new SrsState.Known(), "genboku", NOW, SETTINGS));

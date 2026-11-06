@@ -2,7 +2,7 @@
 
 Progress is saved as JSON files with a format version, see [ADR: Progress saved as versioned JSON files](../decisions/20261105-progress-save-format.md). `ProgressFiles` in `fabric` reads and writes them and turns them into core `Progress` values.
 
-Format 2 stores leveled, known and ignored states. Format 1 files are read unchanged and written as format 2 on the next save. The version increases because older code treats an unknown kind as a broken file; it must instead refuse a newer save without replacing it. Milestone 9 added the optional fields `demoted`, `wrongAttempts` and `bannedUntil` without a new version: format 2 files without them read as before. An older format 2 reader ignores them, so after a downgrade a failed item loses its demotion and ban, but nothing else.
+Format 3 stores leveled, known and ignored states, and for a leveled state also whether it is demoted, its wrong attempts and its ban. Format 1 and 2 files are read unchanged and written as format 3 on the next save. Format 2 added known and ignored states, since older code treats an unknown kind as a broken file. Format 3 added `demoted`, `wrongAttempts` and `bannedUntil` in milestone 9: a format 2 reader would ignore them and save the file again without them, so after a downgrade every demotion, ban and wrong attempt would be lost. With the new version, an older mod refuses the file instead of replacing it, see [Versions](#versions).
 
 ## Where the files are
 
@@ -19,7 +19,7 @@ The server tells the host apart from LAN guests by whether the player owns the s
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "items": {
     "block.minecraft.oak_log": {
       "kind": "leveled",

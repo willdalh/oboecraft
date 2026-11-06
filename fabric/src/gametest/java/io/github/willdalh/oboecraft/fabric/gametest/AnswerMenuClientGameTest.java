@@ -107,8 +107,31 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             context.waitForScreen(AnswerScreen.class);
             singleplayer.getConnection().waitForServerboundPackets();
+            // Delete edits typed text and doesn't fail the review. Only on an empty typing bar is it Don't know.
+            context.getInput().typeChars("abc");
+            context.getInput().pressKey(InputConstants.KEY_LEFT);
+            context.getInput().pressKey(InputConstants.KEY_DELETE);
+            singleplayer.getConnection().waitForServerboundPackets();
+            context.waitTicks(2);
+            if (context.computeOnClient(client -> !(client.gui.screen() instanceof AnswerScreen screen)
+                    || screen.showsFail())) {
+                throw new AssertionError("Delete with typed text must not fail the review");
+            }
+            context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
+            context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
+            // Enter is still held, as when it sent the answer that failed, so its repeats must not close the menu.
+            context.runOnClient(client -> client.gui.screen().keyPressed(
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
             context.getInput().pressKey(InputConstants.KEY_DELETE);
             context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail());
+            context.waitTicks(12);
+            context.runOnClient(client -> client.gui.screen().keyPressed(
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
+            if (!context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen)) {
+                throw new AssertionError("A held Enter's repeat must not close the answer after a fail");
+            }
+            context.runOnClient(client -> client.gui.screen().keyReleased(
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
             context.takeScreenshot("answer-menu-failed");
             int logsLeft = singleplayer.getServer().computeOnServer(server ->
                     server.getPlayerList().getPlayers().getFirst().getMainHandItem().getCount());

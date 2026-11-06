@@ -31,7 +31,7 @@ import java.util.Optional;
 /** Reads and writes progress files: JSON with a format version. See {@code docs/architecture/progress-files.md}. */
 public final class ProgressFiles {
     /** The format version this version of the mod writes. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     /** ISO 8601 in UTC, to the millisecond, so times can be read and fixed by hand. */

@@ -80,10 +80,12 @@ public final class MenuSlots {
     /**
      * Whether the slot is part of the current view besides the player's own inventory: any slot of the menu's own
      * containers other than a result. In a menu that makes its result from input slots, these are its inputs. A
-     * furnace's output is a slot of the furnace's container, so it is part of the current view.
+     * furnace's output is a slot of the furnace's container, so it is part of the current view. A mount's saddle and
+     * armor are worn, so they are in use and never part of it.
      */
     public static boolean isInCurrentView(AbstractContainerMenu menu, Slot slot) {
-        return !isPlayerInventory(slot) && !isCraftingResult(menu, slot) && !(slot instanceof MerchantResultSlot);
+        return !isPlayerInventory(slot) && !(slot instanceof ArmorSlot) && !isCraftingResult(menu, slot)
+                && !(slot instanceof MerchantResultSlot);
     }
 
     /** Whether the slot is one of the player's own inventory, including worn armor and the offhand. */

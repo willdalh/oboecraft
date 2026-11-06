@@ -127,8 +127,8 @@ class SrsRulesTest {
         assertEquals(new SrsState.Leveled(
                 2, Optional.of(NOW.minusSeconds(5)), true, 0, Optional.of(NOW.plus(Duration.ofMinutes(5)))), failed);
         assertTrue(SrsRules.isLocked(failed, NOW, SETTINGS));
-        assertTrue(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5)).minusMillis(1), SETTINGS));
-        assertFalse(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5)), SETTINGS));
+        assertTrue(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5)).minusMillis(1)));
+        assertFalse(SrsRules.isBanned(failed, NOW.plus(Duration.ofMinutes(5))));
     }
 
     @Test
@@ -160,7 +160,7 @@ class SrsRulesTest {
     void aZeroBanLengthBansNothing() {
         SrsState.Leveled failed = SrsRules.fail(leveled(2, NOW), NOW, SETTINGS.withBanLength(Duration.ZERO));
 
-        assertFalse(SrsRules.isBanned(failed, NOW, SETTINGS));
+        assertFalse(SrsRules.isBanned(failed, NOW));
     }
 
     @Test
@@ -193,11 +193,8 @@ class SrsRulesTest {
     }
 
     @Test
-    void anItemIsOnlyBannedWhileLocked() {
-        SrsState unlocked = new SrsState.Leveled(
-                2, Optional.of(NOW.plusSeconds(60)), false, 0, Optional.of(NOW.plusSeconds(30)));
-
-        assertFalse(SrsRules.isBanned(unlocked, NOW, SETTINGS));
-        assertFalse(SrsRules.isBanned(SrsState.Leveled.NEW, NOW, SETTINGS));
+    void anItemThatWasNeverFailedIsntBanned() {
+        assertFalse(SrsRules.isBanned(SrsState.Leveled.NEW, NOW));
+        assertFalse(SrsRules.isBanned(new SrsState.Known(), NOW));
     }
 }

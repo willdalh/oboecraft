@@ -182,7 +182,7 @@ Decided in milestone 9, see [Punishment](design/punishment.md):
 - The current view of an inventory trigger includes the inventory's crafting grid and the carried stack. Results, including a trade's result, are never part of it. A punishment takes from the menu's own slots first, then the inventory, then the carried stack.
 - After a fail, the answer menu stays open with the Japanese name and reading until the player closes it, and the review is already over on the server.
 - A banned item shows how long its ban has left above the hotbar. Only the client shows it, from its own state: the server stops the action without a message.
-- The progress format stays at version 2: the new fields are optional, and an older reader ignores them. The network protocol went to 4.
+- The progress format went to version 3 for the new fields. A format 2 reader would ignore them and save the file without them, losing every demotion, ban and wrong attempt after a downgrade, so an older mod must refuse the file instead. The network protocol went to 4.
 
 ### Voice
 
@@ -324,9 +324,7 @@ Built: two attempts with a wrong attempt saved in the SRS state, Don't know as a
 
 Where it differs from the plan: the plan didn't say how a recipe's parts are counted, how rounding is done, or what the answer menu shows after a fail, see [Punishment](#punishment). Protected and other mods' ingredients keep the other ingredients' parts unchanged.
 
-What later milestones should know: protocol 4 carries the new state fields and the attempts left. Milestone 10 can show the notification after a fail too, where the answer menu shows the answer now. Milestone 11's creative mode needs nothing new for bans: the lock check allows everything when locks aren't active. Milestone 12 reads the ban length, `percentageFactor` and each level's demotion into `Settings`, whose records already check them. A fail over a container of another mod, and the ban message on a dedicated server over the network, haven't been run.
-
-The removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
+What later milestones should know: progress format 3 and protocol 4 carry the new state fields, and protocol 4 the attempts left. Milestone 10 can show the notification after a fail too, where the answer menu shows the answer now. Milestone 11's creative mode needs nothing new for bans: the lock check allows everything when locks aren't active. Milestone 12 reads the ban length, `percentageFactor` and each level's demotion into `Settings`, whose records already check them. A fail over a container of another mod, and the ban message on a dedicated server over the network, haven't been run.
 
 The removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
 

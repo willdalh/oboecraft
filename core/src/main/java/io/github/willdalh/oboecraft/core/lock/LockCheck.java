@@ -40,6 +40,6 @@ public final class LockCheck {
         if (!SrsRules.isLocked(state, now, settings)) {
             return LockDecision.ALLOW;
         }
-        return SrsRules.isBanned(state, now, settings) ? LockDecision.BANNED : LockDecision.REVIEW;
+        return SrsRules.isBanned(state, now) ? LockDecision.BANNED : LockDecision.REVIEW;
     }
 }

@@ -220,8 +220,7 @@ public final class ServerReviews {
         ItemId item = review.entry().id();
         Map<ItemId, Integer> removed = switch (review.trigger()) {
             case Trigger.Crafting crafting -> Punishment.removedIngredients(crafting.recipe(), inView, level, settings);
-            case Trigger.Inventory inventory -> removedOfItem(item, inView, level);
-            case Trigger.Container container -> removedOfItem(item, inView, level);
+            case Trigger.Inventory _, Trigger.Container _ -> removedOfItem(item, inView, level);
         };
         view.remove(removed);
     }

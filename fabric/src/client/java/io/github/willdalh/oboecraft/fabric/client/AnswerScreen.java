@@ -3,14 +3,18 @@ package io.github.willdalh.oboecraft.fabric.client;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
+import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.ChatFormatting;
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -41,6 +45,8 @@ public final class AnswerScreen extends Screen {
             .withStyle(ChatFormatting.RED);
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
+    /** How long the answer stays on screen after a fail before a key can close the menu, so a double press doesn't. */
+    private static final long FAIL_SHOWN_MILLIS = 500;
 
     private final int reviewId;
     private final ItemId item;
@@ -53,6 +59,10 @@ public final class AnswerScreen extends Screen {
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
     private boolean failed;
+    /** When the menu showed the fail, in {@link Util#getMillis()}. */
+    private long failedAtMillis;
+    /** Keys pressed and not released yet. Minecraft sends a held key's repeats as presses, which this tells apart. */
+    private final Set<Integer> heldKeys = new HashSet<>();
     private boolean composing;
     private boolean endedByServer;
 
@@ -119,14 +129,19 @@ public final class AnswerScreen extends Screen {
      * While the keyboard's kanji conversion has text that isn't confirmed, every key belongs to the conversion.
      * Minecraft hands every key to the screen anyway, so the menu ignores them: an Enter that confirms the conversion
      * doesn't submit, an Esc that cancels it doesn't close the menu, and a Backspace doesn't delete confirmed text.
+     *
+     * <p>Don't know only acts while the typing bar is empty, so its default key, Delete, still deletes typed text and
+     * fixing a typo never fails the review. After a fail, only a new press of Answer or Close, not a held key's
+     * repeat, closes the menu, and not before the answer has been shown for {@link #FAIL_SHOWN_MILLIS}.
      */
     @Override
     public boolean keyPressed(KeyEvent event) {
+        boolean repeat = !heldKeys.add(event.key());
         if (composing) {
             return true;
         }
         if (failed) {
-            if (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event) || event.isConfirmation()) {
+            if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
                 onClose();
             }
             return true;
@@ -143,7 +158,7 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.SHOW_ANSWER);
             return true;
         }
-        if (ReviewKeys.DONT_KNOW.matches(event)) {
+        if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
             action(ReviewAction.Action.DONT_KNOW);
             return true;
         }
@@ -151,18 +166,35 @@ public final class AnswerScreen extends Screen {
             onClose();
             return true;
         }
-        if (ReviewKeys.ANSWER.matches(event) || (ReviewKeys.ANSWER.mapping().isDefault() && event.isConfirmation())) {
+        if (isAnswerKey(event)) {
             submit();
             return true;
         }
         return super.keyPressed(event);
     }
 
+    /** Both Enter keys answer while the Answer binding is the default, as on other Minecraft screens. */
+    private static boolean isAnswerKey(KeyEvent event) {
+        return ReviewKeys.ANSWER.matches(event) || (ReviewKeys.ANSWER.mapping().isDefault() && event.isConfirmation());
+    }
+
+    private boolean failShownLongEnough() {
+        return Util.getMillis() - failedAtMillis >= FAIL_SHOWN_MILLIS;
+    }
+
+    @Override
+    public boolean keyReleased(KeyEvent event) {
+        heldKeys.remove(event.key());
+        return super.keyReleased(event);
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (composing) return true;
         if (failed) {
-            if (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event)) onClose();
+            if (failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event))) {
+                onClose();
+            }
             return super.mouseClicked(event, doubleClick);
         }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
@@ -170,7 +202,7 @@ public final class AnswerScreen extends Screen {
         if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             action(ReviewAction.Action.SHOW_ANSWER); return true;
         }
-        if (ReviewKeys.DONT_KNOW.matches(event)) {
+        if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
             action(ReviewAction.Action.DONT_KNOW); return true;
         }
         if (ReviewKeys.ANSWER.matches(event)) { submit(); return true; }
@@ -222,7 +254,7 @@ public final class AnswerScreen extends Screen {
     void answeredWrong() {
         input.setValue("");
         wrong = true;
-        attemptsLeft = 1;
+        attemptsLeft = ReviewRules.ATTEMPTS - SrsState.Leveled.MAX_WRONG_ATTEMPTS;
     }
 
     /**
@@ -232,6 +264,7 @@ public final class AnswerScreen extends Screen {
     void failed(ReviewAnswered.Answer answer) {
         endedByServer = true;
         failed = true;
+        failedAtMillis = Util.getMillis();
         wrong = false;
         shownAnswer = answer;
         input.setValue("");

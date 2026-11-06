@@ -24,7 +24,7 @@ A punishment only counts and removes stacks in the current view, which depends o
 | Container | The inventory, the offhand, the carried stack and the open container's slots, including a furnace's output |
 | Crafting | The inventory, the offhand, the carried stack and the menu's input slots |
 
-Worn armor is in use, so it is never part of the current view, and neither are results, like the crafting grid's result or a trade's. Items inside a closed shulker box or bundle are part of that stack, not stacks of their own, so they aren't counted.
+Worn armor is in use, so it is never part of the current view, and neither is a mount's saddle or armor. Results aren't part of it either, like the crafting grid's result or a trade's. Items inside a closed shulker box or bundle are part of that stack, not stacks of their own, so they aren't counted.
 
 The menu's own slots are taken from first, in their order in the menu, then the inventory in slot order, and the carried stack last.
 

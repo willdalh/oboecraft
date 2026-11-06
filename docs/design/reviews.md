@@ -61,7 +61,7 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 | Action | Default key | Result |
 |---|---|---|
 | Answer | Enter | An attempt |
-| Don't know | Delete | A fail at once, or in a lesson, shows the Japanese name |
+| Don't know | Delete | A fail at once, or in a lesson, shows the Japanese name. Only while the typing bar is empty, so Delete still deletes typed text and fixing a typo never fails the review. |
 | Already known | F7 | The item becomes known and is unlocked forever, and the review ends |
 | Ignore | F8 | The item becomes ignored, and the review ends |
 | Show answer | F9 | Lessons only: shows the Japanese name |
@@ -91,7 +91,7 @@ The Japanese name and reading are only sent to the client when it shows them: af
 |---|---|
 | Pass | The item is unlocked, see [Pass](srs-state.md#pass). The reading is played and the Japanese name is shown at the top of the screen. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
-| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name and reading until the player closes it with Answer or Close. The review is already over, so closing it changes nothing. |
+| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name and reading until the player closes it with Answer or Close. Only a new press closes it, not a key still held from the last answer, and not in the first half second, so the answer is always seen. The review is already over, so closing it changes nothing. |
 | Lesson answer shown | The Japanese name is shown, and the lesson goes on. |
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |
