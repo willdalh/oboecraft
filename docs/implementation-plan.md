@@ -29,7 +29,7 @@ See the [architecture overview](architecture/overview.md) for the details.
 
 - The mod is installed on both the server and the client. Singleplayer runs on Minecraft's built-in server, so it uses the same code.
 - The server decides everything that matters: SRS states, answer checking, levels, removing and bans.
-- The client only displays: the answer menu, "???" names, timer bars, slot markers and the spoken reading.
+- The client only displays: the answer menu, "???" names, timer bars and slot markers.
 - The server sends each player their SRS states and pushes updates when they change.
 - Locks are checked on both sides. The client checks first and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
 - The client sends the typed answer, and the server replies with a pass or fail. The Japanese name is only sent to the client when needed: in lessons and after a fail.
@@ -263,7 +263,7 @@ Built: name parts in the core (`JapaneseName` and `NamePart`), the name list fil
 
 Where it differs from the plan: a long e can be written with い or え, ō and o- write a long vowel, and full-width letters count, see [Answer checking](#answer-checking). The name list file has no separate field for the Japanese name, since it is the parts joined.
 
-What later milestones should know: milestone 5's script writes `japaneseName` as name parts, with the particle の as its own part, readings in hiragana and kanji split per kanji only where each has its own reading. Where parts are split matters: a long vowel is only matched inside a part, so the script must not split one between two parts, and ヶ and ヵ need their reading given. The mod refuses a broken entry when it starts, naming the entry, but can't tell a wrong reading, see [Name list file](architecture/name-list-file.md#checks). Milestone 10 speaks `JapaneseName.reading()`. The answer is still shown after a pass as the name and its reading, unchanged from 3b.
+What later milestones should know: milestone 5's script writes `japaneseName` as name parts, with the particle の as its own part, readings in hiragana and kanji split per kanji only where each has its own reading. Where parts are split matters: a long vowel is only matched inside a part, so the script must not split one between two parts, and ヶ and ヵ need their reading given. The mod refuses a broken entry when it starts, naming the entry, but can't tell a wrong reading, see [Name list file](architecture/name-list-file.md#checks). The answer is still shown after a pass as the name and its reading, unchanged from 3b.
 
 First the agent decides the name list file format (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in that format.
 
@@ -275,7 +275,7 @@ Built: the name list tool in a new `tools` module (`./gradlew :tools:generateNam
 
 Where it differs from the plan: the readings are split per kanji with KANJIDIC2, which the plan didn't name. The review was done in one PR, not several. The tool doesn't build the merge of two entries, since that needs former ids: it stops and says so, and the first update that merges entries builds them.
 
-What later milestones should know: every vanilla item is now in the name list, so a test that needs a stack that isn't uses a stack named like another mod's item (`OtherModStacks` in the game tests). Some items share an entry because they share a name, like the brick item and the bricks block (レンガ) and all smithing templates (鍛冶型). After a Minecraft update, run the tool, review every generated entry and check `ItemNameKeys.CODE_NAMES`. Milestone 10 can speak `JapaneseName.reading()` for every item. Changes to the name list stay under CC BY-SA 4.0.
+What later milestones should know: every vanilla item is now in the name list, so a test that needs a stack that isn't uses a stack named like another mod's item (`OtherModStacks` in the game tests). Some items share an entry because they share a name, like the brick item and the bricks block (レンガ) and all smithing templates (鍛冶型). After a Minecraft update, run the tool, review every generated entry and check `ItemNameKeys.CODE_NAMES`. Changes to the name list stay under CC BY-SA 4.0.
 
 A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with JMdict, and writes the name list and a list of words to check closely. Then an agent reviews all ~1,500 readings, which can be several PRs, for example by item group. This milestone also settles the JMdict CC BY-SA question and adds the credits.
 
