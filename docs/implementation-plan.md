@@ -156,7 +156,7 @@ Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-
 
 ### 3a. Foundations design
 
-**Status:** done
+**Status:** done ([#15](https://github.com/willdalh/oboecraft/pull/15))
 
 Designed the foundations in [`docs/design/`](design/README.md) (items, SRS state, lock check, reviews, settings and time) and in [`docs/architecture/`](architecture/overview.md) ([core](architecture/core.md), [Fabric adapter](architecture/fabric.md) and [progress files](architecture/progress-files.md)), with the [translation key ADR](decisions/20261106-items-identified-by-translation-key.md). The decisions later milestones need are under [Decisions](#decisions).
 
