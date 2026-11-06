@@ -5,6 +5,7 @@ import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.item.NameListFile;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
+import io.github.willdalh.oboecraft.fabric.lock.ServerLockHooks;
 import io.github.willdalh.oboecraft.fabric.network.ServerNetworking;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
@@ -48,6 +49,7 @@ public final class OboecraftMod implements ModInitializer {
         ServerNetworking.registerPayloadTypes();
         ServerNetworking.registerReceivers(serverReviews);
         ServerNetworking.registerProtocolCheck();
+        ServerLockHooks.register();
         registerProgressEvents(serverProgress, serverReviews);
 
         LOGGER.info("Oboecraft initialized with {} items in the name list", itemMapping.nameList().size());

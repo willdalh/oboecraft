@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -31,22 +31,55 @@ Milestone 3b checked these methods against Minecraft 26.3, and the game tests ch
 
 ## The lock check entry point
 
-`Locks.check(view, player, stack)` is in `src/main`, so both sides use the same code. Milestone 6 adds the interaction as an input. It:
+Everything in this section is in `fabric.lock`, in `src/main`, so both sides use the same code, unless it says otherwise.
+
+An action is described as the stacks it would interact with, each a `CheckedStack`: the stack, its core `Interaction`, and its `StackLocation`. A `StackLocation` says where the stack is, so either side can find it again and the answer menu can open for it:
+
+| Location | Meaning |
+|---|---|
+| `InventorySlot(index)` | A slot of the player's inventory: the hotbar, the main inventory or the offhand. Worn armor isn't in the current view, so it is never a location. A hand is the selected hotbar slot or the offhand. |
+| `MenuSlot(containerId, slot)` | A slot of the player's open menu |
+| `Carried(containerId)` | The stack the player carries with the mouse in the open menu |
+
+`StackLocation.stackIn(player)` reads the stack on the caller's side, and is empty if the location isn't valid for the player, like a menu that isn't open or a slot out of range. So a location from the network is never trusted.
+
+`Locks.firstStopped(view, player, stacks)` asks the lock check about each stack in order, and returns the first one it doesn't allow, as a `StoppedStack` with its item and the decision. For each stack it:
 
 1. maps the stack to an item, and allows a stack that isn't one,
 2. gets the item's SRS state from `view`, a `ProgressView` that `ServerProgress` and `ClientProgress` both implement,
 3. gets the time from `view`: the clock on the server, and on the client the server's time worked out by `ClientProgress`, see [Time](../design/time.md#the-client),
 4. works out whether locks are active from the player's game mode, and from `view.hasProgress`, which on the client is only true once `ProgressSync` has arrived for this connection, and
-5. calls core `LockCheck.check` and returns its decision with the item, as a `LockResult`.
+5. calls core `LockCheck.check` with the stack's interaction.
 
-Every interaction hook calls this and nothing else. A hook only decides what stopping the action looks like: returning a failed `InteractionResult`, cancelling a slot click, and so on.
+Two classes turn an action into its stacks, with the rules in [Lock check](../design/lock-check.md#what-the-player-tries-to-do):
 
-Hooks use mixins where Fabric API has no event at the right moment. Placing is checked in `ItemStack.useOn`, which is where a stack is used on a block, after the block itself had its chance to react. So right-clicking a chest or crafting table with a locked item in hand still opens it. Fabric's `UseBlockCallback` runs before the block reacts, so it would stop that too. Two mixins inject at the start of `useOn`, one per side:
+- `HeldStacks`: placing, using (with the ammo of a bow or crossbow), using on an entity, attacking with a weapon, mining with a tool, and dropping the selected stack.
+- `MenuClicks.stacksOf(menu, slot, button, input, player)`: a click in a menu, from Minecraft's `ContainerInput` kinds. `MenuSlots` says what putting a stack into a slot and taking it out does, from the slot's class, its container and the menu's class, and whether a slot is a crafting result.
 
-- `ItemStackMixin` in `src/main` acts for a `ServerPlayer`. On **review**, `ServerLockHooks` stops the action and sends the hand's slot again, since the client may already have placed the block and used up the stack. Unless a review is going, it also sends `ShowReview` with the hand.
-- `ClientItemStackMixin` in `src/client` acts for the `LocalPlayer` on the client side. On **review**, `ClientReviews` stops the action, opens the answer menu at once and sends `StartReview`.
+Every hook calls `firstStopped` through one of two classes, which only decide what stopping the action looks like:
 
-The client returns a failed result before it predicts the placement, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while any screen is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
+- `ServerLockHooks` acts for a `ServerPlayer`. When it stops an action, it sends a stopped stack's inventory slot again, since the client may already have used it up, and unless a review is going, it sends `ShowReview` with the location. After a stopped menu click, Minecraft's own click handler sends the menu's real contents, so no resend is needed. While a review is going, `ServerLockHooks.stopsClick` refuses every click in the open menu.
+- `ClientReviews.stops` in `src/client` acts for the `LocalPlayer`. When it stops an action, it opens the answer menu at once and sends `StartReview`.
+
+Hooks use mixins where Fabric API has no event at the right moment:
+
+| Action | Server | Client |
+|---|---|---|
+| Placing | `ItemStackMixin` on `ItemStack.useOn` | `ClientItemStackMixin` on `ItemStack.useOn` |
+| Using, equipping by use, ammo | `ItemStackMixin` on `ItemStack.use` | `ClientItemStackMixin` on `ItemStack.use` |
+| Using on an entity | Fabric's `UseEntityCallback` | Fabric's `UseEntityCallback` |
+| Attacking | Fabric's `AttackEntityCallback`, and `PiercingWeaponMixin` for a spear's stab | Fabric's `AttackEntityCallback`, and `MultiPlayerGameModeMixin` on `piercingAttack` |
+| Mining | Fabric's `AttackBlockCallback` | Fabric's `AttackBlockCallback` |
+| Dropping with the drop key | `ServerPlayerMixin` on `ServerPlayer.drop(boolean)` | `MultiPlayerGameModeMixin` on `dropItem` |
+| Menu clicks | `AbstractContainerMenuMixin` on `AbstractContainerMenu.clicked` | `MultiPlayerGameModeMixin` on `handleContainerInput`, before it predicts the click and sends it |
+| The recipe book | `ServerPlaceRecipeMixin`, which skips a locked ingredient | None: only the server moves the ingredients |
+| Choosing a trade | `MerchantMenuMixin`, which skips a locked payment | None: the server's menu contents undo the client's move |
+
+Fabric's events run the callbacks of both sides on each side, so each callback checks whether its player is a `ServerPlayer` or a `LocalPlayer`. `ServerLockHooks.register` and `ClientLockHooks.register` register them.
+
+Placing is checked in `ItemStack.useOn`, which is where a stack is used on a block, after the block itself had its chance to react. So right-clicking a chest or crafting table with a locked item in hand still opens it. Fabric's `UseBlockCallback` runs before the block reacts, so it would stop that too.
+
+The client returns a failed result before it predicts placing or using, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while an answer menu or any screen other than the open menu's is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
 
 Milestone 8 adds `Locks.checkPickUp(view, player, stack)` with core `LockCheck.checkPickUp`.
 
@@ -71,17 +104,19 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 `ServerReviews` holds each player's active review, so far the review id and the item. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
-- starts a review when the client asks with `StartReview`, after reading the stack in the given hand itself and asking core `ReviewRules.start`. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
+- starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
 - passes each answer to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome,
-- cancels the review when the player closes its answer menu, dies or leaves.
+- cancels the review when the player closes its answer menu, dies or leaves, and when the menu its trigger needs closes on the server. Every way a menu closes on the server ends in `ServerPlayer.doCloseContainer`, which `ServerPlayerMixin` hooks to call `ServerReviews.menuClosing`.
 
-Later milestones add to the active review: the [trigger](../design/reviews.md#the-trigger), a sealed type in `fabric` with `Inventory`, `Container(containerId)` and `Crafting(containerId)`, worked out from the player's open menu and the slot when the review starts (milestone 6); the recipe's ingredients for a crafting trigger (milestone 6); refusing clicks in the open menu while the review is going (milestone 6); cancelling it when the container closes on the server (milestone 6); and turning the trigger into counts for core punishment on a fail (milestone 9). In 3b every review starts from placing, so the trigger is always the inventory and isn't stored.
+Each active review has its [trigger](../design/reviews.md#the-trigger), a sealed `Trigger` in `fabric.review` with `Inventory`, `Container(containerId)` and `Crafting(containerId)`. `Trigger.of(player, location)` works it out when the review starts, from the player's open menu and the location: a crafting result slot is `Crafting`, anything else with a menu open is `Container`, and with only the inventory open it is `Inventory`. `isReviewing(player)` tells the click hook to refuse clicks.
+
+Milestone 9 adds the recipe's ingredients for a crafting trigger, and turns the trigger into counts for core punishment on a fail.
 
 ## The answer menu
 
 `AnswerScreen` is in `src/client`. It is a `Screen` with Minecraft's normal `EditBox`, so the keyboard's kanji conversion (IME) works. It shows the stack's icon without its name, the item's level, the typing bar and a hint line with the keys. It doesn't pause the game.
 
-In 3b the answer menu only opens when no other screen is open. Opening a screen calls `removed()` on the one it replaces, and for a container's screen that runs the menu's `removed` on the client, which drops what the player carries and empties a crafting grid. So the container's screen can't simply be brought back afterwards. Milestone 6, which opens the answer menu over containers, needs another way, like drawing the answer menu over the container's screen without replacing it.
+The answer menu opens over the game, or over the screen of the player's open menu, like a chest or the inventory. Over any other screen, like the chat, it doesn't open, and the player tries again. Over a menu's screen, it replaces that screen without closing the menu: the client sends no close, so the menu stays open on the server, and `player.containerMenu` stays the same on the client. Opening a screen calls `removed()` on the one it replaces, and for a menu's screen that runs the menu's `removed` on the client, which empties result slots like the crafting grid's. So `GuiMixin` skips that call when an `AnswerScreen` replaces the screen it opened over. When the answer menu closes, it sets that screen again, which builds its widgets again, if the menu is still open. If the server closed the menu meanwhile, its close message already closed every screen. It doesn't draw the menu's screen behind it.
 
 The screen only sends what the player does and shows what the server sends. It never decides a pass or fail. Closing it in any way other than the server ending the review sends `CloseReview`.
 
@@ -99,9 +134,9 @@ Server to client:
 |---|---|---|
 | `ProgressSync` | The player joins | Every SRS state that isn't `Leveled.NEW` |
 | `StateUpdate` | An SRS state changes, or before `ReviewRefused` because the item isn't locked | The item id and its state |
-| `ShowReview` | The server stopped an action because the item is locked | The hand. The client opens the answer menu for it, unless one is open. |
+| `ShowReview` | The server stopped an action because the item is locked | The stack's location. The client opens the answer menu for it, unless an answer menu or another screen than the open menu's is open. |
 | `ReviewStarted` | A review starts | The review id, item id and level. Later: whether it is a lesson and attempts left. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
-| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone, or the player's progress isn't loaded. A refusal because the item isn't locked comes right after a `StateUpdate` with its state. Later: banned. |
+| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player's progress isn't loaded. A refusal because the item isn't locked comes right after a `StateUpdate` with its state. Later: banned. |
 | `ReviewAnswered` | After an answer | The review id, pass or wrong, and the Japanese name and reading after a pass |
 | `ReviewCancelled` | The server cancels the review, or the client answers in a review that isn't going | The review id |
 
@@ -111,11 +146,13 @@ Client to server:
 
 | Payload | When | Contents |
 |---|---|---|
-| `StartReview` | The client opens an answer menu | A new review id, and where the stack is: a hand. Milestone 8 adds a slot in the open menu. Never the item id or the trigger, which the server works out itself. |
+| `StartReview` | The client opens an answer menu | A new review id, and the stack's location. Never the item id or the trigger, which the server works out itself. |
 | `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
 | `CloseReview` | The player closes the answer menu | The review id |
 
 Milestones 8 and 9 add a payload for each other action, like Don't know. The server sends its settings in milestone 12.
+
+A `StackLocation` is sent as its kind and its numbers. Decoding refuses a kind that doesn't exist, which disconnects the sender.
 
 Both sides must run the same version of the mod's network protocol, since the item ids and payloads must match. `ProtocolCheck.PROTOCOL_VERSION` goes up whenever a payload or its meaning changes. The version is part of the id of a configuration payload, `oboecraft:protocol/<version>`, which is never sent: a client with the mod registers a receiver for it, so Fabric tells the server which version the client has. In Fabric's `ServerConfigurationConnectionEvents.CONFIGURE`, which runs once Fabric knows the client's payloads, the server disconnects a player whose client can't receive that id, with a message saying which protocol version the server needs. This covers clients without the mod and clients with another protocol version.
 

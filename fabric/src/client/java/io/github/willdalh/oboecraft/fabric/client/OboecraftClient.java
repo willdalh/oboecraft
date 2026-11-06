@@ -25,6 +25,7 @@ public final class OboecraftClient implements ClientModInitializer {
         progress = new ClientProgress();
         reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings());
         registerReceivers();
+        ClientLockHooks.register(reviews);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progress.clear());
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
     }
@@ -50,7 +51,7 @@ public final class OboecraftClient implements ClientModInitializer {
                 progress.update(context.player().connection, payload.item(), payload.state(), payload.serverTime()));
         ClientPlayNetworking.registerGlobalReceiver(ShowReview.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.showReview(payload.hand());
+            reviews.showReview(payload.location());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewStarted.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());

@@ -8,6 +8,7 @@ import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
 import io.github.willdalh.oboecraft.fabric.network.ReviewRefused;
@@ -20,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Each player's active review. The server runs every review: it reads the stack itself, checks answers and stores
@@ -33,8 +34,8 @@ public final class ServerReviews {
     private final Settings settings;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
 
-    /** A review that is going. Later milestones add the trigger here. */
-    private record ActiveReview(int reviewId, NameListEntry entry) {
+    /** A review that is going, and what the player was doing when it started. */
+    private record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
     public ServerReviews(ItemMapping itemMapping, ServerProgress progress, Settings settings) {
@@ -43,23 +44,34 @@ public final class ServerReviews {
         this.settings = Objects.requireNonNull(settings, "settings");
     }
 
+    /** Whether the player has a review going. */
+    public boolean isReviewing(ServerPlayer player) {
+        return active.containsKey(player.getUUID());
+    }
+
     /** The item the player is reviewing, if a review is going. */
     public Optional<ItemId> activeItem(ServerPlayer player) {
         return Optional.ofNullable(active.get(player.getUUID())).map(review -> review.entry().id());
     }
 
+    /** The trigger of the player's review, if a review is going. */
+    public Optional<Trigger> activeTrigger(ServerPlayer player) {
+        return Optional.ofNullable(active.get(player.getUUID())).map(ActiveReview::trigger);
+    }
+
     /**
-     * Starts the review {@code reviewId} of the stack in the player's hand, if it is a locked item. A client only asks
-     * when it has no answer menu open, so a review that is still going is one the client has left: the new one
-     * replaces it.
+     * Starts the review {@code reviewId} of the stack at {@code location}, if it is a locked item. The server reads
+     * the stack and works out the trigger itself. A client only asks when it has no answer menu open, so a review that
+     * is still going is one the client has left: the new one replaces it.
      */
-    public void start(ServerPlayer player, int reviewId, InteractionHand hand) {
+    public void start(ServerPlayer player, int reviewId, StackLocation location) {
         active.remove(player.getUUID());
         if (!progress.isLoaded(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
         }
-        Optional<NameListEntry> entry = itemMapping.entryOf(player.getItemInHand(hand));
+        Optional<ItemStack> stack = location.stackIn(player);
+        Optional<NameListEntry> entry = stack.flatMap(itemMapping::entryOf);
         if (entry.isEmpty()) {
             refuse(player, reviewId, ReviewRefused.Reason.STACK_GONE);
             return;
@@ -67,7 +79,8 @@ public final class ServerReviews {
         ItemId item = entry.get().id();
         switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
             case ReviewStart.Started started -> {
-                active.put(player.getUUID(), new ActiveReview(reviewId, entry.get()));
+                Trigger trigger = Trigger.of(player, location);
+                active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
                 ServerPlayNetworking.send(
                         player, new ReviewStarted(progress.now(), reviewId, item, started.level()));
             }
@@ -114,6 +127,17 @@ public final class ServerReviews {
         ActiveReview review = active.get(player.getUUID());
         if (review != null && review.reviewId() == reviewId) {
             active.remove(player.getUUID());
+        }
+    }
+
+    /**
+     * The player's open menu is closing on the server. A review that needs that menu, since its current view is in
+     * it, is cancelled.
+     */
+    public void menuClosing(ServerPlayer player) {
+        ActiveReview review = active.get(player.getUUID());
+        if (review != null && review.trigger().needsMenu(player.containerMenu.containerId)) {
+            cancel(player);
         }
     }
 

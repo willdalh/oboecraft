@@ -2,7 +2,7 @@
 
 The `core` module holds the game rules as plain Java, in `io.github.willdalh.oboecraft.core`. This page describes its parts and their names. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b. Milestone 4 added name parts and full answer checking. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
+The parts were designed in milestone 3a and built in milestone 3b. Milestone 4 added name parts and full answer checking, and milestone 6 the interaction and the drop setting. Each type has only what the milestones so far use. Later milestones add values, fields and rules to these types, as noted below.
 
 ## Rules for the core
 
@@ -22,6 +22,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | | `JapaneseName`, `NamePart` | 4 |
 | `core.srs` | `SrsState`, `Progress`, `SrsRules` | 3b |
 | `core.lock` | `LockDecision`, `LockCheck` | 3b |
+| | `Interaction` | 6 |
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
 | `core.settings` | `Settings`, `LevelSettings` | 3b |
 | `core.text` | `JapaneseText`, `Romaji` | 4 |
@@ -46,9 +47,10 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 ### Lock check
 
 - `LockDecision`: `ALLOW` or `REVIEW`. Milestone 8 adds `DENY` and milestone 9 adds `BANNED`.
-- `LockCheck.check(state, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) for an item, in order. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states. A stack that isn't in the name list has no SRS state, so `fabric` allows it before it gets here (rule 1).
+- `Interaction`: what the player tries to do, one value per kind in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do), like `PLACE`, `INGREDIENT` or `DROP`. Which game action is which interaction is a Minecraft question, so `fabric` decides it.
+- `LockCheck.check(state, interaction, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) for an item, in order. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states. A stack that isn't in the name list has no SRS state, so `fabric` allows it before it gets here (rule 1). `DROP` is allowed unless `Settings.dropCountsAsInteraction()` is on (rule 3).
 
-Each input is added when a rule first depends on it: milestone 6 adds an `Interaction`, with one value per interaction in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do), for the drop rule. Milestone 8 adds `LockCheck.checkPickUp(state, locksActive)`, the same rules for picking up, which isn't an interaction, so ignored items and creative mode are decided once.
+Each input is added when a rule first depends on it. Milestone 8 adds `LockCheck.checkPickUp(state, locksActive)`, the same rules for picking up, which isn't an interaction, so ignored items and creative mode are decided once.
 
 `LockCheck` is the only place that decides whether an action is allowed. Every caller in `fabric`, on both sides, goes through it.
 
@@ -87,7 +89,7 @@ The answer checker only keeps what depends on the answer: the states it has visi
 
 ### Settings
 
-- `Settings`: a record with the [server settings](../design/settings.md#server-settings). `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` is a level's interval.
+- `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels and `dropCountsAsInteraction`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` is a level's interval.
 - `LevelSettings`: one level's interval. Milestone 9 adds the level's demotion.
 
 Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, and the ban length and `percentageFactor` in 9.

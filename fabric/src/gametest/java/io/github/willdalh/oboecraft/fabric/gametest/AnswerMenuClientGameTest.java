@@ -6,16 +6,9 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.AnswerScreen;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.stream.Stream;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.BlockPos;
@@ -30,7 +23,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
-        deleteSingleplayerProgress();
+        SingleplayerProgress.delete();
         try (TestSingleplayerContext singleplayer = context.worldBuilder()
                 .adjustSettings(settings -> settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL))
                 .create()) {
@@ -112,20 +105,4 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             throw new AssertionError(what);
         }
     }
-
-    /** Singleplayer progress is shared across worlds, so a run starts from no progress. */
-    private static void deleteSingleplayerProgress() {
-        Path progress = FabricLoader.getInstance().getGameDir().resolve("oboecraft");
-        if (!Files.exists(progress)) {
-            return;
-        }
-        try (Stream<Path> files = Files.walk(progress)) {
-            for (Path file : files.sorted(Comparator.reverseOrder()).toList()) {
-                Files.delete(file);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
 }

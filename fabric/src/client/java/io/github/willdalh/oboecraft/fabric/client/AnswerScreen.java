@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.network.chat.Component;
@@ -19,6 +20,9 @@ import org.jspecify.annotations.Nullable;
  * The answer menu of one review: a typing bar for the item's Japanese name. It uses Minecraft's normal text box, so
  * the keyboard's kanji conversion works. It only sends what the player does and shows what the server sends, and
  * never decides a pass or fail. The game doesn't pause while it is open.
+ *
+ * <p>Over an open menu, like a chest, the answer menu replaces the menu's screen without closing the menu, and goes
+ * back to that screen when it closes. See {@code GuiMixin}.
  */
 public final class AnswerScreen extends Screen {
     private static final Component TITLE = Component.translatable("oboecraft.answer_menu.title");
@@ -32,6 +36,7 @@ public final class AnswerScreen extends Screen {
     private final int reviewId;
     private final ItemId item;
     private final ItemStack icon;
+    private final @Nullable AbstractContainerScreen<?> menuScreen;
     private int level;
     private @Nullable EditBox input;
     private boolean wrong;
@@ -39,17 +44,25 @@ public final class AnswerScreen extends Screen {
     private boolean endedByServer;
 
     /**
-     * @param reviewId the id of the review, which every message about it carries
-     * @param item     the item under review
-     * @param icon     the stack being reviewed, shown without its name
-     * @param level    the item's level as the client knows it, until the server says
+     * @param reviewId   the id of the review, which every message about it carries
+     * @param item       the item under review
+     * @param icon       the stack being reviewed, shown without its name
+     * @param level      the item's level as the client knows it, until the server says
+     * @param menuScreen the screen of the open menu that the answer menu opens over, or null if none is open
      */
-    AnswerScreen(int reviewId, ItemId item, ItemStack icon, int level) {
+    AnswerScreen(
+            int reviewId, ItemId item, ItemStack icon, int level, @Nullable AbstractContainerScreen<?> menuScreen) {
         super(TITLE);
         this.reviewId = reviewId;
         this.item = item;
         this.icon = icon;
         this.level = level;
+        this.menuScreen = menuScreen;
+    }
+
+    /** The screen of the open menu that the answer menu opened over, or null if it opened over the game. */
+    public @Nullable AbstractContainerScreen<?> menuScreen() {
+        return menuScreen;
     }
 
     int reviewId() {
@@ -126,6 +139,17 @@ public final class AnswerScreen extends Screen {
     void end() {
         endedByServer = true;
         onClose();
+    }
+
+    /**
+     * Goes back to the open menu's screen, if the answer menu opened over one and that menu is still open. If the
+     * menu has closed meanwhile, its screen is gone too.
+     */
+    @Override
+    public void onClose() {
+        boolean menuStillOpen = menuScreen != null && minecraft.player != null
+                && menuScreen.getMenu() == minecraft.player.containerMenu;
+        minecraft.gui.setScreen(menuStillOpen ? menuScreen : null);
     }
 
     /** Closing the menu in any other way than the server ending the review cancels the review. */
