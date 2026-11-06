@@ -11,10 +11,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.ByIdMap;
 
 /**
- * Server to client, after an answer. The Japanese name and reading are only sent when the client shows them, which
+ * Server to client, after an answer in the review {@code reviewId}. The Japanese name and reading are only sent when the client shows them, which
  * is after a pass.
  */
-public record ReviewAnswered(Instant serverTime, ReviewOutcome outcome, Optional<Answer> answer)
+public record ReviewAnswered(Instant serverTime, int reviewId, ReviewOutcome outcome, Optional<Answer> answer)
         implements CustomPacketPayload {
     public static final Type<ReviewAnswered> TYPE = NetworkCodecs.type("review_answered");
 
@@ -25,6 +25,7 @@ public record ReviewAnswered(Instant serverTime, ReviewOutcome outcome, Optional
 
     public static final StreamCodec<ByteBuf, ReviewAnswered> STREAM_CODEC = StreamCodec.composite(
             NetworkCodecs.INSTANT, ReviewAnswered::serverTime,
+            ByteBufCodecs.VAR_INT, ReviewAnswered::reviewId,
             OUTCOME, ReviewAnswered::outcome,
             ByteBufCodecs.optional(Answer.STREAM_CODEC), ReviewAnswered::answer,
             ReviewAnswered::new);

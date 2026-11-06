@@ -62,7 +62,7 @@ Placing is checked when the stack is used on the block, after the block itself h
 
 ## What is built when
 
-Milestone 3b builds the decisions Allow and Review, and rules 1, 2, 7 and 9. Milestone 6 adds rule 3 with the drop setting, milestone 8 adds rules 4 to 6 with Deny and picking up, and milestone 9 adds rule 8 with Banned.
+Milestone 3b builds the decisions Allow and Review, and rules 1, 2, 7 and 9. Each input is added when a rule first depends on it, so 3b's check doesn't take the interaction yet. Milestone 6 adds rule 3 with the drop setting, milestone 8 adds rules 4 to 6 with Deny and picking up, and milestone 9 adds rule 8 with Banned.
 
 ## Opening the answer menu on purpose
 
@@ -76,4 +76,4 @@ The check runs on both sides with the same rules.
 - The client's locks are only active once the server has sent the player's SRS states for this connection. Before that, and on a server without the mod, the client allows everything. Otherwise every item would count as level 0 and locked, and joining a vanilla server would stop every action and open answer menus nobody answers.
 - The server checks too and has the final say. A modified client can't get past it.
 
-Minecraft sends a placement to the server even when the client stopped it, so the server checks every placement again. When the server stops an action, it tells the client what to show: the answer menu, or later the ban message. The client ignores this while its answer menu is already open, which is the normal case. When the client allowed the action and the server didn't, for example because the item locked a moment before, the client opens the answer menu then, and the server sends the player's slots again so a stack the client already used up is put back.
+Minecraft sends a placement to the server even when the client stopped it, so the server checks every placement again. When the server stops an action, it tells the client what to show: the answer menu, or later the ban message. The client ignores this while its answer menu is already open, which is the normal case. When the client allowed the action and the server didn't, for example because the item locked a moment before, the client opens the answer menu then, and the server sends the hand's slot again so a stack the client already used up is put back.

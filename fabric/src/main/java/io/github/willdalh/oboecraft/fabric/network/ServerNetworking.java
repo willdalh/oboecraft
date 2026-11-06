@@ -35,11 +35,11 @@ public final class ServerNetworking {
      */
     public static void registerReceivers(ServerReviews reviews) {
         ServerPlayNetworking.registerGlobalReceiver(StartReview.TYPE,
-                (payload, context) -> reviews.start(context.player(), payload.hand()));
+                (payload, context) -> reviews.start(context.player(), payload.reviewId(), payload.hand()));
         ServerPlayNetworking.registerGlobalReceiver(SubmitAnswer.TYPE,
-                (payload, context) -> reviews.answer(context.player(), payload.answer()));
+                (payload, context) -> reviews.answer(context.player(), payload.reviewId(), payload.answer()));
         ServerPlayNetworking.registerGlobalReceiver(CloseReview.TYPE,
-                (payload, context) -> reviews.close(context.player()));
+                (payload, context) -> reviews.close(context.player(), payload.reviewId()));
     }
 
     /**

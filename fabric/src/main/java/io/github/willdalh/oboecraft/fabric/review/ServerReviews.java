@@ -7,7 +7,6 @@ import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.settings.Settings;
-import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
@@ -25,7 +24,8 @@ import net.minecraft.world.InteractionHand;
 
 /**
  * Each player's active review. The server runs every review: it reads the stack itself, checks answers and stores
- * the new state. A player has at most one review at a time. Only used on the server thread.
+ * the new state. A player has at most one review at a time. Each review has the id the client gave it, and every
+ * message about it carries that id. Only used on the server thread.
  */
 public final class ServerReviews {
     private final ItemMapping itemMapping;
@@ -34,7 +34,7 @@ public final class ServerReviews {
     private final Map<UUID, ActiveReview> active = new HashMap<>();
 
     /** A review that is going. Later milestones add the trigger here. */
-    private record ActiveReview(NameListEntry entry) {
+    private record ActiveReview(int reviewId, NameListEntry entry) {
     }
 
     public ServerReviews(ItemMapping itemMapping, ServerProgress progress, Settings settings) {
@@ -49,51 +49,47 @@ public final class ServerReviews {
     }
 
     /**
-     * Starts a review of the stack in the player's hand, if it is a locked item. If a review is already going, the
-     * player is told about that one instead, so the client's answer menu shows the review the server runs.
+     * Starts the review {@code reviewId} of the stack in the player's hand, if it is a locked item. A client only asks
+     * when it has no answer menu open, so a review that is still going is one the client has left: the new one
+     * replaces it.
      */
-    public void start(ServerPlayer player, InteractionHand hand) {
+    public void start(ServerPlayer player, int reviewId, InteractionHand hand) {
+        active.remove(player.getUUID());
         if (!progress.isLoaded(player)) {
-            return;
-        }
-        ActiveReview current = active.get(player.getUUID());
-        if (current != null) {
-            sendStarted(player, current.entry().id());
+            refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
         }
         Optional<NameListEntry> entry = itemMapping.entryOf(player.getItemInHand(hand));
         if (entry.isEmpty()) {
-            ServerPlayNetworking.send(player, new ReviewRefused(progress.now(), ReviewRefused.Reason.STACK_GONE));
+            refuse(player, reviewId, ReviewRefused.Reason.STACK_GONE);
             return;
         }
         ItemId item = entry.get().id();
         switch (ReviewRules.start(progress.state(player, item), progress.now(), settings)) {
             case ReviewStart.Started started -> {
-                active.put(player.getUUID(), new ActiveReview(entry.get()));
-                ServerPlayNetworking.send(player, new ReviewStarted(progress.now(), item, started.level()));
+                active.put(player.getUUID(), new ActiveReview(reviewId, entry.get()));
+                ServerPlayNetworking.send(
+                        player, new ReviewStarted(progress.now(), reviewId, item, started.level()));
             }
             case ReviewStart.NotLocked notLocked -> {
                 progress.sendState(player, item);
-                ServerPlayNetworking.send(player, new ReviewRefused(progress.now(), ReviewRefused.Reason.NOT_LOCKED));
+                refuse(player, reviewId, ReviewRefused.Reason.NOT_LOCKED);
             }
         }
     }
 
-    private void sendStarted(ServerPlayer player, ItemId item) {
-        int level = switch (progress.state(player, item)) {
-            case SrsState.Leveled leveled -> leveled.level();
-        };
-        ServerPlayNetworking.send(player, new ReviewStarted(progress.now(), item, level));
+    private void refuse(ServerPlayer player, int reviewId, ReviewRefused.Reason reason) {
+        ServerPlayNetworking.send(player, new ReviewRefused(progress.now(), reviewId, reason));
     }
 
     /**
-     * Checks an answer in the player's review. A pass unlocks the item and ends the review. Blank answers aren't
-     * attempts and are ignored. An answer with no review going tells the client its review is cancelled.
+     * Checks an answer in the review {@code reviewId}. A pass unlocks the item and ends the review. Blank answers aren't
+     * attempts and are ignored. An answer in a review that isn't going tells the client that review is cancelled.
      */
-    public void answer(ServerPlayer player, String typed) {
+    public void answer(ServerPlayer player, int reviewId, String typed) {
         ActiveReview review = active.get(player.getUUID());
-        if (review == null) {
-            ServerPlayNetworking.send(player, new ReviewCancelled(progress.now()));
+        if (review == null || review.reviewId() != reviewId) {
+            ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
             return;
         }
         if (!ReviewRules.isAttempt(typed)) {
@@ -108,18 +104,23 @@ public final class ServerReviews {
             progress.update(player, entry.id(), result.newState());
             shownAnswer = Optional.of(new ReviewAnswered.Answer(entry.japaneseName(), entry.reading()));
         }
-        ServerPlayNetworking.send(player, new ReviewAnswered(progress.now(), result.outcome(), shownAnswer));
+        ServerPlayNetworking.send(
+                player, new ReviewAnswered(progress.now(), reviewId, result.outcome(), shownAnswer));
     }
 
-    /** Cancels the player's review because they closed the answer menu. Nothing changes. */
-    public void close(ServerPlayer player) {
-        active.remove(player.getUUID());
+    /** Cancels the review {@code reviewId} because the player closed its answer menu. Nothing changes. */
+    public void close(ServerPlayer player, int reviewId) {
+        ActiveReview review = active.get(player.getUUID());
+        if (review != null && review.reviewId() == reviewId) {
+            active.remove(player.getUUID());
+        }
     }
 
     /** Cancels the player's review on the server's side, for example when they die, and tells the client. */
     public void cancel(ServerPlayer player) {
-        if (active.remove(player.getUUID()) != null) {
-            ServerPlayNetworking.send(player, new ReviewCancelled(progress.now()));
+        ActiveReview review = active.remove(player.getUUID());
+        if (review != null) {
+            ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), review.reviewId()));
         }
     }
 

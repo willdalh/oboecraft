@@ -57,7 +57,7 @@ public final class OboecraftMod implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> serverProgress.load(handler.player));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             serverReviews.forget(handler.player.getUUID());
-            serverProgress.unload(handler.player);
+            serverProgress.unload(handler);
         });
         ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> serverProgress.saveAll());
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> serverProgress.saveAll());

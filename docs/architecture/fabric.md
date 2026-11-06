@@ -31,9 +31,9 @@ Milestone 3b checked these methods against Minecraft 26.3, and the game tests ch
 
 ## The lock check entry point
 
-`Locks.check(view, player, stack, interaction)` is in `src/main`, so both sides use the same code. It:
+`Locks.check(view, player, stack)` is in `src/main`, so both sides use the same code. Milestone 6 adds the interaction as an input. It:
 
-1. maps the stack to an item,
+1. maps the stack to an item, and allows a stack that isn't one,
 2. gets the item's SRS state from `view`, a `ProgressView` that `ServerProgress` and `ClientProgress` both implement,
 3. gets the time from `view`: the clock on the server, and on the client the server's time worked out by `ClientProgress`, see [Time](../design/time.md#the-client),
 4. works out whether locks are active from the player's game mode, and from `view.hasProgress`, which on the client is only true once `ProgressSync` has arrived for this connection, and
@@ -43,19 +43,20 @@ Every interaction hook calls this and nothing else. A hook only decides what sto
 
 Hooks use mixins where Fabric API has no event at the right moment. Placing is checked in `ItemStack.useOn`, which is where a stack is used on a block, after the block itself had its chance to react. So right-clicking a chest or crafting table with a locked item in hand still opens it. Fabric's `UseBlockCallback` runs before the block reacts, so it would stop that too. Two mixins inject at the start of `useOn`, one per side:
 
-- `ItemStackMixin` in `src/main` acts for a `ServerPlayer`. On **review**, `ServerLockHooks` stops the action, sends `ShowReview` with the hand, and sends the player's slots again, since the client may already have placed the block and used up the stack.
+- `ItemStackMixin` in `src/main` acts for a `ServerPlayer`. On **review**, `ServerLockHooks` stops the action and sends the hand's slot again, since the client may already have placed the block and used up the stack. Unless a review is going, it also sends `ShowReview` with the hand.
 - `ClientItemStackMixin` in `src/client` acts for the `LocalPlayer` on the client side. On **review**, `ClientReviews` stops the action, opens the answer menu at once and sends `StartReview`.
 
-The client returns a failed result before it predicts the placement, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one. The client ignores `ShowReview` while an answer menu is open, which is the normal case. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
+The client returns a failed result before it predicts the placement, but Minecraft sends the use to the server anyway. So the server checks every use, and sends `ShowReview` whenever it stops one and no review is going. In the normal case, `StartReview` from the client has arrived first, so no `ShowReview` is sent. The client ignores `ShowReview` while any screen is open. When the client allowed the action and the server didn't, for example because the item locked a moment before, `ShowReview` opens the answer menu.
 
 Milestone 8 adds `Locks.checkPickUp(view, player, stack)` with core `LockCheck.checkPickUp`.
 
 ## Progress on the server
 
-`ServerProgress` holds the progress of each player who is online, as core `Progress` values, keyed by UUID:
+`ServerProgress` holds the progress of each player who is online, as core `Progress` values, keyed by UUID. Each entry belongs to the player's connection, not to the `ServerPlayer`, since respawning gives the same connection a new `ServerPlayer`:
 
 - Loaded when the player joins (Fabric's `ServerPlayConnectionEvents.JOIN`), before anything can be checked, and sent in `ProgressSync`. A player whose progress isn't loaded counts as having none, so everything is locked for them.
-- Saved when the player leaves (`DISCONNECT`), when the world saves (`ServerLifecycleEvents.AFTER_SAVE`), and when the server stops (`SERVER_STOPPING`). Only progress with unsaved changes is written. A failed save is logged and tried again at the next save.
+- If an earlier session of the same player is still there when they join, its changes are saved first, and it is replaced.
+- Saved when the player leaves (`DISCONNECT`, which only removes the entry of that connection), when the world saves (`ServerLifecycleEvents.AFTER_SAVE`), and when the server stops (`SERVER_STOPPING`). Only progress with unsaved changes is written. A failed save is logged and tried again at the next save.
 - Every change goes through `update(player, item, state)`, which marks the player's progress as unsaved and sends the change in `StateUpdate`.
 
 The file is read and written on the server thread. The files are a few kilobytes and are only touched when a player joins or leaves and when the world saves, which is when Minecraft saves its own player data on that thread too.
@@ -68,21 +69,23 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 ## Reviews on the server
 
-`ServerReviews` holds each player's active review, so far only the item. It:
+`ServerReviews` holds each player's active review, so far the review id and the item. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
-- starts a review when the client asks with `StartReview`, after reading the stack in the given hand itself and asking core `ReviewRules.start`. If a review is already going, it sends `ReviewStarted` for that one again, so the client's answer menu shows the review the server runs,
+- starts a review when the client asks with `StartReview`, after reading the stack in the given hand itself and asking core `ReviewRules.start`. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
 - passes each answer to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome,
-- cancels the review when the player closes the answer menu, dies or leaves.
+- cancels the review when the player closes its answer menu, dies or leaves.
 
 Later milestones add to the active review: the [trigger](../design/reviews.md#the-trigger), a sealed type in `fabric` with `Inventory`, `Container(containerId)` and `Crafting(containerId)`, worked out from the player's open menu and the slot when the review starts (milestone 6); the recipe's ingredients for a crafting trigger (milestone 6); refusing clicks in the open menu while the review is going (milestone 6); cancelling it when the container closes on the server (milestone 6); and turning the trigger into counts for core punishment on a fail (milestone 9). In 3b every review starts from placing, so the trigger is always the inventory and isn't stored.
 
 ## The answer menu
 
-`AnswerScreen` is in `src/client`. It is a `Screen` with Minecraft's normal `EditBox`, so the keyboard's kanji conversion (IME) works. It shows the stack's icon without its name, the item's level, the typing bar and a hint line with the keys. It doesn't pause the game. It keeps the screen it opened over and goes back to it when the review ends, through `minecraft.gui.setScreen`, which doesn't close a container on the server.
+`AnswerScreen` is in `src/client`. It is a `Screen` with Minecraft's normal `EditBox`, so the keyboard's kanji conversion (IME) works. It shows the stack's icon without its name, the item's level, the typing bar and a hint line with the keys. It doesn't pause the game.
+
+In 3b the answer menu only opens when no other screen is open. Opening a screen calls `removed()` on the one it replaces, and for a container's screen that runs the menu's `removed` on the client, which drops what the player carries and empties a crafting grid. So the container's screen can't simply be brought back afterwards. Milestone 6, which opens the answer menu over containers, needs another way, like drawing the answer menu over the container's screen without replacing it.
 
 The screen only sends what the player does and shows what the server sends. It never decides a pass or fail. Closing it in any way other than the server ending the review sends `CloseReview`.
 
-Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't check whether the IME is converting. The IME's text that isn't confirmed yet reaches the screen as a `PreeditEvent`, and the answer menu ignores Enter while one is shown. So an Enter that confirms a conversion never submits the answer, on any platform, whether or not SDL3 also passes that key on. The client game test checks this with a simulated conversion.
+Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't check whether the IME is converting. The IME's text that isn't confirmed yet reaches the screen as a `PreeditEvent`, and the answer menu ignores every key while one is shown, since the keys belong to the conversion. So an Enter that confirms a conversion never submits the answer, an Esc that cancels it never closes the menu, and a Backspace never deletes confirmed text, on any platform, whether or not SDL3 also passes those keys on. The client game test checks Enter and Esc with a simulated conversion.
 
 `ClientReviews` opens the answer menu and handles the server's review messages. After a pass it shows the Japanese name and reading above the hotbar, until milestone 10 adds the notification and the spoken reading.
 
@@ -97,10 +100,10 @@ Server to client:
 | `ProgressSync` | The player joins | Every SRS state that isn't `Leveled.NEW` |
 | `StateUpdate` | An SRS state changes, or before `ReviewRefused` because the item isn't locked | The item id and its state |
 | `ShowReview` | The server stopped an action because the item is locked | The hand. The client opens the answer menu for it, unless one is open. |
-| `ReviewStarted` | A review starts, or the client asks while one is going | The item id and level. Later: whether it is a lesson and attempts left. |
-| `ReviewRefused` | A review can't start | Why: not locked, or the stack is gone. A refusal because the item isn't locked comes right after a `StateUpdate` with its state. Later: banned. |
-| `ReviewAnswered` | After an answer | Pass or wrong, and the Japanese name and reading after a pass |
-| `ReviewCancelled` | The server cancels the review, or the client answers with no review going | Nothing |
+| `ReviewStarted` | A review starts | The review id, item id and level. Later: whether it is a lesson and attempts left. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
+| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone, or the player's progress isn't loaded. A refusal because the item isn't locked comes right after a `StateUpdate` with its state. Later: banned. |
+| `ReviewAnswered` | After an answer | The review id, pass or wrong, and the Japanese name and reading after a pass |
+| `ReviewCancelled` | The server cancels the review, or the client answers in a review that isn't going | The review id |
 
 Every server to client payload also carries the server's current time, so the client keeps its idea of the server's time up to date.
 
@@ -108,9 +111,9 @@ Client to server:
 
 | Payload | When | Contents |
 |---|---|---|
-| `StartReview` | The client wants to start a review | Where the stack is: a hand. Milestone 8 adds a slot in the open menu. Never the item id or the trigger, which the server works out itself. |
-| `SubmitAnswer` | The player presses Enter with text in the typing bar | The typed text, at most 64 characters. Longer text is refused when it is decoded. |
-| `CloseReview` | The player closes the answer menu | Nothing |
+| `StartReview` | The client opens an answer menu | A new review id, and where the stack is: a hand. Milestone 8 adds a slot in the open menu. Never the item id or the trigger, which the server works out itself. |
+| `SubmitAnswer` | The player presses Enter with text in the typing bar | The review id, and the typed text, at most 64 characters. Longer text is refused when it is decoded. |
+| `CloseReview` | The player closes the answer menu | The review id |
 
 Milestones 8 and 9 add a payload for each other action, like Don't know. The server sends its settings in milestone 12.
 

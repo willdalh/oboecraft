@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
+import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
@@ -15,9 +16,9 @@ import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The answer menu: a typing bar for the item's Japanese name. It uses Minecraft's normal text box, so the keyboard's
- * kanji conversion works. It only sends what the player does and shows what the server sends, and never decides a
- * pass or fail. The game doesn't pause while it is open.
+ * The answer menu of one review: a typing bar for the item's Japanese name. It uses Minecraft's normal text box, so
+ * the keyboard's kanji conversion works. It only sends what the player does and shows what the server sends, and
+ * never decides a pass or fail. The game doesn't pause while it is open.
  */
 public final class AnswerScreen extends Screen {
     private static final Component TITLE = Component.translatable("oboecraft.answer_menu.title");
@@ -28,24 +29,40 @@ public final class AnswerScreen extends Screen {
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
 
-    private final @Nullable Screen previous;
+    private final int reviewId;
+    private final ItemId item;
     private final ItemStack icon;
     private int level;
-    private EditBox input;
+    private @Nullable EditBox input;
     private boolean wrong;
     private boolean composing;
     private boolean endedByServer;
 
     /**
-     * @param previous the screen the answer menu opens over, which it goes back to when the review ends
+     * @param reviewId the id of the review, which every message about it carries
+     * @param item     the item under review
      * @param icon     the stack being reviewed, shown without its name
      * @param level    the item's level as the client knows it, until the server says
      */
-    AnswerScreen(@Nullable Screen previous, ItemStack icon, int level) {
+    AnswerScreen(int reviewId, ItemId item, ItemStack icon, int level) {
         super(TITLE);
-        this.previous = previous;
+        this.reviewId = reviewId;
+        this.item = item;
         this.icon = icon;
         this.level = level;
+    }
+
+    int reviewId() {
+        return reviewId;
+    }
+
+    ItemId item() {
+        return item;
+    }
+
+    /** Whether the menu shows that the last answer was wrong. Client game tests read it. */
+    public boolean showsWrongAnswer() {
+        return wrong;
     }
 
     @Override
@@ -63,8 +80,16 @@ public final class AnswerScreen extends Screen {
         setInitialFocus(input);
     }
 
+    /**
+     * While the keyboard's kanji conversion has text that isn't confirmed, every key belongs to the conversion.
+     * Minecraft hands every key to the screen anyway, so the menu ignores them: an Enter that confirms the conversion
+     * doesn't submit, an Esc that cancels it doesn't close the menu, and a Backspace doesn't delete confirmed text.
+     */
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (composing) {
+            return true;
+        }
         if (event.isConfirmation()) {
             submit();
             return true;
@@ -72,10 +97,7 @@ public final class AnswerScreen extends Screen {
         return super.keyPressed(event);
     }
 
-    /**
-     * Tracks whether the keyboard's kanji conversion has text that isn't confirmed yet. Minecraft hands every key to
-     * the screen, so an Enter that confirms a conversion must not also submit the answer.
-     */
+    /** Tracks whether the keyboard's kanji conversion has text that isn't confirmed yet. */
     @Override
     public boolean preeditUpdated(@Nullable PreeditEvent event) {
         composing = event != null;
@@ -84,10 +106,9 @@ public final class AnswerScreen extends Screen {
 
     private void submit() {
         String typed = input.getValue();
-        if (composing || !ReviewRules.isAttempt(typed)) {
-            return;
+        if (ReviewRules.isAttempt(typed)) {
+            ClientPlayNetworking.send(new SubmitAnswer(reviewId, typed));
         }
-        ClientPlayNetworking.send(new SubmitAnswer(typed));
     }
 
     /** The server started the review, at this level. */
@@ -95,28 +116,23 @@ public final class AnswerScreen extends Screen {
         this.level = level;
     }
 
-    /** The server said the answer was wrong. The review goes on. */
+    /** The server said the answer was wrong. The typing bar is cleared, and the review goes on. */
     void answeredWrong() {
-        wrong = true;
         input.setValue("");
+        wrong = true;
     }
 
     /** The server ended the review, so the menu closes without telling it. */
     void end() {
         endedByServer = true;
-        minecraft.gui.setScreen(previous);
-    }
-
-    @Override
-    public void onClose() {
-        minecraft.gui.setScreen(previous);
+        onClose();
     }
 
     /** Closing the menu in any other way than the server ending the review cancels the review. */
     @Override
     public void removed() {
         if (!endedByServer && ClientPlayNetworking.canSend(CloseReview.TYPE)) {
-            ClientPlayNetworking.send(CloseReview.INSTANCE);
+            ClientPlayNetworking.send(new CloseReview(reviewId));
         }
     }
 

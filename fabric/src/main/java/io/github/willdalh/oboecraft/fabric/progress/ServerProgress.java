@@ -22,6 +22,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
 
@@ -40,18 +41,20 @@ public final class ServerProgress implements ProgressView {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    /** One online player's progress, where it is saved, and the player session it belongs to. */
+    /**
+     * One online player's progress, where it is saved, and the connection it belongs to. The connection, not the
+     * {@code ServerPlayer}, identifies the session, since respawning gives the same connection a new player.
+     */
     private static final class PlayerProgress {
-        final ServerPlayer session;
+        final ServerGamePacketListenerImpl connection;
         final Path file;
         Progress progress;
         boolean unsaved;
 
-        PlayerProgress(ServerPlayer session, Path file, Progress progress, boolean unsaved) {
-            this.session = session;
+        PlayerProgress(ServerGamePacketListenerImpl connection, Path file, Progress progress) {
+            this.connection = connection;
             this.file = file;
             this.progress = progress;
-            this.unsaved = unsaved;
         }
     }
 
@@ -61,13 +64,10 @@ public final class ServerProgress implements ProgressView {
      * as {@code .broken}, and the player starts with empty progress and is told in chat.
      */
     public void load(ServerPlayer player) {
-        PlayerProgress earlierSession = online.get(player.getUUID());
+        PlayerProgress earlierSession = online.remove(player.getUUID());
         if (earlierSession != null) {
-            // The player joined again before their earlier session was gone. Its progress is newer than the file.
-            online.put(player.getUUID(), new PlayerProgress(
-                    player, earlierSession.file, earlierSession.progress, earlierSession.unsaved));
-            ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), earlierSession.progress));
-            return;
+            // An earlier session of this player hasn't left yet. Its changes are saved first, so the file is current.
+            save(earlierSession);
         }
         Path file = progressFile(player);
         ProgressFiles.ReadResult result;
@@ -92,7 +92,7 @@ public final class ServerProgress implements ProgressView {
             case ProgressFiles.ReadResult.Broken broken -> keepBroken(player, file, broken.reason());
         };
         progress.ifPresent(loaded -> {
-            online.put(player.getUUID(), new PlayerProgress(player, file, loaded, false));
+            online.put(player.getUUID(), new PlayerProgress(player.connection, file, loaded));
             ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), loaded));
         });
     }
@@ -176,13 +176,14 @@ public final class ServerProgress implements ProgressView {
     }
 
     /**
-     * Saves the player's progress, if it has unsaved changes, and forgets it. Called when the player leaves. Does
-     * nothing if the progress has moved on to a newer session of the same player.
+     * Saves the progress of the player on this connection, if it has unsaved changes, and forgets it. Called when the
+     * player leaves. Does nothing if a newer session of the same player has taken over.
      */
-    public void unload(ServerPlayer player) {
-        PlayerProgress playerProgress = online.get(player.getUUID());
-        if (playerProgress != null && playerProgress.session == player) {
-            online.remove(player.getUUID());
+    public void unload(ServerGamePacketListenerImpl connection) {
+        UUID player = connection.player.getUUID();
+        PlayerProgress playerProgress = online.get(player);
+        if (playerProgress != null && playerProgress.connection == connection) {
+            online.remove(player);
             save(playerProgress);
         }
     }

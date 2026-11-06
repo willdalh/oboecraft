@@ -20,7 +20,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 |---|---|---|
 | `core.item` | `ItemId`, `NameListEntry`, `NameList` | 3b |
 | `core.srs` | `SrsState`, `Progress`, `SrsRules` | 3b |
-| `core.lock` | `Interaction`, `LockDecision`, `LockCheck` | 3b |
+| `core.lock` | `LockDecision`, `LockCheck` | 3b |
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
 | `core.settings` | `Settings`, `LevelSettings` | 3b |
 | `core.punishment` | Removal rate, removal counts, protected items | 9 |
@@ -43,11 +43,10 @@ Former ids, and moving states saved under a former id when progress is loaded (`
 
 ### Lock check
 
-- `Interaction`: one value per interaction in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do). So far only `PLACE`. Milestone 6 adds the rest.
 - `LockDecision`: `ALLOW` or `REVIEW`. Milestone 8 adds `DENY` and milestone 9 adds `BANNED`.
-- `LockCheck.check(item, interaction, state, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) in order. The item is an `Optional<ItemId>`, empty when the stack isn't in the name list. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states.
+- `LockCheck.check(state, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) for an item, in order. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states. A stack that isn't in the name list has no SRS state, so `fabric` allows it before it gets here (rule 1).
 
-Milestone 8 adds `LockCheck.checkPickUp(item, state, locksActive)`, the same rules for picking up, which isn't an interaction, so ignored items and creative mode are decided once.
+Each input is added when a rule first depends on it: milestone 6 adds an `Interaction`, with one value per interaction in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do), for the drop rule. Milestone 8 adds `LockCheck.checkPickUp(state, locksActive)`, the same rules for picking up, which isn't an interaction, so ignored items and creative mode are decided once.
 
 `LockCheck` is the only place that decides whether an action is allowed. Every caller in `fabric`, on both sides, goes through it.
 

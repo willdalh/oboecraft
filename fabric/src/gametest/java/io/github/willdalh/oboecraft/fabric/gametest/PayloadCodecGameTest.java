@@ -51,28 +51,29 @@ public class PayloadCodecGameTest {
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
         assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, InteractionHand.OFF_HAND));
-        assertRoundTrip(helper, ReviewStarted.STREAM_CODEC, new ReviewStarted(TIME, OAK_LOG, 4));
+        assertRoundTrip(helper, ReviewStarted.STREAM_CODEC, new ReviewStarted(TIME, 7, OAK_LOG, 4));
         assertRoundTrip(helper, ReviewRefused.STREAM_CODEC,
-                new ReviewRefused(TIME, ReviewRefused.Reason.STACK_GONE));
-        assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, ReviewOutcome.PASS,
+                new ReviewRefused(TIME, 7, ReviewRefused.Reason.NO_PROGRESS));
+        assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.PASS,
                 Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC,
-                new ReviewAnswered(TIME, ReviewOutcome.WRONG, Optional.empty()));
-        assertRoundTrip(helper, ReviewCancelled.STREAM_CODEC, new ReviewCancelled(TIME));
+                new ReviewAnswered(TIME, 7, ReviewOutcome.WRONG, Optional.empty()));
+        assertRoundTrip(helper, ReviewCancelled.STREAM_CODEC, new ReviewCancelled(TIME, 7));
         helper.succeed();
     }
 
     @GameTest
     public void clientToServerPayloadsRoundTrip(GameTestHelper helper) {
-        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(InteractionHand.MAIN_HAND));
-        assertRoundTrip(helper, SubmitAnswer.STREAM_CODEC, new SubmitAnswer("オークの原木"));
-        assertRoundTrip(helper, CloseReview.STREAM_CODEC, CloseReview.INSTANCE);
+        assertRoundTrip(helper, StartReview.STREAM_CODEC, new StartReview(300, InteractionHand.MAIN_HAND));
+        assertRoundTrip(helper, SubmitAnswer.STREAM_CODEC, new SubmitAnswer(300, "オークの原木"));
+        assertRoundTrip(helper, CloseReview.STREAM_CODEC, new CloseReview(300));
         helper.succeed();
     }
 
     @GameTest
     public void anAnswerLongerThanTheTypingBarIsRefused(GameTestHelper helper) {
         ByteBuf buffer = Unpooled.buffer();
+        ByteBufCodecs.VAR_INT.encode(buffer, 1);
         ByteBufCodecs.STRING_UTF8.encode(buffer, "あ".repeat(SubmitAnswer.MAX_LENGTH + 1));
         boolean refused;
         try {

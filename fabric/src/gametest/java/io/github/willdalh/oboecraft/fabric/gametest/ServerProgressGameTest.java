@@ -15,6 +15,7 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.LevelResource;
 
 /** Loading progress when a player joins and saving it when they leave, on a server. */
@@ -61,6 +62,23 @@ public class ServerProgressGameTest {
         helper.assertTrue(OboecraftMod.serverProgress().isLoaded(later), "the later session has progress");
         helper.assertValueEqual(OboecraftMod.serverProgress().state(later, OAK_LOG), LEVEL_THREE, "state");
         TestPlayers.leave(later);
+        helper.assertValueEqual(ProgressFiles.read(progressFile(helper, id)),
+                new ProgressFiles.ReadResult.Loaded(Progress.EMPTY.with(OAK_LOG, LEVEL_THREE)), "saved progress");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void progressIsSavedWhenAPlayerWhoRespawnedLeaves(GameTestHelper helper) throws IOException {
+        UUID id = UUID.randomUUID();
+        ServerPlayer player = TestPlayers.join(helper, id);
+        OboecraftMod.serverProgress().update(player, OAK_LOG, LEVEL_THREE);
+
+        ServerPlayer respawned = helper.getLevel().getServer().getPlayerList()
+                .respawn(player, false, Entity.RemovalReason.KILLED);
+        helper.assertValueEqual(OboecraftMod.serverProgress().state(respawned, OAK_LOG), LEVEL_THREE, "state");
+        TestPlayers.leave(respawned);
+
+        helper.assertFalse(OboecraftMod.serverProgress().isLoaded(respawned), "progress is forgotten on leave");
         helper.assertValueEqual(ProgressFiles.read(progressFile(helper, id)),
                 new ProgressFiles.ReadResult.Loaded(Progress.EMPTY.with(OAK_LOG, LEVEL_THREE)), "saved progress");
         helper.succeed();

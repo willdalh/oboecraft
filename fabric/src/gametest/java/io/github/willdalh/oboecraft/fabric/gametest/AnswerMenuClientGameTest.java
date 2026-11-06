@@ -55,11 +55,19 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             assertBlock(singleplayer, target.above(), false, "a locked oak log isn't placed");
             context.takeScreenshot("answer-menu");
 
+            // A wrong answer shows that it was wrong, and the review goes on.
+            context.getInput().typeChars("オーク");
+            context.getInput().pressKey(InputConstants.KEY_RETURN);
+            context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsWrongAnswer());
+            assertStillReviewing(context, singleplayer);
+
             // The typing bar holds a correct answer while the keyboard's kanji conversion still has text that isn't
-            // confirmed. The Enter that confirms the conversion must not submit the answer, or it would pass here.
+            // confirmed. The keys belong to the conversion: Esc doesn't close the menu, and the Enter that confirms
+            // the conversion doesn't submit the answer, or it would pass here.
             context.getInput().typeChars("オークの原木");
             context.runOnClient(client -> client.keyboardHandler.textEditing(
                     client.getWindow().handle(), PreeditEvent.fromSdlTextEditing("げん", 2, 0)));
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
             context.getInput().pressKey(InputConstants.KEY_RETURN);
             singleplayer.getConnection().waitForServerboundPackets();
             context.waitTicks(2);

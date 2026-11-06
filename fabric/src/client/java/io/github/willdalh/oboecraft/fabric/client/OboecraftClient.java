@@ -23,7 +23,7 @@ public final class OboecraftClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         progress = new ClientProgress();
-        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress);
+        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, OboecraftMod.settings());
         registerReceivers();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progress.clear());
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
@@ -54,19 +54,19 @@ public final class OboecraftClient implements ClientModInitializer {
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewStarted.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewStarted(payload.level());
+            reviews.reviewStarted(payload.reviewId(), payload.item(), payload.level());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewRefused.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewEnded();
+            reviews.reviewEnded(payload.reviewId());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewAnswered.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewAnswered(payload.outcome(), payload.answer());
+            reviews.reviewAnswered(payload.reviewId(), payload.outcome(), payload.answer());
         });
         ClientPlayNetworking.registerGlobalReceiver(ReviewCancelled.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());
-            reviews.reviewEnded();
+            reviews.reviewEnded(payload.reviewId());
         });
     }
 

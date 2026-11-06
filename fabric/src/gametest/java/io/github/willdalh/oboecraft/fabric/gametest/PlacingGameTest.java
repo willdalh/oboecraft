@@ -62,12 +62,12 @@ public class PlacingGameTest {
             helper.assertValueEqual(player.getMainHandItem().getCount(), 4, "oak logs in hand");
 
             // The client asks for the review. A wrong answer keeps it going, the right one passes.
-            reviews.start(player, InteractionHand.MAIN_HAND);
+            reviews.start(player, 1, InteractionHand.MAIN_HAND);
             helper.assertValueEqual(reviews.activeItem(player), Optional.of(OAK_LOG), "item under review");
-            reviews.answer(player, "オークの減木");
+            reviews.answer(player, 1, "オークの減木");
             helper.assertValueEqual(reviews.activeItem(player), Optional.of(OAK_LOG), "item under review");
             helper.assertValueEqual(progress.state(player, OAK_LOG), SrsState.Leveled.NEW, "state after wrong");
-            reviews.answer(player, "おーくのげんぼく");
+            reviews.answer(player, 1, "おーくのげんぼく");
             helper.assertValueEqual(reviews.activeItem(player), Optional.empty(), "item under review");
             helper.assertValueEqual(progress.state(player, OAK_LOG),
                     new SrsState.Leveled(1, Optional.of(start.plus(Duration.ofMinutes(10)))), "state after pass");
@@ -76,7 +76,7 @@ public class PlacingGameTest {
             helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)).consumesAction(),
                     "placing an unlocked oak log succeeds");
             helper.assertBlockPresent(Blocks.OAK_LOG, new BlockPos(0, 1, 0));
-            reviews.start(player, InteractionHand.MAIN_HAND);
+            reviews.start(player, 1, InteractionHand.MAIN_HAND);
             helper.assertValueEqual(reviews.activeItem(player), Optional.empty(), "item under review");
 
             // Just before ten minutes it is still unlocked, and at ten minutes it is locked again.
@@ -87,9 +87,9 @@ public class PlacingGameTest {
             helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(2, 0, 0)) instanceof InteractionResult.Fail,
                     "placing the oak log after it locked again fails");
             helper.assertBlockNotPresent(Blocks.OAK_LOG, new BlockPos(2, 1, 0));
-            reviews.start(player, InteractionHand.MAIN_HAND);
+            reviews.start(player, 1, InteractionHand.MAIN_HAND);
             helper.assertValueEqual(reviews.activeItem(player), Optional.of(OAK_LOG), "item under review");
-            reviews.close(player);
+            reviews.close(player, 1);
             helper.assertValueEqual(reviews.activeItem(player), Optional.empty(), "item under review");
         } finally {
             OboecraftMod.clock().setSource(InstantSource.system());
@@ -126,7 +126,33 @@ public class PlacingGameTest {
             helper.assertTrue(placeOnTopOf(helper, player, new BlockPos(0, 0, 0)).consumesAction(),
                     "placing andesite succeeds");
             helper.assertBlockPresent(Blocks.ANDESITE, new BlockPos(0, 1, 0));
-            reviews().start(player, InteractionHand.MAIN_HAND);
+            reviews().start(player, 1, InteractionHand.MAIN_HAND);
+            helper.assertValueEqual(reviews().activeItem(player), Optional.empty(), "item under review");
+        } finally {
+            TestPlayers.leave(player);
+        }
+        helper.succeed();
+    }
+
+    @GameTest
+    public void aNewReviewReplacesOneThatIsGoingAndRepliesOnlyCountForTheirOwnReview(GameTestHelper helper) {
+        ServerPlayer player = playerWithOakLogs(helper);
+        try {
+            reviews().start(player, 1, InteractionHand.MAIN_HAND);
+            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIRT));
+            reviews().start(player, 2, InteractionHand.MAIN_HAND);
+            helper.assertValueEqual(reviews().activeItem(player),
+                    Optional.of(new ItemId("block.minecraft.dirt")), "item under review");
+
+            // An answer or a close for the earlier review doesn't touch the one that is going.
+            reviews().answer(player, 1, "つち");
+            reviews().close(player, 1);
+            helper.assertValueEqual(OboecraftMod.serverProgress().state(player, new ItemId("block.minecraft.dirt")),
+                    SrsState.Leveled.NEW, "dirt after an answer for the earlier review");
+            helper.assertValueEqual(reviews().activeItem(player),
+                    Optional.of(new ItemId("block.minecraft.dirt")), "item under review");
+
+            reviews().answer(player, 2, "つち");
             helper.assertValueEqual(reviews().activeItem(player), Optional.empty(), "item under review");
         } finally {
             TestPlayers.leave(player);
