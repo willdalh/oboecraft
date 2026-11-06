@@ -28,28 +28,29 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 ### Items
 
 - `ItemId`: a record around the item id string, like `block.minecraft.oak_log`. Code passes `ItemId`, never a bare string, so it can't be mixed up with a translation key.
-- `NameListEntry`: the item id, its translation keys, the Japanese name and the reading.
-- `NameList`: all entries. Looks up an entry by translation key or by item id. It is built from a list of entries and rejects duplicate ids and translation keys that belong to two entries.
+- `NameListEntry`: the item id, its translation keys, its former ids, the Japanese name and the reading.
+- `NameList`: all entries. Looks up an entry by translation key, by item id or by former id. It is built from a list of entries and rejects an item id, former id or translation key that belongs to two entries.
 
 The reading is a plain string until milestone 4 decides how readings are stored per kanji. Only `NameListEntry` and `AnswerChecker` change then.
 
 ### SRS state
 
 - `SrsState`: a sealed interface with three records, `Leveled`, `Known` and `Ignored`. `Leveled` has the level, locks-at time, demoted flag, wrong attempts and banned-until time from [SRS state](../design/srs-state.md#leveled-state). `Leveled.NEW` is level 0 with nothing else set.
-- `Progress`: one player's SRS states, a map from `ItemId` to `SrsState`. An item with no entry is `Leveled.NEW`. It also keeps states for item ids that aren't in the current name list, so they survive a name list change.
+- `Progress`: one player's SRS states, a map from `ItemId` to `SrsState`. An item with no entry is `Leveled.NEW`. It also keeps states for item ids that aren't in the current name list, so they survive a name list change. `Progress.withFormerIdsMerged(nameList)` moves states saved under former ids to the current item id, with the rule in [Items](../design/items.md#name-list-entries). `fabric` calls it when progress is loaded.
 - `SrsRules`: `isLocked(state, now, settings)`, `pass(state, now, settings)` and `fail(state, now, settings)`. Known, ignored and revert are plain new states and need no rule.
 
 ### Lock check
 
-- `Interaction`: what the player tries to do, one value per kind in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do). It includes `PICK_UP`.
+- `Interaction`: one value per interaction in [What the player tries to do](../design/lock-check.md#what-the-player-tries-to-do).
 - `LockDecision`: `ALLOW`, `REVIEW`, `BANNED` or `DENY`.
-- `LockCheck.check(item, interaction, state, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) in order. The item is an `Optional<ItemId>`, empty when the stack isn't in the name list. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode.
+- `LockCheck.check(item, interaction, state, now, locksActive, settings)`: the [rules](../design/lock-check.md#rules) in order. The item is an `Optional<ItemId>`, empty when the stack isn't in the name list. `locksActive` is false in creative and spectator mode, which `fabric` works out from the game mode, and on the client before the server has sent the player's SRS states.
+- `LockCheck.checkPickUp(item, state, locksActive)`: the same rules for picking up, which isn't an interaction. It shares the rules with `check`, so ignored items and creative mode are decided once.
 
-This is the only place that decides whether an action is allowed. Every caller in `fabric`, on both sides, goes through it.
+`LockCheck` is the only place that decides whether an action is allowed. Every caller in `fabric`, on both sides, goes through it.
 
 ### Reviews
 
-- `ReviewRules.start(state, now)`: whether a review can start, as a `ReviewStart`: started (with the level, whether it is a lesson, and attempts left), not locked, or banned.
+- `ReviewRules.start(state, now, settings)`: whether a review can start, as a `ReviewStart`: started (with the level, whether it is a lesson, and attempts left), not locked, or banned. It decides "not locked" with `SrsRules.isLocked`, so it agrees with the lock check when settings change the top level.
 - `ReviewRules.answer(state, correct, now, settings)` and `ReviewRules.dontKnow(state, now, settings)`: the outcome as a `ReviewResult`, which holds the outcome from [Outcomes](../design/reviews.md#outcomes), the new state, and the level before the review, which punishment needs.
 - `AnswerChecker.check(entry, typed)`: whether a typed answer is correct. In 3b it matches the Japanese name or the reading exactly. Milestone 4 replaces the rules, not the signature.
 

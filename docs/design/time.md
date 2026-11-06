@@ -12,6 +12,9 @@ Times are stored to the millisecond, in UTC.
 
 ## The client
 
-The client's lock check needs the server's time, but the client's own clock can be wrong by minutes. So when the server sends a player their SRS states, it also sends its current time. The client remembers the difference between that and its own clock, and adds it whenever it needs the server's time.
+The client's lock check needs the server's time, but the client's own clock can be wrong by minutes, and can jump while the game runs, for example when the computer corrects its clock. So every message from the server that carries SRS states or review replies also carries the server's current time. The client keeps the server's time from the latest message and works out the server's time now by adding how long ago that message arrived. It measures that with a timer that doesn't follow the computer's clock, like Java's `System.nanoTime`, so changing the client's clock has no effect.
 
-A small error is fine here, since the server checks again and has the final say. An item locking a second early or late on the client only decides whether the answer menu opens at once or after the server's reply.
+A small error is fine here, since the server checks again and has the final say:
+
+- If the client thinks an item is unlocked but the server finds it locked, the server stops the action and tells the client to open the answer menu. See [Both sides](lock-check.md#both-sides).
+- If the client thinks an item is locked but the server finds it unlocked, the server refuses the review as not locked and sends the item's state and its time. The client closes the answer menu, and the action is allowed when the player tries it again.

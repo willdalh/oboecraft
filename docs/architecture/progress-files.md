@@ -44,12 +44,14 @@ The server tells the host apart from LAN guests by whether the player owns the s
 - `kind` is `leveled`, `known` or `ignored`.
 - Fields that are unset, false or 0 are left out.
 - Times are ISO 8601 in UTC, to the millisecond, so they can be read and fixed by hand.
-- Items whose ids aren't in the current name list are read and written back unchanged.
+- Items whose ids aren't in the current name list are read and written back unchanged. States saved under a former id are moved to the current item id when the file is read, see [Items](../design/items.md#name-list-entries).
 
 ## Versions
 
-`version` is the format version, starting at 1. When the format changes, the version goes up, and `ProgressFiles` gets a step that upgrades the previous version. An old file is upgraded step by step when it is read, and saved in the new format. A file with a newer version than the mod knows is not overwritten: the player gets empty progress for that session, and the error is logged.
+`version` is the format version, starting at 1. When the format changes, the version goes up, and `ProgressFiles` gets a step that upgrades the previous version. An old file is upgraded step by step when it is read, and saved in the new format.
+
+A file with a newer version than the mod knows was saved by a newer version of the mod, after a downgrade. It is never overwritten, and the player is disconnected with a message saying their progress needs a newer version of Oboecraft. Playing on with empty progress would lock every item, and nothing from the session could be saved without losing the newer file. In singleplayer this takes the player back to the title screen with the same message.
 
 ## Writing safely
 
-A file is written to a temporary file next to it and then moved into place, so a crash while saving never leaves half a file. A file that can't be read is renamed to `<uuid>.json.broken` and kept, the player starts with empty progress, and the error is logged.
+A file is written to a temporary file next to it and then moved into place, so a crash while saving never leaves half a file. A file that can't be read is renamed to `<uuid>.json.broken` and kept, and the error is logged. The player starts with empty progress and is told in chat, when they join, that their progress file couldn't be read and where the broken file was kept, so they can fix it by hand or ask the server owner to.

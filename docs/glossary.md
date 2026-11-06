@@ -18,6 +18,10 @@ _Avoid_: item type, vanilla item
 The name that identifies an item, like `block.minecraft.oak_log`. It is one of the translation keys of the item's Japanese name.
 _Avoid_: item key, Minecraft id
 
+**Translation key**:
+Minecraft's name for a piece of text that is the same in every language, like `block.minecraft.oak_log`. Each language file, like `ja_jp.json`, gives the text for each key.
+_Avoid_: lang key, name key
+
 **Stack**:
 One or more copies of the same item in a single slot.
 _Avoid_: copy, item stack
@@ -39,6 +43,10 @@ _Avoid_: open, free, available
 **Interaction**:
 Any action where an item does something, like placing, eating, equipping, or moving it into or out of a container. Moving it within the inventory is not an interaction.
 _Avoid_: use, action
+
+**Lock check**:
+The rule that decides what happens when a player interacts with a stack or picks one up: allow it, open the answer menu, show the ban, or deny it.
+_Avoid_: lock test, permission check
 
 **In use**:
 An item that is already doing something when it becomes locked, like worn armor or an item in a furnace. The lock only applies at its next interaction.

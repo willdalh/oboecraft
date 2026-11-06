@@ -26,6 +26,7 @@ Alternatives considered:
 - The name list script works on `ja_jp.json` keys directly.
 - Renaming a stack with an anvil or name tag never changes which item it is.
 - Progress files are keyed by strings like `block.minecraft.oak_log`, which are readable by hand.
-- If a new Minecraft version splits one Japanese name into two, one keeps the old id and the other starts at level 0.
+- Grouping by Japanese name means translation fixes can still split or merge items. A split keeps the old id for one key, and the other starts at level 0. A merge keeps one id and lists the other as a former id, and loading progress keeps the state that has the player review sooner. This is rarer and gentler than ids made from the names, where every fix to a name would reset its item.
+- Keys whose Japanese text has format arguments, like `block.minecraft.player_head.named` (`%sの頭`), can't be answers. The name list adds them to the entry of the item they name instead.
 - Items from other mods are left out unless they are added to the name list, which works the same way.
 - The mapping depends on Minecraft putting a translation key in the item name. If some item doesn't, only the mapping code in `fabric` changes, not the ids.

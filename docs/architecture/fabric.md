@@ -34,9 +34,11 @@ The exact Minecraft methods are checked against 26.3 when 3b writes this. If one
 
 1. maps the stack to an item,
 2. gets the item's SRS state from the side's progress, through a `ProgressView` that `ServerProgress` and `ClientProgress` both implement,
-3. gets the time: the clock on the server, the clock plus the server offset on the client,
-4. works out whether locks are active from the player's game mode, and
+3. gets the time: the clock on the server, and on the client the server's time worked out by `ClientProgress`, see [Time](../design/time.md#the-client),
+4. works out whether locks are active from the player's game mode, and on the client also from whether `ProgressSync` has arrived for this connection, and
 5. calls core `LockCheck.check` and returns its decision.
+
+`Locks.checkPickUp(player, stack)` does the same for picking up, with core `LockCheck.checkPickUp`.
 
 Every interaction hook calls this and nothing else. A hook only decides what stopping the action looks like: returning a failed `InteractionResult`, cancelling a slot click, and so on.
 
@@ -54,13 +56,15 @@ Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md
 
 ## Progress on the client
 
-`ClientProgress` holds the SRS states the server sent, and the difference between the server's clock and the client's. It is cleared when the player leaves a world or server. It never changes a state on its own: only messages from the server do.
+`ClientProgress` holds the SRS states the server sent, whether `ProgressSync` has arrived for this connection, and the server's time from the latest message with the `System.nanoTime` value when it arrived. It is cleared when the player leaves a world or server, so the client's locks are off until the next `ProgressSync`. It never changes a state on its own: only messages from the server do.
 
 ## Reviews on the server
 
 `ServerReviews` holds each player's active review: the item, the [trigger](../design/reviews.md#the-trigger), and the container menu it belongs to, if any. It:
 
-- starts a review when the client asks, after checking the stack in the given slot or hand itself and asking core `ReviewRules.start`,
+- starts a review when the client asks, after reading the stack in the given slot or hand itself, working out the trigger from the player's open menu and that slot, and asking core `ReviewRules.start`,
+- for a crafting trigger, notes the recipe's ingredients and their parts when the review starts,
+- refuses every click in the player's open menu while the review is going,
 - passes each answer and action to core `ReviewRules` and `AnswerChecker`, stores the new state through `ServerProgress`, and sends the outcome,
 - on a fail, turns the trigger into counts from the current view for core punishment, and removes the stacks (milestone 9), and
 - cancels the review when the player closes the container on the server, leaves or dies.
@@ -81,19 +85,21 @@ Server to client:
 
 | Payload | When | Contents |
 |---|---|---|
-| `ProgressSync` | The player joins | The server's current time and every SRS state that isn't `Leveled.NEW` |
+| `ProgressSync` | The player joins | Every SRS state that isn't `Leveled.NEW` |
 | `StateUpdate` | An SRS state changes | The item id and the new state |
 | `ReviewStarted` | A review starts | The item id, level, whether it is a lesson, attempts left |
-| `ReviewRefused` | A review can't start | The item id and why: not locked, banned (with the time left), or the stack is gone |
-| `ReviewResult` | After an answer or action | The outcome, and the Japanese name and reading when the client shows them |
+| `ReviewRefused` | A review can't start | The item id, its SRS state, and why: not locked, banned, or the stack is gone |
+| `ReviewOutcome` | After an answer or action | The outcome, and the Japanese name and reading when the client shows them |
 | `ReviewCancelled` | The server cancels the review | The item id |
 | `ShowReview` | The server stopped an action the client allowed | The item id and what to show: the answer menu or the ban message |
+
+Every server to client payload also carries the server's current time, so the client keeps its idea of the server's time up to date.
 
 Client to server:
 
 | Payload | When | Contents |
 |---|---|---|
-| `StartReview` | The client wants to start a review | Where the stack is, a slot in the open menu or a hand, and the trigger kind. Never the item id, which the server reads from the stack itself. |
+| `StartReview` | The client wants to start a review | Where the stack is: a slot in the open menu, or a hand. Never the item id or the trigger, which the server works out itself. |
 | `ReviewAction` | The player answers or uses an action | The action, and the typed text for an answer |
 | `CloseReview` | The player closes the answer menu | Nothing |
 

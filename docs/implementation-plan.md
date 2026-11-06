@@ -34,7 +34,8 @@ See the [architecture overview](architecture/overview.md) for the details.
 - Locks are checked on both sides. The client checks first and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
 - The client sends the typed answer, and the server replies with a pass or fail. The Japanese name is only sent to the client when needed: in lessons and after a fail.
 - Time is real-world time from the server clock. The SRS state stores when the item locks next as a timestamp, and the item is locked when the current time is at or past it, so no timers need to run. Singleplayer uses the computer's clock, and changing it to cheat is left to the player.
-- The core never reads a clock and takes the current time as an input. `fabric` reads it from one clock that game tests replace. The client adds the difference between the server's clock and its own, which the server sends with the SRS states. See [Time](design/time.md).
+- The core never reads a clock and takes the current time as an input. `fabric` reads it from one clock that game tests replace. Every message from the server carries the server's time, and the client works out the server's time from the latest one with a timer that ignores changes to the client's clock. See [Time](design/time.md).
+- The client's locks are only active once the server has sent the player's SRS states for this connection, so a server without the mod, or the moment after joining, never locks anything on the client.
 - Client and server must run the same network protocol version of the mod. The server disconnects players who don't have the mod or have another protocol version.
 
 ### Dependencies and settings
@@ -72,12 +73,14 @@ See the [architecture overview](architecture/overview.md) for the details.
 See [SRS state](design/srs-state.md), [Lock check](design/lock-check.md) and [Reviews](design/reviews.md).
 
 - An SRS state is leveled, known or ignored. A leveled state has the level, when it locks next, a demoted flag, the wrong attempts and when the ban ends. An item with no saved state is leveled at level 0.
-- Every action the mod may stop goes through one lock check in the core. It takes the item, what the player tries to do, the SRS state, the time, whether locks are active and the settings, and returns allow, review, banned or deny. Picking up is checked too, so ignored items are handled in the same place.
+- Every action the mod may stop goes through one lock check in the core. It takes the item, what the player tries to do, the SRS state, the time, whether locks are active and the settings, and returns allow, review, banned or deny. Picking up isn't an interaction, but the same lock check decides it, so ignored items are handled in the same place.
 - A wrong attempt is saved in the SRS state. Closing the answer menu after a wrong attempt keeps it, so closing and reopening the menu can't be used to get unlimited attempts.
-- A player has at most one review at a time. The server remembers its trigger: inventory, container or crafting. The trigger stays in `fabric`, which turns it into counts for the core's punishment math.
+- A player has at most one review at a time. The server works out its trigger itself, from the open menu and the slot: inventory, container or crafting. The trigger stays in `fabric`, which turns it into counts for the core's punishment math. A crafting trigger notes the recipe's ingredients when the review starts, and the server refuses clicks in the open menu while a review is going.
 - The answer menu opens on top of an open container's screen, and the container stays open on the server for the whole review. If it closes on the server, the review is cancelled.
 - A pass only unlocks the item. The player repeats the interaction.
-- When the client asks to start a review, it says where the stack is, never which item it is. The server reads the item from the stack.
+- When the client asks to start a review, it says where the stack is, never which item it is or what the trigger is. The server reads both from its own state.
+- Name list entries can split and merge between Minecraft versions. A merged entry lists the other item id as a former id, and loading progress keeps the state that has the player review sooner. Translation keys whose Japanese text has format arguments, like the named player head, are added to the entry of the item they name. See [Items](design/items.md).
+- A progress file from a newer version of the mod is never overwritten, and the player is disconnected with a message. A broken file is kept as `.broken`, and the player is told in chat.
 
 ### Settings
 

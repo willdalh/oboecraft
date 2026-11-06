@@ -13,26 +13,32 @@ Either way, the server starts the review only if:
 
 - the stack is an item, and it is locked and leveled,
 - the item isn't banned,
-- the stack is in the player's current view, and
+- the stack is in the player's current view, or in the result slot of the open menu, and
 - the player has no other review going.
 
 A player has at most one review at a time. Reviewing an item that isn't locked, to top up its timer early, isn't possible.
 
-If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it.
+If the server refuses, it tells the client why (not locked, banned, or the stack is gone), and the client closes the answer menu or never opens it. A refusal because the item isn't locked also sends the item's state and the server's time, so the client's next check allows the action. See [Time](time.md#the-client).
 
 ## The trigger
 
 The server remembers the review's trigger: what the player was doing when the review started. Punishment needs it to know the current view and what to remove.
 
+The server works the trigger out itself, from the menu the player has open on the server and the slot or hand the stack is in. The client never says what the trigger is, since a modified client could then pick the trigger that costs the least.
+
 | Trigger | Started by | Current view | Removed on a fail |
 |---|---|---|---|
-| Inventory | An interaction with no container open, or right-clicking in the inventory with none open | The inventory | The reviewed item |
-| Container | Moving a stack into or out of an open container, or right-clicking a stack while one is open | The inventory and the open container | The reviewed item |
-| Crafting | Taking a recipe's result | The inventory and the crafting grid | The recipe's ingredients |
+| Inventory | A stack in a hand or the inventory, with no other menu open | The inventory | The reviewed item |
+| Container | A stack in an open container, or in the inventory while a container is open, including a furnace's output | The inventory and the open container | The reviewed item |
+| Crafting | The result slot of a menu that makes its result from input slots, like the crafting grid, a stonecutter or a smithing table | The inventory and the menu's input slots | The recipe's ingredients |
 
 The answer menu opens on top of the open container's screen and goes back to it when the review ends. The container stays open on the server for the whole review, so the current view is still there if the review fails. If the container closes on the server, for example because the player walked away from the chest, the review is cancelled.
 
-The ingredients are read again from the crafting grid when the review fails. If the grid no longer makes the reviewed item, the trigger counts as a container instead. The worn armor slots are never part of the current view.
+For a crafting trigger, the server notes the recipe's ingredients and how many of each it uses when the review starts. On a fail, it removes from those ingredients, whatever is in the input slots by then.
+
+While a review is going, the server refuses every click in the player's open menu, so the current view can't be rearranged between the start and a fail. A normal client can't click anyway, since the answer menu covers the screen.
+
+The worn armor slots are never part of the current view.
 
 ## Attempts
 

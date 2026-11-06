@@ -1,14 +1,14 @@
 # Lock check
 
-Every time a player does something with a stack that the mod may stop, one lock check decides what happens. Every interaction, on both the server and the client, goes through it. Rules that change what is allowed, like creative mode, ignored items, bans and the drop setting, are each decided in this one place.
+Every time a player interacts with a stack, or picks one up, one lock check decides what happens. Every interaction, on both the server and the client, goes through it. Rules that change what is allowed, like creative mode, ignored items, bans and the drop setting, are each decided in this one place.
 
 ## Inputs
 
 - The item, or none if the stack isn't in the name list. See [Items](items.md).
-- What the player is trying to do, from the list [below](#what-the-player-tries-to-do).
+- The interaction, from the list [below](#what-the-player-tries-to-do), or picking up.
 - The item's [SRS state](srs-state.md) for that player.
 - The current time. See [Time](time.md).
-- Whether locks are active for the player. They are active in survival and adventure mode, and not in creative or spectator mode.
+- Whether locks are active for the player. They are active in survival and adventure mode, and not in creative or spectator mode. On the client, they are also only active once the server has sent the player's SRS states, see [Both sides](#both-sides).
 - The [settings](settings.md).
 
 ## Decisions
@@ -36,7 +36,7 @@ The rules are applied in this order, and the first that matches decides:
 
 ## What the player tries to do
 
-The check is told what the player is trying to do, since the rules depend on it. These are the interactions, plus picking up, which isn't an interaction but is checked so that ignored items are handled here too:
+The check is told which interaction the player is trying, since the rules depend on it:
 
 | Kind | Examples |
 |---|---|
@@ -47,15 +47,14 @@ The check is told what the player is trying to do, since the rules depend on it.
 | Mine | Breaking a block with the stack held |
 | Ammo | An arrow or firework used by a bow or crossbow |
 | Ingredient | Putting the stack into a crafting grid or other recipe input |
-| Craft | Taking the result of a recipe |
+| Craft | Taking the result of a menu that makes it from input slots, like the crafting grid, a stonecutter or a smithing table. A furnace's output is taken from a container instead. |
 | Fuel | Putting the stack into a fuel slot |
 | Trade | Giving or taking the stack in a trade |
 | Put in container | Moving the stack from the inventory into an open container |
 | Take from container | Moving the stack out of an open container into the inventory |
-| Drop | Throwing the stack out of the inventory |
-| Pick up | Picking the stack up from the ground |
+| Drop | Throwing the stack out of the inventory. It only counts as an interaction when the drop setting is on. |
 
-Moving a stack within the inventory is never checked.
+Picking a stack up from the ground isn't an interaction, but the lock check decides it too, so ignored items are handled in the same place. Moving a stack within the inventory is never checked.
 
 Milestone 3b checks only placing. Milestone 6 adds the rest, and may split or add kinds where the game needs it. A new kind only needs a new value here and, if it needs its own rule, a new rule above.
 
@@ -68,6 +67,7 @@ Right-clicking a locked item in the inventory opens the answer menu without usin
 The check runs on both sides with the same rules.
 
 - The client checks first, from the SRS states the server sent it, and stops the action at once. So a locked block is never placed and then taken back, and the answer menu opens without waiting for the server.
+- The client's locks are only active once the server has sent the player's SRS states for this connection. Before that, and on a server without the mod, the client allows everything. Otherwise every item would count as level 0 and locked, and joining a vanilla server would stop every action and open answer menus nobody answers.
 - The server checks too and has the final say. A modified client can't get past it.
 
 If the server stops an action that the client allowed, for example because the item locked a moment before, the server sends the up-to-date SRS state and tells the client what to show: the answer menu, the ban message or nothing.
