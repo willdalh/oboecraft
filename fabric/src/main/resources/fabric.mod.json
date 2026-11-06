@@ -5,7 +5,8 @@
   "name": "Oboecraft",
   "description": "Learn Japanese with spaced repetition on the items in the game.",
   "authors": [
-    "willdalh"
+    "willdalh",
+    "Kato Abrahamsen"
   ],
   "contact": {
     "homepage": "https://github.com/willdalh/oboecraft",
