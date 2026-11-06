@@ -9,7 +9,9 @@
     "PiercingWeaponMixin",
     "ServerGamePacketListenerImplMixin",
     "ServerPlaceRecipeMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "ItemEntityMixin",
+    "ArrowPickupMixin"
   ],
   "injectors": {
     "defaultRequire": 1

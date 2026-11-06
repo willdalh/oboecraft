@@ -68,6 +68,12 @@ public final class ClientProgress implements ProgressView {
         return current(Minecraft.getInstance().getConnection());
     }
 
+    /** The word list reads the latest immutable snapshot, never another connection's progress. */
+    public Progress progress() {
+        Snapshot current = current();
+        return current == null ? Progress.EMPTY : current.progress();
+    }
+
     /** One immutable read of the connection's progress and estimated time, reused for a whole display frame. */
     public ProgressView capture() {
         Snapshot current = current();

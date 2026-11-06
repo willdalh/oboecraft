@@ -2,7 +2,7 @@
 
 Progress is saved as JSON files with a format version, see [ADR: Progress saved as versioned JSON files](../decisions/20261105-progress-save-format.md). `ProgressFiles` in `fabric` reads and writes them and turns them into core `Progress` values.
 
-The format was designed in milestone 3a and built in milestone 3b. So far only leveled states with a level and a locks-at time are written. The other fields and kinds in the example below are added by milestones 8 and 9. They are left out when unset, so adding them needs no new format version.
+Format 2 stores leveled, known and ignored states. Format 1 files are read unchanged and written as format 2 on the next save. The version increases because older code treats an unknown kind as a broken file; it must instead refuse a newer save without replacing it. Demotion, wrong attempts and bans in the example below are still planned for milestone 9.
 
 ## Where the files are
 
@@ -19,7 +19,7 @@ The server tells the host apart from LAN guests by whether the player owns the s
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "items": {
     "block.minecraft.oak_log": {
       "kind": "leveled",

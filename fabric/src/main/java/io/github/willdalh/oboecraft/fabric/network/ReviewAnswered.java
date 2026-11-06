@@ -12,7 +12,7 @@ import net.minecraft.util.ByIdMap;
 
 /**
  * Server to client, after an answer in the review {@code reviewId}. The Japanese name and reading are only sent when the client shows them, which
- * is after a pass.
+ * is after a pass or a lesson reveal.
  */
 public record ReviewAnswered(Instant serverTime, int reviewId, ReviewOutcome outcome, Optional<Answer> answer)
         implements CustomPacketPayload {

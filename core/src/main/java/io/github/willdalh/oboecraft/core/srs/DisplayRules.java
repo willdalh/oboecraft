@@ -11,6 +11,8 @@ public final class DisplayRules {
 
     public static DisplayState of(SrsState state, Instant now, Settings settings) {
         return switch (state) {
+            case SrsState.Known known -> DisplayState.Normal.INSTANCE;
+            case SrsState.Ignored ignored -> DisplayState.Normal.INSTANCE;
             case SrsState.Leveled leveled -> {
                 if (SrsRules.isLocked(leveled, now, settings)) {
                     yield DisplayState.Hidden.INSTANCE;

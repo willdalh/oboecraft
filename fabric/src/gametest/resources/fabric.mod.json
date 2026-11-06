@@ -16,7 +16,8 @@
       "io.github.willdalh.oboecraft.fabric.gametest.HeldStackGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuSlotsGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.DisplayGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.DisplayGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.LessonsGameTest"
     ],
     "fabric-client-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",

@@ -5,5 +5,7 @@ public enum ReviewOutcome {
     /** The answer was correct. The item is unlocked and the review ends. */
     PASS,
     /** The answer was wrong. The review goes on. */
-    WRONG
+    WRONG,
+    /** The lesson continues with its answer visible. */
+    LESSON
 }

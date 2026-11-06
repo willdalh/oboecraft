@@ -31,7 +31,7 @@ import java.util.Optional;
 /** Reads and writes progress files: JSON with a format version. See {@code docs/architecture/progress-files.md}. */
 public final class ProgressFiles {
     /** The format version this version of the mod writes. */
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     /** ISO 8601 in UTC, to the millisecond, so times can be read and fixed by hand. */
@@ -103,6 +103,8 @@ public final class ProgressFiles {
 
     private static SrsState parseState(JsonObject state) {
         String kind = state.getAsJsonPrimitive("kind").getAsString();
+        if (kind.equals("known")) return new SrsState.Known();
+        if (kind.equals("ignored")) return new SrsState.Ignored();
         if (!kind.equals("leveled")) {
             throw new IllegalArgumentException("Unknown kind of state " + kind);
         }
@@ -128,6 +130,8 @@ public final class ProgressFiles {
     private static JsonObject stateToJson(SrsState state) {
         JsonObject json = new JsonObject();
         switch (state) {
+            case SrsState.Known known -> json.addProperty("kind", "known");
+            case SrsState.Ignored ignored -> json.addProperty("kind", "ignored");
             case SrsState.Leveled leveled -> {
                 json.addProperty("kind", "leveled");
                 json.addProperty("level", leveled.level());
