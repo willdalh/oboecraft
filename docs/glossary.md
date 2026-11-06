@@ -203,3 +203,13 @@ _Avoid_: input, material, component
 **Recipe**:
 What one craft of a result uses: how many of each ingredient, noted from the input slots when a review of the result starts.
 _Avoid_: formula, pattern
+
+### Settings
+
+**Server settings**:
+The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor` and whether dropping counts as an interaction. In singleplayer, the built-in server's.
+_Avoid_: config, options, game rules
+
+**Client settings**:
+The settings each player chooses on their own computer, like clickable buttons.
+_Avoid_: preferences, local settings

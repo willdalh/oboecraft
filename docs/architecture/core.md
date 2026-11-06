@@ -26,6 +26,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | | `Interaction` | 6 |
 | `core.review` | `ReviewRules`, `ReviewStart`, `ReviewResult`, `ReviewOutcome`, `AnswerChecker` | 3b |
 | `core.settings` | `Settings`, `LevelSettings` | 3b |
+| | `DurationText`, `LevelsText` | 12 |
 | `core.text` | `JapaneseText`, `Romaji` | 4 |
 | `core.punishment` | `Punishment`, `Recipe`, `ProtectedItems` | 9 |
 
@@ -111,7 +112,11 @@ The answer checker only keeps what depends on the answer: the states it has visi
 - `LevelSettings`: one level's interval and demotion.
 - `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels, `banLength`, `percentageFactor` and `dropCountsAsInteraction`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` and `demotion(level)` are a level's interval and demotion. `withLevels`, `withBanLength`, `withPercentageFactor` and `withDropCountsAsInteraction` return a copy with one setting changed.
 
-Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, and the ban length and `percentageFactor` in 9.
+- `Settings` and `LevelSettings` also check that values stay small enough to work with: at most `MAX_LEVELS` (100) levels, demotions up to 100, intervals and the ban length up to `MAX_DURATION` (1,000,000 days), and `percentageFactor` up to `MAX_PERCENTAGE_FACTOR` (100). Settings from a file or the network are only ever built through these records.
+- `DurationText`: durations as people write them, like `10m` or `1h 30m`: `parse` reads whole numbers with `d`, `h`, `m` and `s` from the largest unit down, and `format` writes every unit that isn't zero. The settings file and the settings screen use it.
+- `LevelsText`: the levels as the settings screen shows them, a list of intervals and a list of demotions separated by commas, with `intervals`, `demotions` and `parse`.
+
+Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, and the ban length and `percentageFactor` in 9. Milestone 12 added the limits and the text formats.
 
 Client settings, like clickable buttons, only change what the client shows, so they live in `fabric`.
 

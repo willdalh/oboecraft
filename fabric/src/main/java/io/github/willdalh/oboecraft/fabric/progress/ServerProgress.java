@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.progress;
 
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
@@ -36,6 +37,7 @@ public final class ServerProgress implements ProgressView {
 
     private final InstantSource clock;
     private final Map<UUID, PlayerProgress> online = new HashMap<>();
+    private Settings settings = Settings.DEFAULTS;
 
     public ServerProgress(InstantSource clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -93,7 +95,7 @@ public final class ServerProgress implements ProgressView {
         };
         progress.ifPresent(loaded -> {
             online.put(player.getUUID(), new PlayerProgress(player.connection, file, loaded));
-            ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), loaded));
+            ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), loaded, settings));
         });
     }
 
@@ -148,6 +150,24 @@ public final class ServerProgress implements ProgressView {
     @Override
     public Instant now() {
         return clock.instant();
+    }
+
+    /** The server settings, which every rule on the server reads. */
+    @Override
+    public Settings settings() {
+        return settings;
+    }
+
+    /**
+     * Uses new server settings from now on, and sends them to every online player with their progress, so their
+     * client's lock check agrees with the server's at once.
+     */
+    public void useSettings(Settings settings) {
+        this.settings = Objects.requireNonNull(settings, "settings");
+        for (PlayerProgress playerProgress : online.values()) {
+            ServerPlayNetworking.send(playerProgress.connection.player,
+                    new ProgressSync(clock.instant(), playerProgress.progress, settings));
+        }
     }
 
     /**

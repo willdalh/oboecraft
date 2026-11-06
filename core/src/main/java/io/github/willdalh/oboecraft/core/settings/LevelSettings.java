@@ -15,8 +15,13 @@ public record LevelSettings(Duration interval, int demotion) {
         if (interval.isNegative() || interval.isZero()) {
             throw new IllegalArgumentException("A level's interval must be longer than zero, not " + interval);
         }
-        if (demotion < 0) {
-            throw new IllegalArgumentException("A level's demotion can't be negative, not " + demotion);
+        if (interval.compareTo(Settings.MAX_DURATION) > 0) {
+            throw new IllegalArgumentException("A level's interval can be at most " + Settings.MAX_DURATION.toDays()
+                    + " days, not " + interval);
+        }
+        if (demotion < 0 || demotion > Settings.MAX_LEVELS) {
+            throw new IllegalArgumentException(
+                    "A level's demotion must be from 0 to " + Settings.MAX_LEVELS + ", not " + demotion);
         }
     }
 }

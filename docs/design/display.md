@@ -34,4 +34,4 @@ Only a pass shows it. After a fail, the answer menu shows the Japanese name and 
 
 ## Later milestones
 
-Known and ignored items show their normal names, without timers or near-lock markers. A banned item is locked, so its name stays hidden during the ban. Milestone 12 supplies synced settings to the shared lock service, which also serves displays, so the timer uses the server's intervals.
+Known and ignored items show their normal names, without timers or near-lock markers. A banned item is locked, so its name stays hidden during the ban. Since milestone 12, the displays use the server settings the server sent, the same ones as the client's lock check, so the timer uses the server's intervals.

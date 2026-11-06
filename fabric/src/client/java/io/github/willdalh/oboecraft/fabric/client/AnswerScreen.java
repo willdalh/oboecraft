@@ -9,6 +9,7 @@ import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.SubmitAnswer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +17,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -45,6 +47,10 @@ public final class AnswerScreen extends Screen {
             .withStyle(ChatFormatting.RED);
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
+    private static final int BUTTON_HEIGHT = 20;
+    /** The space around a button's label. */
+    private static final int BUTTON_PADDING = 12;
+    private static final int BUTTON_GAP = 4;
     /** How long the answer stays on screen after a fail before a key can close the menu, so a double press doesn't. */
     private static final long FAIL_SHOWN_MILLIS = 500;
 
@@ -117,7 +123,63 @@ public final class AnswerScreen extends Screen {
         input.setVisible(!failed);
         input.setResponder(value -> wrong = false);
         addRenderableWidget(input);
+        if (OboecraftClient.clientSettings().clickableButtons()) {
+            addActionButtons();
+        }
         updateHint();
+    }
+
+    /**
+     * One button for each action the keys can do now, at the bottom, when the clickable buttons setting is on. The
+     * buttons are as wide as the longest label, in one row or more if the screen is too narrow. After a fail, only
+     * Close.
+     */
+    private void addActionButtons() {
+        List<Button> buttons = new ArrayList<>();
+        if (failed) {
+            buttons.add(actionButton(ReviewKeys.CLOSE, () -> {
+                if (failShownLongEnough()) {
+                    onClose();
+                }
+            }));
+        } else {
+            buttons.add(actionButton(ReviewKeys.ANSWER, this::submit));
+            buttons.add(actionButton(ReviewKeys.DONT_KNOW, () -> action(ReviewAction.Action.DONT_KNOW)));
+            buttons.add(actionButton(ReviewKeys.KNOWN, () -> action(ReviewAction.Action.KNOWN)));
+            buttons.add(actionButton(ReviewKeys.IGNORE, () -> action(ReviewAction.Action.IGNORE)));
+            if (level == 0) {
+                buttons.add(actionButton(ReviewKeys.SHOW, () -> action(ReviewAction.Action.SHOW_ANSWER)));
+            }
+            buttons.add(actionButton(ReviewKeys.CLOSE, this::onClose));
+        }
+        int buttonWidth = BUTTON_PADDING + buttons.stream()
+                .mapToInt(button -> font.width(button.getMessage())).max().orElse(0);
+        int perRow = Math.max(1, Math.min(buttons.size(), (width - 2 * BUTTON_GAP + BUTTON_GAP) / (buttonWidth + BUTTON_GAP)));
+        int rows = (buttons.size() + perRow - 1) / perRow;
+        // Rows of the same length where possible, like 3 and 3 rather than 5 and 1.
+        perRow = (buttons.size() + rows - 1) / rows;
+        buttonWidth = Math.min(buttonWidth, (width - 2 * BUTTON_GAP - BUTTON_GAP * (perRow - 1)) / perRow);
+        for (int index = 0; index < buttons.size(); index++) {
+            int row = index / perRow;
+            int inRow = Math.min(perRow, buttons.size() - row * perRow);
+            int rowWidth = inRow * buttonWidth + (inRow - 1) * BUTTON_GAP;
+            int x = (width - rowWidth) / 2 + (index % perRow) * (buttonWidth + BUTTON_GAP);
+            int y = height - (rows - row) * (BUTTON_HEIGHT + BUTTON_GAP) - 4;
+            buttons.get(index).setRectangle(buttonWidth, BUTTON_HEIGHT, x, y);
+            addRenderableWidget(buttons.get(index));
+        }
+    }
+
+    /** A button labeled with the action's name, which does what its key does, and gives the typing bar focus back. */
+    private Button actionButton(ReviewKeys.Binding binding, Runnable press) {
+        return Button.builder(Component.translatable(binding.mapping().getName()), button -> {
+            if (!composing) {
+                press.run();
+            }
+            if (input != null && input.isVisible()) {
+                setFocused(input);
+            }
+        }).build();
     }
 
     @Override
@@ -242,7 +304,15 @@ public final class AnswerScreen extends Screen {
     void started(ReviewStart.Started started) {
         this.level = started.level();
         this.attemptsLeft = started.attemptsLeft();
+        refreshButtons();
         updateHint();
+    }
+
+    /** The buttons depend on the level and on a fail, so they are made again when those change. */
+    private void refreshButtons() {
+        if (OboecraftClient.clientSettings().clickableButtons()) {
+            rebuildWidgets();
+        }
     }
 
     private void updateHint() {
@@ -270,6 +340,7 @@ public final class AnswerScreen extends Screen {
         input.setValue("");
         input.setEditable(false);
         input.setVisible(false);
+        refreshButtons();
         updateHint();
     }
 

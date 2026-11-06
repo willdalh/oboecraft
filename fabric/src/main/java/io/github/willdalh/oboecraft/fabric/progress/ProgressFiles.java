@@ -9,17 +9,13 @@ import com.google.gson.JsonPrimitive;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
+import io.github.willdalh.oboecraft.fabric.files.AtomicFiles;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -159,26 +155,10 @@ public final class ProgressFiles {
     }
 
     /**
-     * Writes a progress file. It is written to a temporary file next to it, flushed to disk and then moved into
-     * place, so a crash while saving never leaves half a file.
+     * Writes a progress file, so that a crash while saving never leaves half a file, see {@link AtomicFiles}.
      */
     public static void write(Path file, Progress progress) throws IOException {
-        Files.createDirectories(file.getParent());
-        Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
-        byte[] bytes = GSON.toJson(toJson(progress)).getBytes(StandardCharsets.UTF_8);
-        try (FileChannel channel = FileChannel.open(temporary,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
-            while (buffer.hasRemaining()) {
-                channel.write(buffer);
-            }
-            channel.force(true);
-        }
-        try {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException e) {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-        }
+        AtomicFiles.write(file, GSON.toJson(toJson(progress)));
     }
 
     /**

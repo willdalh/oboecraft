@@ -77,4 +77,20 @@ class SettingsTest {
         assertEquals(Duration.ZERO, Settings.DEFAULTS.withBanLength(Duration.ZERO).banLength());
         assertEquals(0, new LevelSettings(Duration.ofMinutes(1), 0).demotion());
     }
+
+    @Test
+    void rejectsValuesTooLargeToWorkWith() {
+        LevelSettings level = new LevelSettings(Duration.ofMinutes(1), 1);
+        assertEquals(100, Settings.DEFAULTS.withLevels(java.util.Collections.nCopies(100, level)).levels().size());
+        assertThrows(IllegalArgumentException.class,
+                () -> Settings.DEFAULTS.withLevels(java.util.Collections.nCopies(101, level)));
+        assertEquals(Settings.MAX_DURATION, new LevelSettings(Settings.MAX_DURATION, 1).interval());
+        assertThrows(IllegalArgumentException.class,
+                () -> new LevelSettings(Settings.MAX_DURATION.plusSeconds(1), 1));
+        assertThrows(IllegalArgumentException.class, () -> new LevelSettings(Duration.ofMinutes(1), 101));
+        assertThrows(IllegalArgumentException.class,
+                () -> Settings.DEFAULTS.withBanLength(Settings.MAX_DURATION.plusSeconds(1)));
+        assertEquals(100, Settings.DEFAULTS.withPercentageFactor(100).percentageFactor());
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withPercentageFactor(101));
+    }
 }
