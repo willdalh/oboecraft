@@ -114,7 +114,7 @@ See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-sa
 
 ## Milestones
 
-A milestone is something you can play and see working. A PR is one topic, small enough to review in about 15 minutes. The PR lists below are suggestions. Split further if a PR grows.
+A milestone is something you can play and see working. The agent working on a milestone decides whether it is done as one PR or several.
 
 ### 1. Docs foundation
 
@@ -134,7 +134,7 @@ Gradle wrapper, Java 25 toolchain, the two modules `core` and `fabric`, and non-
 
 Punch a tree → get a locked oak log → try to place it → the answer menu opens → answer correctly → the oak log is unlocked and can be placed → it locks again after 10 minutes. Progress is saved, and the loop works on a dedicated server. A hand-written name list of about 10 items and simple answer checking (exact kana or kanji).
 
-PRs:
+Parts:
 
 1. Core levels, intervals and lock times.
 2. Saving and loading progress.
@@ -146,7 +146,7 @@ PRs:
 
 **Status:** not started
 
-The first PR agrees on the name list file format (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in the agreed format.
+First the name list file format is agreed (readings per kanji, units like 今日). Then full answer checking in core: kana and kanji mixes, optional の, romaji (both styles, du/di/wo), long vowels, punctuation, and wrong kanji failing. Mostly core code with many tests, using hand-written entries in the agreed format.
 
 ### 5. Name list script
 
@@ -158,7 +158,7 @@ A tool that reads `ja_jp.json`, splits the names with Sudachi, checks them with 
 
 **Status:** not started
 
-Several PRs: crafting; chests and other containers; using, eating, attacking and mining; fuel and trades; the drop setting.
+Crafting; chests and other containers; using, eating, attacking and mining; fuel and trades; the drop setting.
 
 ### 7. Display
 
@@ -176,13 +176,13 @@ Lessons at level 0 (show the answer, no punishment), the Already known and Ignor
 
 **Status:** not started
 
-Several PRs: the removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
+The removal math in core, removing from the current view, removing crafting ingredients, protected items, demotion, and bans.
 
 ### 10. Voice and notification
 
 **Status:** not started
 
-Pick the VOICEVOX voice and generate the audio (one PR). Play it and show the notification at the top of the screen (another PR).
+Pick the VOICEVOX voice and generate the audio. Play it and show the notification at the top of the screen.
 
 ### 11. Remaining rules
 
