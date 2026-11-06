@@ -8,7 +8,7 @@ Oboecraft is a Minecraft mod for learning Japanese. It uses a spaced repetition 
 
 `docs/idea.md` is the original vision for the mod. It is frozen: do not edit it unless asked. How the mod actually works is described in `docs/design/`.
 
-## Git and pull requests
+## Git, issues and pull requests
 
 - Never push, force-push, or commit to `main`. Always work on a branch.
 - GitHub doesn't enforce these rules, since `main` has no branch protection. Follow them even when a command would succeed.
@@ -16,6 +16,7 @@ Oboecraft is a Minecraft mod for learning Japanese. It uses a spaced repetition 
 - Branch names use a type prefix and a short kebab-case name: `feat/`, `fix/`, `docs/`, `refactor/` or `chore/`. If the work is based on an issue, put the issue number right after the prefix, like `feat/12-srs-levels`.
 - Commit messages have a short subject in the imperative mood, like "Add lock timer to items". No Conventional Commit prefixes (`feat:` and so on).
 - Keep each PR to one topic. The description says what changed and why. If the PR is based on an issue, include `Refs #12`.
+- Issues are short and describe only the overall idea, without code references, since those get outdated. Write more detail, like an implementation plan, only when the user asks for it.
 
 ## Architecture
 
