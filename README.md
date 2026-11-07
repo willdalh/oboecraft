@@ -18,6 +18,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **Mistakes cost items.** You get two attempts. A fail removes up to half of that item from your inventory, moves it down a level and bans it for five minutes, so it can't be answered until the ban ends. Words you have known for longer lose less.
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer.
+- **Hear every word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
 
 <table>
   <tr>
@@ -25,7 +26,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
     <td><img src="docs/images/fail.jpg" alt="After a fail, the answer menu shows サクラの板材 and its reading"></td>
   </tr>
   <tr>
-    <td>A correct answer shows how the name is written, kanji included.</td>
+    <td>A correct answer shows how the name is written, kanji included, and says it aloud.</td>
     <td>A fail shows the answer and its reading.</td>
   </tr>
   <tr>
@@ -65,6 +66,6 @@ The levels, their intervals, the ban length and how much a fail removes can be c
 
 ## License
 
-The code is under the [MIT license](LICENSE). The Japanese names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The code is under the [MIT license](LICENSE). The Japanese names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:冥鳴ひまり. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 [AGENTS.md](AGENTS.md) has the commands to build and test the mod, and [`docs/`](docs/) describes how it works.

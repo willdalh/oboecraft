@@ -1,6 +1,6 @@
 # Credits
 
-Oboecraft's code is under the MIT license, see [`LICENSE`](LICENSE). The mod also ships, and was made with, data from others, under their own terms.
+Oboecraft's code is under the MIT license, see [`LICENSE`](LICENSE). The mod also ships, and was made with, data and voices from others, under their own terms.
 
 ## Japanese names
 
@@ -14,3 +14,11 @@ The readings in the name list, and how the names are split into parts, were made
 - **SudachiDict** and **Sudachi**, by Works Applications, which split the names into words and read them, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See [SudachiDict](https://github.com/WorksApplications/SudachiDict) and [Sudachi](https://github.com/WorksApplications/Sudachi).
 
 None of these files ship with the mod. Only the name list tool, which is run by hand to make the name list, uses them.
+
+## Reading clips
+
+VOICEVOX:冥鳴ひまり
+
+The reading clips (`assets/oboecraft/sounds/reading/` in the mod jar), which say each item's reading after a pass, were made with [VOICEVOX](https://voicevox.hiroshiba.jp/) in the voice of [冥鳴ひまり](https://www.meimeihimari.com/), and are used under the [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/) and the [terms of use of 冥鳴ひまり](https://www.meimeihimari.com/terms-of-use), which allow commercial and non-commercial use with the credit above. Anyone who uses the clips outside the mod must follow those terms too, and give the same credit. The clips are not under the MIT license or CC BY-SA 4.0. See [ADR: Reading clips are made ahead of time with VOICEVOX's 冥鳴ひまり](docs/decisions/20261107-reading-clips-with-voicevox.md).
+
+VOICEVOX itself doesn't ship with the mod. Only the reading clip tool, which is run by hand to make the clips, uses it.

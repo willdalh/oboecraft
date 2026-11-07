@@ -54,7 +54,7 @@ public class PayloadCodecGameTest {
             assertRoundTrip(helper, StateUpdate.STREAM_CODEC, new StateUpdate(TIME, OAK_LOG, state));
         }
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.LESSON,
-                Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
+                Optional.of(new ReviewAnswered.Answer(new ItemId("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress, Settings.DEFAULTS.withBanLength(java.time.Duration.ofSeconds(30))
                 .withDropCountsAsInteraction(true)));
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
@@ -68,11 +68,11 @@ public class PayloadCodecGameTest {
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC, new StateUpdate(TIME, OAK_LOG,
                 new SrsState.Leveled(2, Optional.of(TIME), true, 1, Optional.of(TIME.plusSeconds(300)))));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.PASS,
-                Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
+                Optional.of(new ReviewAnswered.Answer(new ItemId("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC,
                 new ReviewAnswered(TIME, 7, ReviewOutcome.WRONG, Optional.empty()));
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.FAIL,
-                Optional.of(new ReviewAnswered.Answer("オークの原木", "おーくのげんぼく"))));
+                Optional.of(new ReviewAnswered.Answer(new ItemId("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ReviewCancelled.STREAM_CODEC, new ReviewCancelled(TIME, 7));
         helper.succeed();
     }

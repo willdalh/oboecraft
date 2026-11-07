@@ -24,6 +24,7 @@ public final class OboecraftClient implements ClientModInitializer {
     private static ClientProgress progress;
     private static ClientReviews reviews;
     private static PassNotification notification;
+    private static ReadingClips readingClips;
     private static ClientSettings clientSettings;
 
     @Override
@@ -31,7 +32,9 @@ public final class OboecraftClient implements ClientModInitializer {
         progress = new ClientProgress();
         clientSettings = ClientSettingsFile.read(ClientSettingsFile.path());
         notification = new PassNotification();
-        reviews = new ClientReviews(OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification);
+        readingClips = new ReadingClips();
+        reviews = new ClientReviews(
+                OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification, readingClips);
         registerReceivers();
         ReviewKeys.register();
         ClientLockHooks.register(reviews);
@@ -39,6 +42,7 @@ public final class OboecraftClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             progress.clear();
             notification.clear();
+            readingClips.stop();
         });
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
     }

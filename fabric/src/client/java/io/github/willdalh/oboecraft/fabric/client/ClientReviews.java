@@ -39,13 +39,16 @@ public final class ClientReviews {
     private final Locks locks;
     private final ClientProgress progress;
     private final PassNotification notification;
+    private final ReadingClips readingClips;
     private int lastReviewId;
 
-    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, PassNotification notification) {
+    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, PassNotification notification,
+            ReadingClips readingClips) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.notification = Objects.requireNonNull(notification, "notification");
+        this.readingClips = Objects.requireNonNull(readingClips, "readingClips");
     }
 
     /**
@@ -149,13 +152,18 @@ public final class ClientReviews {
     }
 
     /**
-     * The server checked an answer. A pass closes the menu and shows the Japanese name in the notification. After a
-     * fail, the menu stays open and shows the Japanese name and reading, until the player closes it.
+     * The server checked an answer. A pass closes the menu, shows the Japanese name in the notification and plays the
+     * item's reading clip. After a fail, the menu stays open and shows the Japanese name and reading, until the player
+     * closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
-        // The server passed the item even if the player closed the menu before the reply came, so the name is shown.
+        // The server passed the item even if the player closed the menu before the reply came, so the name is shown
+        // and said.
         if (outcome == ReviewOutcome.PASS) {
-            answer.ifPresent(shown -> notification.show(shown.japaneseName()));
+            answer.ifPresent(shown -> {
+                notification.show(shown.japaneseName());
+                readingClips.play(shown.item());
+            });
         }
         AnswerScreen screen = answerScreen(reviewId);
         if (screen == null) {

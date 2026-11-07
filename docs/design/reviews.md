@@ -85,13 +85,13 @@ A review of an item at level 0 is a lesson:
 
 The answer menu shows the item's level, and "one attempt left" when a wrong attempt is saved. When a review starts, the server sends the level, which says whether it is a lesson, and how many attempts are left.
 
-The Japanese name and reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client only shows the name.
+The Japanese name and reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client only shows the name and plays the item's [reading clip](display.md#reading-clip), so the server sends the item's id with them.
 
 ## Outcomes
 
 | Outcome | What happens |
 |---|---|
-| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes and the [notification](display.md#notification) shows the Japanese name at the top of the screen. |
+| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes, the [notification](display.md#notification) shows the Japanese name at the top of the screen, and the [reading clip](display.md#reading-clip) says its reading. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
 | Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name and reading until the player closes it with Answer or Close. Only a new press closes it, not a key still held from the last answer, and not in the first half second, so the answer is always seen. The review is already over, so closing it changes nothing. |
 | Lesson answer shown | The Japanese name is shown, and the lesson goes on. |
@@ -114,3 +114,4 @@ In creative and spectator mode, the client's lock check allows every action, so 
 - Milestone 10: the [notification](display.md#notification) on a pass, in place of the text above the hotbar.
 - Milestone 11: cancelling a review when the player changes to a game mode without locks.
 - Milestone 12: the clickable buttons.
+- [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25): the [reading clip](display.md#reading-clip) on a pass.
