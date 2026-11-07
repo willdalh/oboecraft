@@ -4,10 +4,12 @@ import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.settings.LevelSettings;
 import io.github.willdalh.oboecraft.core.settings.Settings;
+import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.netty.buffer.ByteBuf;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -15,14 +17,11 @@ import net.minecraft.resources.Identifier;
 
 /** Stream codecs for the core values that payloads carry, and payload ids. */
 final class NetworkCodecs {
-    /** Longer than any translation key in the game. */
-    private static final int MAX_ITEM_ID_LENGTH = 256;
-
     static final StreamCodec<ByteBuf, Instant> INSTANT =
             ByteBufCodecs.LONG.map(Instant::ofEpochMilli, Instant::toEpochMilli);
 
     static final StreamCodec<ByteBuf, ItemId> ITEM_ID =
-            ByteBufCodecs.stringUtf8(MAX_ITEM_ID_LENGTH).map(ItemId::new, ItemId::value);
+            ByteBufCodecs.stringUtf8(ItemId.MAX_LENGTH).map(ItemId::new, ItemId::value);
 
     private static final StreamCodec<ByteBuf, SrsState.Leveled> LEVELED = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, SrsState.Leveled::level,
@@ -64,6 +63,14 @@ final class NetworkCodecs {
             ByteBufCodecs.VAR_INT, Settings::percentageFactor,
             ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
             Settings::new);
+
+    /** Far more than the name list has, which leaves room for saved items that left the name list. */
+    static final int MAX_STATES = 65_536;
+
+    /** A player's SRS states. At most {@link #MAX_STATES} are read, and each state is checked by its record. */
+    static final StreamCodec<ByteBuf, Progress> PROGRESS = ByteBufCodecs.map(
+                    HashMap<ItemId, SrsState>::new, ITEM_ID, SRS_STATE, MAX_STATES)
+            .map(Progress::new, progress -> new HashMap<>(progress.states()));
 
     private NetworkCodecs() {
     }

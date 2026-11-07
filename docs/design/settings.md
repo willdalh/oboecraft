@@ -29,7 +29,7 @@ Settings are checked as a whole when they are read, from the file, from the scre
 
 ### The settings file
 
-The server reads its settings from `config/oboecraft/server.json` when it starts. On a dedicated server, that is in the server's folder. In singleplayer, it is in the game folder, so every singleplayer world uses the same settings, like the singleplayer progress. Durations are written like `10m`, `1h 30m` or `14d`, with the units `d`, `h`, `m` and `s`. See [Settings files](../architecture/settings-files.md) for the format.
+The server reads its settings from `config/oboecraft/server.json` when it starts. On a dedicated server, that is in the server's folder. In singleplayer, it is in the game folder, so every singleplayer world uses the same settings. Durations are written like `10m`, `1h 30m` or `14d`, with the units `d`, `h`, `m` and `s`. See [Settings files](../architecture/settings-files.md) for the format.
 
 - A missing file is written with the defaults, so the server owner has a file to edit.
 - A file that can't be read or isn't valid settings is logged with what is wrong, and the defaults are used. The file is left as it is, so a typo never loses the owner's other values.
