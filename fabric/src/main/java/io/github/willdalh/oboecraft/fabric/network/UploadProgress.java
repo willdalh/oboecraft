@@ -11,10 +11,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  */
 public record UploadProgress(Progress progress) implements CustomPacketPayload {
     /**
-     * The most bytes the progress can take, the same as the largest payload the server can send back. Real progress
+     * The most bytes the progress can take. The server sends the same progress back in {@link ProgressSync}, whose
+     * largest payload is 1 MiB, so this leaves room for its time and settings, at most a few kilobytes. Real progress
      * takes a few kilobytes per hundred items.
      */
-    public static final int MAX_SIZE = 1 << 20;
+    public static final int MAX_SIZE = (1 << 20) - (16 << 10);
 
     public static final Type<UploadProgress> TYPE = NetworkCodecs.type("upload_progress");
     public static final StreamCodec<ByteBuf, UploadProgress> STREAM_CODEC =

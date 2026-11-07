@@ -17,14 +17,11 @@ import net.minecraft.resources.Identifier;
 
 /** Stream codecs for the core values that payloads carry, and payload ids. */
 final class NetworkCodecs {
-    /** Longer than any translation key in the game. */
-    private static final int MAX_ITEM_ID_LENGTH = 256;
-
     static final StreamCodec<ByteBuf, Instant> INSTANT =
             ByteBufCodecs.LONG.map(Instant::ofEpochMilli, Instant::toEpochMilli);
 
     static final StreamCodec<ByteBuf, ItemId> ITEM_ID =
-            ByteBufCodecs.stringUtf8(MAX_ITEM_ID_LENGTH).map(ItemId::new, ItemId::value);
+            ByteBufCodecs.stringUtf8(ItemId.MAX_LENGTH).map(ItemId::new, ItemId::value);
 
     private static final StreamCodec<ByteBuf, SrsState.Leveled> LEVELED = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, SrsState.Leveled::level,

@@ -22,6 +22,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.level.storage.LevelResource;
 
@@ -55,10 +57,11 @@ public class ProgressStoreClientGameTest implements FabricClientGameTest {
             worldProgress = singleplayer.getServer().computeOnServer(server ->
                     server.getWorldPath(LevelResource.ROOT).resolve("oboecraft"));
 
-            ProgressStore otherGame = new ProgressStore(folder, ProgressStore.SAVE_DELAY);
+            ProgressStore otherGame = new ProgressStore(folder, ProgressStore.SAVE_DELAY, () -> {
+            });
             try {
                 List<CustomPacketPayload> sent = new ArrayList<>();
-                otherGame.start(player, sent::add).join();
+                otherGame.start(new Connection(PacketFlow.CLIENTBOUND), player, sent::add).join();
                 check(sent.equals(List.of(new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE))),
                         "another game can't use the file, but sent " + sent);
             } finally {

@@ -5,9 +5,10 @@ import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.network.ProgressUnavailable;
 import io.github.willdalh.oboecraft.fabric.network.UploadProgress;
-import io.github.willdalh.oboecraft.fabric.progress.ProgressStore;
 import io.github.willdalh.oboecraft.fabric.progress.ProgressFiles;
+import io.github.willdalh.oboecraft.fabric.progress.ProgressStore;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -16,13 +17,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * The client's progress file: what it sends the server, the lock that keeps two games from using it at once, and
- * saving the server's changes. Each test uses a folder of its own.
+ * The client's progress file: what it sends the server, the lock that keeps two games from using it at once, saving
+ * the server's changes, and sessions that belong to one connection. Each test uses a folder of its own.
  */
 public class ProgressStoreGameTest {
     private static final ItemId OAK_LOG = new ItemId("block.minecraft.oak_log");
@@ -32,14 +36,31 @@ public class ProgressStoreGameTest {
     private static final Duration NO_SAVE_BEFORE_THE_END = Duration.ofHours(1);
 
     private static Path folder() throws IOException {
-        return Files.createTempDirectory("oboecraft-own-progress");
+        return Files.createTempDirectory("oboecraft-progress-store");
+    }
+
+    private static ProgressStore store(Path folder, Duration saveDelay) {
+        return new ProgressStore(folder, saveDelay, () -> {
+        });
+    }
+
+    private static Connection connection() {
+        return new Connection(PacketFlow.CLIENTBOUND);
     }
 
     /** Starts a session and returns what the client sends the server. */
-    private static CustomPacketPayload start(ProgressStore progressStore, UUID player) {
+    private static CustomPacketPayload start(ProgressStore store, Connection connection, UUID player) {
         List<CustomPacketPayload> sent = new ArrayList<>();
-        progressStore.start(player, sent::add).join();
+        store.start(connection, player, sent::add).join();
         return sent.getFirst();
+    }
+
+    private static ProgressFiles.ReadResult read(Path file) {
+        try {
+            return ProgressFiles.read(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @GameTest
@@ -47,17 +68,19 @@ public class ProgressStoreGameTest {
             throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        ProgressStore progressStore = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
+        Connection connection = connection();
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            helper.assertValueEqual(start(progressStore, player), new UploadProgress(Progress.EMPTY), "sent");
-            progressStore.changed(LEVEL_THREE);
-            progressStore.end().join();
+            helper.assertValueEqual(start(store, connection, player), new UploadProgress(Progress.EMPTY), "sent");
+            store.changed(connection, LEVEL_THREE);
+            store.end(connection).join();
 
-            helper.assertValueEqual(ProgressFiles.read(folder.resolve(player + ".json")),
+            helper.assertValueEqual(read(folder.resolve(player + ".json")),
                     new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
-            helper.assertValueEqual(start(progressStore, player), new UploadProgress(LEVEL_THREE), "sent next time");
+            helper.assertValueEqual(start(store, connection(), player), new UploadProgress(LEVEL_THREE),
+                    "sent next time");
         } finally {
-            progressStore.close();
+            store.close();
         }
         helper.succeed();
     }
@@ -66,38 +89,98 @@ public class ProgressStoreGameTest {
     public void changesAreSavedSoonAfterTheyArrive(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        Path file = folder.resolve(player + ".json");
-        ProgressStore progressStore = new ProgressStore(folder, Duration.ofMillis(10));
-        start(progressStore, player);
-        progressStore.changed(LEVEL_THREE);
+        Connection connection = connection();
+        ProgressStore store = store(folder, Duration.ofMillis(10));
+        start(store, connection, player);
+        store.changed(connection, LEVEL_THREE);
 
         helper.succeedWhen(() -> {
-            try {
-                helper.assertValueEqual(ProgressFiles.read(file), new ProgressFiles.ReadResult.Loaded(LEVEL_THREE),
-                        "saved progress");
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            progressStore.close();
+            helper.assertValueEqual(read(folder.resolve(player + ".json")),
+                    new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
+            store.close();
         });
+    }
+
+    @GameTest
+    public void anotherConnectionCantChangeOrEndTheSession(GameTestHelper helper) throws IOException {
+        Path folder = folder();
+        UUID player = UUID.randomUUID();
+        Path file = folder.resolve(player + ".json");
+        Connection earlier = connection();
+        Connection current = connection();
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
+        try {
+            start(store, current, player);
+            store.changed(earlier, Progress.EMPTY);
+            store.end(earlier).join();
+            helper.assertFalse(Files.exists(file), "a late change of an earlier connection isn't saved");
+
+            store.changed(current, LEVEL_THREE);
+            store.end(current).join();
+            helper.assertValueEqual(read(file), new ProgressFiles.ReadResult.Loaded(LEVEL_THREE),
+                    "the session's change is saved when it ends");
+        } finally {
+            store.close();
+        }
+        helper.succeed();
     }
 
     @GameTest
     public void changesOutsideASessionAreNotSaved(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        ProgressStore progressStore = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
+        Connection connection = connection();
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            progressStore.changed(LEVEL_THREE);
-            progressStore.end().join();
-            start(progressStore, player);
-            progressStore.end().join();
-            progressStore.changed(LEVEL_THREE);
-            progressStore.end().join();
+            store.changed(connection, LEVEL_THREE);
+            store.end(connection).join();
+            start(store, connection, player);
+            store.end(connection).join();
+            store.changed(connection, LEVEL_THREE);
+            store.end(connection).join();
         } finally {
-            progressStore.close();
+            store.close();
         }
         helper.assertFalse(Files.exists(folder.resolve(player + ".json")), "no progress file");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void stoppingTheGameSavesTheSessionAndLaterCallsAreIgnored(GameTestHelper helper) throws IOException {
+        Path folder = folder();
+        UUID player = UUID.randomUUID();
+        Connection connection = connection();
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
+        start(store, connection, player);
+        store.changed(connection, LEVEL_THREE);
+
+        store.close();
+        // The game stops before it leaves the world, so the connection's end and late changes come afterwards.
+        store.changed(connection, Progress.EMPTY);
+        store.end(connection).join();
+
+        helper.assertValueEqual(read(folder.resolve(player + ".json")),
+                new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void thePlayerIsToldOnceWhenSavingFails(GameTestHelper helper) throws IOException {
+        Path folder = folder();
+        UUID player = UUID.randomUUID();
+        Connection connection = connection();
+        AtomicInteger told = new AtomicInteger();
+        ProgressStore store = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END, told::incrementAndGet);
+        try {
+            start(store, connection, player);
+            // A folder where the file should be makes every save fail.
+            Files.createDirectory(folder.resolve(player + ".json"));
+            store.changed(connection, LEVEL_THREE);
+            store.end(connection).join();
+        } finally {
+            store.close();
+        }
+        helper.assertValueEqual(told.get(), 1, "times told");
         helper.succeed();
     }
 
@@ -105,17 +188,18 @@ public class ProgressStoreGameTest {
     public void aFileInUseByAnotherGameIsntSent(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        ProgressStore firstGame = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
-        ProgressStore secondGame = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
+        Connection firstConnection = connection();
+        ProgressStore firstGame = store(folder, NO_SAVE_BEFORE_THE_END);
+        ProgressStore secondGame = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            start(firstGame, player);
-            helper.assertValueEqual(start(secondGame, player),
+            start(firstGame, firstConnection, player);
+            helper.assertValueEqual(start(secondGame, connection(), player),
                     new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE), "sent by the second game");
-            helper.assertValueEqual(start(secondGame, UUID.randomUUID()), new UploadProgress(Progress.EMPTY),
-                    "another player's progress");
+            helper.assertValueEqual(start(secondGame, connection(), UUID.randomUUID()),
+                    new UploadProgress(Progress.EMPTY), "another player's progress");
 
-            firstGame.end().join();
-            helper.assertValueEqual(start(secondGame, player), new UploadProgress(Progress.EMPTY),
+            firstGame.end(firstConnection).join();
+            helper.assertValueEqual(start(secondGame, connection(), player), new UploadProgress(Progress.EMPTY),
                     "sent once the first game has left");
         } finally {
             firstGame.close();
@@ -131,14 +215,15 @@ public class ProgressStoreGameTest {
         Path file = folder.resolve(player + ".json");
         String newer = "{\"version\": 99, \"items\": {}}";
         Files.writeString(file, newer);
-        ProgressStore progressStore = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
+        Connection connection = connection();
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            helper.assertValueEqual(start(progressStore, player),
+            helper.assertValueEqual(start(store, connection, player),
                     new ProgressUnavailable(ProgressUnavailable.Reason.TOO_NEW), "sent");
-            progressStore.changed(LEVEL_THREE);
-            progressStore.end().join();
+            store.changed(connection, LEVEL_THREE);
+            store.end(connection).join();
         } finally {
-            progressStore.close();
+            store.close();
         }
         helper.assertValueEqual(Files.readString(file), newer, "the newer file");
         helper.succeed();
@@ -150,16 +235,16 @@ public class ProgressStoreGameTest {
         UUID player = UUID.randomUUID();
         Path file = folder.resolve(player + ".json");
         Files.writeString(file, "{ broken");
-        ProgressStore progressStore = new ProgressStore(folder, NO_SAVE_BEFORE_THE_END);
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            helper.assertValueEqual(start(progressStore, player), new UploadProgress(Progress.EMPTY), "sent");
-            helper.assertValueEqual(progressStore.takeBrokenFileKeptAs(), Optional.of(player + ".json.broken"),
+            helper.assertValueEqual(start(store, connection(), player), new UploadProgress(Progress.EMPTY), "sent");
+            helper.assertValueEqual(store.takeBrokenFileKeptAs(), Optional.of(player + ".json.broken"),
                     "the name the player is told");
-            helper.assertValueEqual(progressStore.takeBrokenFileKeptAs(), Optional.empty(), "told once");
+            helper.assertValueEqual(store.takeBrokenFileKeptAs(), Optional.empty(), "told once");
             helper.assertValueEqual(Files.readString(file.resolveSibling(player + ".json.broken")), "{ broken",
                     "kept broken file");
         } finally {
-            progressStore.close();
+            store.close();
         }
         helper.succeed();
     }

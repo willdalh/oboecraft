@@ -21,6 +21,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import org.jspecify.annotations.Nullable;
 
@@ -28,11 +29,11 @@ import org.jspecify.annotations.Nullable;
  * The player's progress on this computer, which the client keeps and sends to every server the player joins. It is one
  * progress file per account in the game folder, see {@code docs/architecture/progress-files.md}.
  *
- * <p>A session lasts from the server's request for the progress until the player leaves. While it lasts, the file is
- * locked, so another game on the same computer can't use it at the same time, and the server's changes are saved soon
- * after they arrive.
- * All file work runs in order on one background thread, so the game never waits for the disk, and two saves of the
- * file never race.
+ * <p>A session belongs to one connection, from the server's request for the progress until the player leaves. While it
+ * lasts, the file is locked, so another game on the same computer can't use it at the same time, and the server's
+ * changes on that connection are saved soon after they arrive. Anything another connection asks of the store is
+ * ignored, so a message handled late never touches the current session. All file work runs in order on one background
+ * thread, so the game never waits for the disk, and two saves of the file never race.
  */
 public final class ProgressStore {
     /** How long after a change the progress is saved, so changes that arrive close together are saved once. */
@@ -42,21 +43,35 @@ public final class ProgressStore {
 
     private final Path folder;
     private final Duration saveDelay;
+    private final Runnable saveFailed;
     private final ScheduledThreadPoolExecutor fileThread = new ScheduledThreadPoolExecutor(1, task -> {
         Thread thread = new Thread(task, "Oboecraft progress store");
         thread.setDaemon(true);
         return thread;
     });
-    /** The latest progress the server sent that isn't saved yet. */
-    private final AtomicReference<@Nullable Progress> unsaved = new AtomicReference<>();
+    /** The latest progress the server sent that isn't saved yet, and the connection it came over. */
+    private final AtomicReference<@Nullable Change> unsaved = new AtomicReference<>();
     /** The name a broken file was kept under, until the player is told. */
     private final AtomicReference<@Nullable String> brokenFileKeptAs = new AtomicReference<>();
-    /** Whether a session is going, so changes are saved. */
-    private volatile boolean active;
-    /** The session's file and lock. Only used on the file thread. */
+    /** The session's connection, file and lock. Only used on the file thread. */
     private @Nullable Session session;
 
-    private record Session(Path file, FileChannel lockChannel, FileLock lock) {
+    private record Change(Connection connection, Progress progress) {
+    }
+
+    private static final class Session {
+        final Connection connection;
+        final Path file;
+        final FileChannel lockChannel;
+        final FileLock lock;
+        boolean saveFailed;
+
+        Session(Connection connection, Path file, FileChannel lockChannel, FileLock lock) {
+            this.connection = connection;
+            this.file = file;
+            this.lockChannel = lockChannel;
+            this.lock = lock;
+        }
     }
 
     /** What reading the player's file found: progress to use, or why there is none. */
@@ -69,12 +84,15 @@ public final class ProgressStore {
     }
 
     /**
-     * @param folder    the folder of the progress files
-     * @param saveDelay how long after a change the progress is saved
+     * @param folder     the folder of the progress files
+     * @param saveDelay  how long after a change the progress is saved
+     * @param saveFailed tells the player that their progress couldn't be saved, at most once a session. Called on the
+     *                   file thread.
      */
-    public ProgressStore(Path folder, Duration saveDelay) {
+    public ProgressStore(Path folder, Duration saveDelay, Runnable saveFailed) {
         this.folder = Objects.requireNonNull(folder, "folder");
         this.saveDelay = Objects.requireNonNull(saveDelay, "saveDelay");
+        this.saveFailed = Objects.requireNonNull(saveFailed, "saveFailed");
         // When the game stops, the session's end saves the changes, so waiting saves can be dropped.
         fileThread.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
     }
@@ -85,46 +103,55 @@ public final class ProgressStore {
     }
 
     /**
-     * Starts a session when the server asks for the player's progress: locks and reads the player's file, and sends the
-     * server {@link UploadProgress}, or {@link ProgressUnavailable} if it can't. A file that isn't valid progress is
-     * kept as {@code .broken}, and the player starts with empty progress, see {@link #takeBrokenFileKeptAs}. A session
-     * that is still going, when the server configures the player again, ends first, so its changes are read back.
+     * Starts a session for the connection when the server asks for the player's progress: locks and reads the
+     * player's file, and sends the server {@link UploadProgress}, or {@link ProgressUnavailable} if it can't. A file
+     * that isn't valid progress is kept as {@code .broken}, and the player starts with empty progress, see
+     * {@link #takeBrokenFileKeptAs}. A session that is still going ends first, so its changes are read back, for
+     * example when the server configures the player again.
      *
      * @param send sends a payload to the server. Called on the file thread.
      * @return when the answer has been sent
      */
-    public CompletableFuture<Void> start(UUID player, Consumer<CustomPacketPayload> send) {
-        return CompletableFuture.runAsync(() -> send.accept(open(player)), fileThread);
+    public CompletableFuture<Void> start(Connection connection, UUID player, Consumer<CustomPacketPayload> send) {
+        return onFileThread(() -> send.accept(open(connection, player)));
     }
 
     /**
-     * Saves the progress the server sent soon, if a session is going. Changes that arrive before the save are saved
-     * together, as the latest progress.
+     * Saves the progress the server sent on the connection soon. Changes that arrive before the save are saved
+     * together, as the latest progress. Ignored unless the connection has the session.
      */
-    public void changed(Progress progress) {
-        if (active && unsaved.getAndSet(progress) == null) {
+    public void changed(Connection connection, Progress progress) {
+        if (unsaved.getAndSet(new Change(connection, progress)) == null) {
             scheduleSave();
         }
     }
 
     private void scheduleSave() {
-        fileThread.schedule(this::saveUnsaved, saveDelay.toMillis(), TimeUnit.MILLISECONDS);
+        if (!fileThread.isShutdown()) {
+            fileThread.schedule(this::saveUnsaved, saveDelay.toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
 
     /**
-     * Ends the session when the player leaves: saves the latest changes and unlocks the file. Does nothing if no
-     * session is going.
+     * Ends the connection's session when the player leaves: saves the latest changes and unlocks the file. Ignored
+     * unless the connection has the session.
      *
      * @return when the session has ended
      */
-    public CompletableFuture<Void> end() {
-        active = false;
-        return CompletableFuture.runAsync(this::endSession, fileThread);
+    public CompletableFuture<Void> end(Connection connection) {
+        return onFileThread(() -> {
+            if (session != null && session.connection == connection) {
+                endSession();
+            }
+        });
     }
 
-    /** Ends the session when the game stops, and waits for the last save. */
+    /**
+     * Ends the session when the game stops, and waits for the last save. The game stops before it leaves the world, so
+     * the connection's own end comes later and is ignored.
+     */
     public void close() {
-        end();
+        onFileThread(this::endSession);
         fileThread.shutdown();
         try {
             if (!fileThread.awaitTermination(CLOSE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
@@ -140,14 +167,27 @@ public final class ProgressStore {
         return Optional.ofNullable(brokenFileKeptAs.getAndSet(null));
     }
 
-    /** Opens the session on the file thread, and says what to send the server. */
-    private CustomPacketPayload open(UUID player) {
-        // A session that never ended, which shouldn't happen, ends first, so its changes are saved.
+    /** Runs file work in order on the file thread. Once the game has stopped, there is none. Failures are logged. */
+    private CompletableFuture<Void> onFileThread(Runnable work) {
+        if (fileThread.isShutdown()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(work, fileThread).whenComplete((done, error) -> {
+            if (error != null) {
+                OboecraftMod.LOGGER.error("The progress store failed", error);
+            }
+        });
+    }
+
+    /** Opens the connection's session on the file thread, and says what to send the server. */
+    private CustomPacketPayload open(Connection connection, UUID player) {
         endSession();
+        // Changes that arrived outside a session belong to no file. The server only sends this session's after it.
+        unsaved.set(null);
         Path file = folder.resolve(player + ".json");
         Optional<Session> locked;
         try {
-            locked = lock(file);
+            locked = lock(connection, file);
         } catch (IOException e) {
             OboecraftMod.LOGGER.error("Couldn't lock the progress file {}", file, e);
             return new ProgressUnavailable(ProgressUnavailable.Reason.UNREADABLE);
@@ -159,7 +199,6 @@ public final class ProgressStore {
         return switch (read(file)) {
             case ReadResult.Usable usable -> {
                 session = locked.get();
-                active = true;
                 yield new UploadProgress(usable.progress());
             }
             case ReadResult.Unusable unusable -> {
@@ -173,7 +212,7 @@ public final class ProgressStore {
      * Locks the file for this game, with a lock file next to it. Empty if another game holds the lock. Within one game,
      * a lock that is held already counts as another game's, which only tests can cause.
      */
-    private static Optional<Session> lock(Path file) throws IOException {
+    private static Optional<Session> lock(Connection connection, Path file) throws IOException {
         Files.createDirectories(file.getParent());
         FileChannel channel = FileChannel.open(file.resolveSibling(file.getFileName() + ".lock"),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -190,7 +229,7 @@ public final class ProgressStore {
             channel.close();
             return Optional.empty();
         }
-        return Optional.of(new Session(file, channel, lock));
+        return Optional.of(new Session(connection, file, channel, lock));
     }
 
     /**
@@ -230,41 +269,50 @@ public final class ProgressStore {
     }
 
     /**
-     * Saves the latest changes to the session's file. A failed save is logged and tried again after the save delay, or
-     * when the session ends, unless newer changes have arrived, which are saved instead.
+     * Saves the latest change to the session's file, if it came over the session's connection. A failed save is logged,
+     * the player is told the first time in a session, and it is tried again after the save delay, unless newer changes
+     * have arrived, which are saved instead.
      */
     private void saveUnsaved() {
-        Progress progress = unsaved.getAndSet(null);
-        if (progress == null || session == null) {
+        Change change = unsaved.getAndSet(null);
+        if (change == null || session == null || change.connection() != session.connection) {
             return;
         }
         try {
-            ProgressFiles.write(session.file(), progress);
+            ProgressFiles.write(session.file, change.progress());
         } catch (IOException e) {
-            OboecraftMod.LOGGER.error("Couldn't save the progress file {}", session.file(), e);
-            if (unsaved.compareAndSet(null, progress) && active) {
+            OboecraftMod.LOGGER.error("Couldn't save the progress file {}", session.file, e);
+            if (!session.saveFailed) {
+                session.saveFailed = true;
+                saveFailed.run();
+            }
+            if (unsaved.compareAndSet(null, change)) {
                 scheduleSave();
             }
         }
     }
 
-    /** Saves the latest changes and unlocks the file, on the file thread. */
+    /** Saves the latest changes and unlocks the file, on the file thread. Does nothing without a session. */
     private void endSession() {
-        saveUnsaved();
-        if (session != null) {
-            release(session);
-            session = null;
+        if (session == null) {
+            return;
         }
-        // Changes whose save failed can't be saved without the session. The failure was logged.
-        unsaved.set(null);
+        saveUnsaved();
+        Change failed = unsaved.get();
+        if (failed != null && failed.connection() == session.connection && unsaved.compareAndSet(failed, null)) {
+            OboecraftMod.LOGGER.error("The latest progress couldn't be saved to {} before the session ended",
+                    session.file);
+        }
+        release(session);
+        session = null;
     }
 
     private static void release(Session session) {
         try {
-            session.lock().release();
-            session.lockChannel().close();
+            session.lock.release();
+            session.lockChannel.close();
         } catch (IOException e) {
-            OboecraftMod.LOGGER.error("Couldn't unlock the progress file {}", session.file(), e);
+            OboecraftMod.LOGGER.error("Couldn't unlock the progress file {}", session.file, e);
         }
     }
 }

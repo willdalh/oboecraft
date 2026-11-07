@@ -35,7 +35,7 @@ While the player is in a world, the game holds a lock on `<uuid>.json.lock` next
 }
 ```
 
-- `items` is keyed by item id. Items at `Leveled.NEW` are left out.
+- `items` is keyed by item id. Items at `Leveled.NEW` are left out. An item id longer than 256 characters makes the file broken, since no item has one.
 - `kind` is `leveled`, `known` or `ignored`. A kind this version of the mod doesn't know makes the file broken, see below.
 - Fields that are unset, false or 0 are left out. `wrongAttempts` is 0 or 1, and any other value makes the file broken.
 - Times are ISO 8601 in UTC, to the millisecond, so they can be read and fixed by hand.

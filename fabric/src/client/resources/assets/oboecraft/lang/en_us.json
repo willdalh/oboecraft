@@ -12,6 +12,7 @@
   "oboecraft.progress.unreadable": "Oboecraft couldn't read your progress file. Check your game's log.",
   "oboecraft.progress.in_use": "Your Oboecraft progress is in use by another running game. Close that game and join again.",
   "oboecraft.progress.upload_timeout": "Your game didn't send your Oboecraft progress in time.",
+  "oboecraft.progress.save_failed": "Oboecraft couldn't save your progress. Check your game's log.",
   "oboecraft.protocol.mismatch": "This server needs the Oboecraft mod, with network protocol version %s. Install the same version of Oboecraft as the server.",
   "oboecraft.display.locks_in": "Locks in %s",
   "oboecraft.display.days": "%sd",

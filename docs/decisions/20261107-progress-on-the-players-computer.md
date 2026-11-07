@@ -21,5 +21,6 @@ Alternatives considered:
 ## Consequences
 - A player's progress is the same everywhere they play, but only on the computer that holds the file.
 - The server trusts the progress the client sends, after checking that it is valid. A player can edit their file to master every item, so items never lock and are never removed. Server owners can't prevent that.
+- The client trusts the progress the server sends back, so a server running a changed mod could change or empty a player's progress for every world, not only its own.
 - The client writes progress files, which only the server did before. It does so on a background thread of its own, soon after each change and when the player leaves.
 - The server has no progress files to save or back up.

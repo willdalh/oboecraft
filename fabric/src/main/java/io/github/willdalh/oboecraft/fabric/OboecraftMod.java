@@ -40,7 +40,7 @@ public final class OboecraftMod implements ModInitializer {
     public void onInitialize() {
         ModClock clock = new ModClock();
         ItemMapping itemMapping = new ItemMapping(NameListFile.load());
-        ProgressUploads progressUploads = new ProgressUploads(clock);
+        ProgressUploads progressUploads = new ProgressUploads();
         ServerProgress serverProgress = new ServerProgress(clock);
         Locks locks = new Locks(itemMapping);
         ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress);

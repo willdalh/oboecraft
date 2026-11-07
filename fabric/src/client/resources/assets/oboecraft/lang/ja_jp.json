@@ -12,6 +12,7 @@
   "oboecraft.progress.unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。ゲームのログを確認してください。",
   "oboecraft.progress.in_use": "Oboecraftの進行状況は、起動中の別のゲームで使われています。そのゲームを閉じてから、もう一度参加してください。",
   "oboecraft.progress.upload_timeout": "ゲームからOboecraftの進行状況が時間内に届きませんでした。",
+  "oboecraft.progress.save_failed": "Oboecraftの進行状況を保存できませんでした。ゲームのログを確認してください。",
   "oboecraft.protocol.mismatch": "このサーバーにはネットワークプロトコルバージョン %s のOboecraft MODが必要です。サーバーと同じバージョンのOboecraftを導入してください。",
   "oboecraft.display.locks_in": "ロックまで %s",
   "oboecraft.display.days": "%s日",

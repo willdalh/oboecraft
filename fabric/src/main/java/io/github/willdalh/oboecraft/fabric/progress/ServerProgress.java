@@ -58,7 +58,7 @@ public final class ServerProgress implements ProgressView {
     }
 
     /** Whether the player's progress is held. */
-    public boolean isLoaded(ServerPlayer player) {
+    public boolean hasSession(ServerPlayer player) {
         return online.containsKey(player.getUUID());
     }
 

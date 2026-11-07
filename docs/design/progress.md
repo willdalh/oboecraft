@@ -4,13 +4,15 @@ A player's progress is all their SRS states. It follows the player: one progress
 
 ## Joining
 
-When the player joins, their game sends their progress to the server before they enter the world. The server holds it while they play, decides every review and every change as before, and sends each change back. The player's game saves it soon after each change and when the player leaves. The server keeps no progress of its own.
+When the player joins, their game sends their progress to the server before they enter the world. The server holds it while they play, decides every review and every change as before, and sends each change back. The player's game saves it soon after each change and when the player leaves, and tells the player in chat if it can't. The server keeps no progress of its own.
+
+An account can only be on its way into a world once at a time. Joining the same server again while the first connection is still joining disconnects the first, as Minecraft does with a player who logs in twice.
 
 The player can't join when their game can't send their progress, and is told why:
 
 - The progress was saved by a newer version of Oboecraft.
 - The progress file can't be read. The player is asked to check their game's log.
-- Another game on the same computer is in a world with the same progress. The player joins once that game has left, so the two games never save over each other.
+- Another game on the same computer is in a world with the same progress, so the two games never save over each other. The player can join again once that game has left.
 - The game didn't send it within 30 seconds.
 
 A progress file that isn't valid progress is kept as `.broken`, so it can be fixed by hand. The player starts with empty progress and is told in chat.
@@ -18,6 +20,8 @@ A progress file that isn't valid progress is kept as `.broken`, so it can be fix
 ## Trust
 
 The server checks that the progress it gets is valid, but can't tell whether the player changed it. A player can edit their file to master every item, so their items never lock and are never removed on a fail. That only takes away from their own learning.
+
+The other way round, the player's game saves whatever progress the server sends. A server running a changed mod could empty or change a player's progress everywhere they play, not only on that server. Players only lose that if they join such a server.
 
 ## Settings on each server
 

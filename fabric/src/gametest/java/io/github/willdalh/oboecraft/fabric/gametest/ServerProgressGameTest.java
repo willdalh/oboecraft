@@ -29,7 +29,7 @@ public class ServerProgressGameTest {
         helper.assertValueEqual(OboecraftMod.serverProgress().state(player, OAK_LOG), passed, "changed state");
         TestPlayers.leave(player);
 
-        helper.assertFalse(OboecraftMod.serverProgress().isLoaded(player), "progress is forgotten on leave");
+        helper.assertFalse(OboecraftMod.serverProgress().hasSession(player), "progress is forgotten on leave");
         helper.succeed();
     }
 
@@ -41,7 +41,7 @@ public class ServerProgressGameTest {
         OboecraftMod.serverProgress().update(later, OAK_LOG, LEVEL_THREE);
         TestPlayers.leave(earlier);
 
-        helper.assertTrue(OboecraftMod.serverProgress().isLoaded(later), "the later session has progress");
+        helper.assertTrue(OboecraftMod.serverProgress().hasSession(later), "the later session has progress");
         helper.assertValueEqual(OboecraftMod.serverProgress().state(later, OAK_LOG), LEVEL_THREE, "state");
         TestPlayers.leave(later);
         helper.succeed();
@@ -57,7 +57,7 @@ public class ServerProgressGameTest {
         helper.assertValueEqual(OboecraftMod.serverProgress().state(respawned, OAK_LOG), LEVEL_THREE, "state");
         TestPlayers.leave(respawned);
 
-        helper.assertFalse(OboecraftMod.serverProgress().isLoaded(respawned), "progress is forgotten on leave");
+        helper.assertFalse(OboecraftMod.serverProgress().hasSession(respawned), "progress is forgotten on leave");
         helper.succeed();
     }
 }
