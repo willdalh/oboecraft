@@ -35,7 +35,7 @@ public record ReviewRefused(Instant serverTime, int reviewId, Reason reason) imp
         BANNED,
         /** The stack isn't an item, isn't there any more, or isn't somewhere the player can reach. */
         STACK_GONE,
-        /** The player's progress isn't loaded, for example while they are being disconnected. */
+        /** The player has no progress session, for example while they are being disconnected. */
         NO_PROGRESS;
 
         private static final IntFunction<Reason> BY_ID =

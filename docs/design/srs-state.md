@@ -61,7 +61,7 @@ A leveled item is locked when:
 
 A mastered item is never locked. Since the state holds a timestamp, no timers run: whether an item is locked is worked out from the state and the current time whenever it is needed. See [Time](time.md).
 
-The last rule covers settings that add levels. If the top level goes from 9 to 10, an item mastered at 9 has no locks-at time and becomes locked, to be reviewed at its old level. If settings remove levels, a level above the new top level counts as mastered.
+The last rule covers settings that add levels. If the top level goes from 9 to 10, an item mastered at 9 has no locks-at time and becomes locked, to be reviewed at its old level. If settings remove levels, a level above the new top level counts as mastered. The same goes for a player's progress on a server with fewer levels than where they played before, see [Progress](progress.md).
 
 ## Pass
 

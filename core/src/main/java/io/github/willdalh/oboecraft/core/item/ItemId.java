@@ -7,10 +7,16 @@ import java.util.Objects;
  * changes once released, since progress is saved under it.
  */
 public record ItemId(String value) {
+    /** Longer than any translation key in the game, so an id that is longer is never an item. */
+    public static final int MAX_LENGTH = 256;
+
     public ItemId {
         Objects.requireNonNull(value, "value");
         if (value.isBlank()) {
             throw new IllegalArgumentException("An item id can't be blank");
+        }
+        if (value.length() > MAX_LENGTH) {
+            throw new IllegalArgumentException("An item id can be at most " + MAX_LENGTH + " characters long");
         }
     }
 

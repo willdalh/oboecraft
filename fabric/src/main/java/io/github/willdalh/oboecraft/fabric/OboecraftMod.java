@@ -6,6 +6,7 @@ import io.github.willdalh.oboecraft.fabric.item.NameListFile;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
 import io.github.willdalh.oboecraft.fabric.lock.ServerLockHooks;
 import io.github.willdalh.oboecraft.fabric.network.ServerNetworking;
+import io.github.willdalh.oboecraft.fabric.progress.ProgressUploads;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
 import io.github.willdalh.oboecraft.fabric.settings.ServerSettingsFile;
@@ -39,31 +40,33 @@ public final class OboecraftMod implements ModInitializer {
     public void onInitialize() {
         ModClock clock = new ModClock();
         ItemMapping itemMapping = new ItemMapping(NameListFile.load());
+        ProgressUploads progressUploads = new ProgressUploads();
         ServerProgress serverProgress = new ServerProgress(clock);
         Locks locks = new Locks(itemMapping);
         ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress);
         services = new Services(clock, itemMapping, locks, serverProgress, serverReviews);
 
         ServerNetworking.registerPayloadTypes();
-        ServerNetworking.registerReceivers(serverReviews);
-        ServerNetworking.registerProtocolCheck();
+        ServerNetworking.registerReceivers(serverReviews, progressUploads);
+        ServerNetworking.registerConfiguration(progressUploads);
         ServerLockHooks.register();
-        registerProgressEvents(serverProgress, serverReviews);
+        registerProgressEvents(serverProgress, progressUploads, serverReviews);
 
         LOGGER.info("Oboecraft initialized with {} items in the name list", itemMapping.nameList().size());
     }
 
-    private static void registerProgressEvents(ServerProgress serverProgress, ServerReviews serverReviews) {
+    private static void registerProgressEvents(
+            ServerProgress serverProgress, ProgressUploads progressUploads, ServerReviews serverReviews) {
         // Read before any player joins, so every player gets the server's settings with their progress.
         ServerLifecycleEvents.SERVER_STARTING.register(server ->
                 serverProgress.useSettings(ServerSettingsFile.load(ServerSettingsFile.path())));
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> serverProgress.load(handler.player));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                progressUploads.take(handler.player.getUUID(), ProgressUploads.connectionOf(handler))
+                        .ifPresent(progress -> serverProgress.start(handler.player, progress)));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             serverReviews.forget(handler.player.getUUID());
-            serverProgress.unload(handler);
+            serverProgress.end(handler);
         });
-        ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> serverProgress.saveAll());
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> serverProgress.saveAll());
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (entity instanceof ServerPlayer player) {
                 serverReviews.cancel(player);

@@ -84,7 +84,7 @@ public final class ServerReviews {
      */
     public void start(ServerPlayer player, int reviewId, StackLocation location) {
         active.remove(player.getUUID());
-        if (!progress.isLoaded(player)) {
+        if (!progress.hasSession(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
         }
@@ -137,7 +137,7 @@ public final class ServerReviews {
      */
     public void answer(ServerPlayer player, int reviewId, String typed) {
         ActiveReview review = active.get(player.getUUID());
-        if (review == null || review.reviewId() != reviewId || !progress.isLoaded(player)) {
+        if (review == null || review.reviewId() != reviewId || !progress.hasSession(player)) {
             ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
             return;
         }
@@ -152,7 +152,7 @@ public final class ServerReviews {
     /** Applies only to the matching active review, never a client-supplied item. */
     public void action(ServerPlayer player, int reviewId, ReviewAction.Action action) {
         ActiveReview review = active.get(player.getUUID());
-        if (review == null || review.reviewId() != reviewId || !progress.isLoaded(player)) return;
+        if (review == null || review.reviewId() != reviewId || !progress.hasSession(player)) return;
         ItemId item = review.entry().id();
         switch (action) {
             case SHOW_ANSWER -> {
@@ -227,7 +227,7 @@ public final class ServerReviews {
 
     /** Only known, ignored and mastered entries belonging to the sender can be reverted. */
     public void revert(ServerPlayer player, ItemId item) {
-        if (!progress.isLoaded(player) || isReviewing(player) || itemMapping.nameList().byId(item).isEmpty()) return;
+        if (!progress.hasSession(player) || isReviewing(player) || itemMapping.nameList().byId(item).isEmpty()) return;
         if (SrsRules.canRevert(progress.state(player, item), progress.settings())) {
             progress.update(player, item, SrsState.Leveled.NEW);
         }

@@ -5,6 +5,7 @@
   "client": [
     "AnvilScreenMixin",
     "BossHealthOverlayAccessor",
+    "ClientCommonPacketListenerImplAccessor",
     "ClientAbstractContainerMenuMixin",
     "ClientItemStackMixin",
     "GuiMixin",
