@@ -43,5 +43,6 @@
   "oboecraft.settings.ban_length": "Ban after a fail",
   "oboecraft.settings.percentage_factor": "Removal drop per level, in %",
   "oboecraft.settings.drop": "Dropping counts as an interaction",
-  "oboecraft.settings.save_failed": "The settings couldn't be saved. See the game log."
+  "oboecraft.settings.save_failed": "The settings couldn't be saved. See the game log.",
+  "subtitles.oboecraft.reading": "Japanese name is said"
 }
