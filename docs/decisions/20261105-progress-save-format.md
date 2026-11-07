@@ -1,7 +1,7 @@
 # ADR-20261105: Progress saved as versioned JSON files
 
 ## Status
-Accepted
+Superseded by ADR-20261107
 
 ## Context
 Progress is shared across all singleplayer worlds, and each server keeps its own progress for each player. Minecraft's built-in ways to store player data, NBT and Fabric data attachments, save inside a single world. Once players have progress, changing how it is saved means converting their files, so this is hard to change later.

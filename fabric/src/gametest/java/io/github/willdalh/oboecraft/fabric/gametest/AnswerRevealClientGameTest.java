@@ -26,7 +26,7 @@ public final class AnswerRevealClientGameTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         ClientSettings previous = context.computeOnClient(client -> OboecraftClient.clientSettings());
         context.runOnClient(client -> OboecraftClient.useClientSettings(new ClientSettings(true, 100)));
-        SingleplayerProgress.delete();
+        ProgressFolder.delete();
         try (TestSingleplayerContext singleplayer = context.worldBuilder()
                 .adjustSettings(settings -> settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL))
                 .create()) {

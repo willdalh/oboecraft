@@ -12,7 +12,7 @@ More detail on each part:
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 - [Reading clip tool](reading-clip-tool.md): the tool that makes the reading clips with VOICEVOX.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, and [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool, and progress on the player's computer the client's progress files, see [ADR: Progress kept on the player's computer](../decisions/20261107-progress-on-the-players-computer.md).
 
 ## Core and adapters
 
