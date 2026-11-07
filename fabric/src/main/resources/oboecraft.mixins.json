@@ -8,6 +8,7 @@
     "ItemStackMixin",
     "MerchantMenuMixin",
     "PiercingWeaponMixin",
+    "ServerCommonPacketListenerImplAccessor",
     "ServerGamePacketListenerImplMixin",
     "ServerPlaceRecipeMixin",
     "ServerPlayerMixin",

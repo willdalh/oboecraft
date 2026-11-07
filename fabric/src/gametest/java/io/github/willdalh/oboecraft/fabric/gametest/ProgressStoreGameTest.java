@@ -14,7 +14,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -246,6 +248,30 @@ public class ProgressStoreGameTest {
         } finally {
             store.close();
         }
+        helper.succeed();
+    }
+
+    @GameTest
+    public void progressTooLargeToSendIsntSentAndIsLeftAlone(GameTestHelper helper) throws IOException {
+        Path folder = folder();
+        UUID player = UUID.randomUUID();
+        Path file = folder.resolve(player + ".json");
+        Map<ItemId, SrsState> states = new HashMap<>();
+        for (int i = 0; i <= 65_536; i++) {
+            states.put(new ItemId("item.test.item_" + i), new SrsState.Known());
+        }
+        ProgressFiles.write(file, new Progress(states));
+        String saved = Files.readString(file);
+        ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
+        try {
+            helper.assertValueEqual(start(store, connection(), player),
+                    new ProgressUnavailable(ProgressUnavailable.Reason.TOO_LARGE), "sent");
+            helper.assertValueEqual(start(store, connection(), player),
+                    new ProgressUnavailable(ProgressUnavailable.Reason.TOO_LARGE), "sent again, so it was unlocked");
+        } finally {
+            store.close();
+        }
+        helper.assertValueEqual(Files.readString(file), saved, "the file");
         helper.succeed();
     }
 }

@@ -24,6 +24,7 @@ import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -148,6 +149,24 @@ public class PayloadCodecGameTest {
             refused = true;
         }
         helper.assertTrue(refused, "a too long answer is refused");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void uploadedProgressFitsWithinItsLimits(GameTestHelper helper) {
+        helper.assertTrue(UploadProgress.fits(Progress.EMPTY), "empty progress");
+        Map<ItemId, SrsState> manyStates = new HashMap<>();
+        for (int i = 0; i <= 65_536; i++) {
+            manyStates.put(new ItemId("item.test.item_" + i), new SrsState.Known());
+        }
+        helper.assertFalse(UploadProgress.fits(new Progress(manyStates)), "more states than can be sent");
+
+        Map<ItemId, SrsState> longIds = new HashMap<>();
+        for (int i = 0; i < 5_000; i++) {
+            longIds.put(new ItemId(("item.test.item_" + i + "_").repeat(20).substring(0, ItemId.MAX_LENGTH)),
+                    new SrsState.Known());
+        }
+        helper.assertFalse(UploadProgress.fits(new Progress(longIds)), "more bytes than can be sent");
         helper.succeed();
     }
 }

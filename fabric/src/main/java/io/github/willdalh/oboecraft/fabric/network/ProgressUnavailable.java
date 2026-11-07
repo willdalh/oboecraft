@@ -26,7 +26,9 @@ public record ProgressUnavailable(Reason reason) implements ProgressAnswer {
         /** The progress file can't be read, or a broken file can't be moved out of the way. */
         UNREADABLE,
         /** Another game running on the same computer uses the progress file. */
-        IN_USE;
+        IN_USE,
+        /** The progress has more states, or takes more bytes, than {@link UploadProgress} can carry. */
+        TOO_LARGE;
 
         /** A reason that doesn't exist fails to decode, which disconnects the sender. */
         static final StreamCodec<ByteBuf, Reason> STREAM_CODEC =

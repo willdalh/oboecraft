@@ -54,6 +54,8 @@ A file is written to a temporary file next to it, flushed to disk and then moved
 
 A file that isn't valid progress is renamed to `<uuid>.json.broken` and kept, or `<uuid>.json.broken.1` and so on if that name is taken, so an earlier broken file is never overwritten. The error is logged. The player starts with empty progress and is told in chat, when they join, that their progress file couldn't be read and the name the broken file was kept under, so they can fix it by hand.
 
+Progress too large to send, with more states or bytes than `UploadProgress` carries, is left alone, and the client tells the server, which disconnects the player with a message asking them to check their game's log. It is checked with `UploadProgress.fits` before it is sent, since a payload that is too large would otherwise fail to encode and close the connection without a message.
+
 If the file can't be read at all, for example because of its permissions, or a broken file can't be moved, the player is disconnected with a message asking them to check their game's log, and the file is left alone. Playing on would save over a file whose contents are unknown.
 
 The client only reads and writes the file on one background thread of its own, so two saves of one file never race.

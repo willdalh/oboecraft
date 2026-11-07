@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.fabric.progress;
 
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
+import io.github.willdalh.oboecraft.fabric.mixin.ServerCommonPacketListenerImplAccessor;
 import io.github.willdalh.oboecraft.fabric.network.ProgressAnswer;
 import io.github.willdalh.oboecraft.fabric.network.ProgressUnavailable;
 import io.github.willdalh.oboecraft.fabric.network.RequestProgress;
@@ -13,9 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.network.ConfigurationTask;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import org.jspecify.annotations.Nullable;
 
@@ -74,15 +77,24 @@ public final class ProgressUploads {
     }
 
     /**
-     * Takes the progress the player sent, when they enter the world. Every configured player sent it, since
-     * configuration waits for it. Only players placed in the world without being configured, like the game tests'
-     * players, have none. Called on the server thread.
+     * Takes the progress the player sent over this connection, when they enter the world. Every configured player
+     * sent it, since configuration waits for it. Only players placed in the world without being configured, like the
+     * game tests' players, have none, and so does a connection that a later connection of the same account replaced.
+     * Called on the server thread.
+     *
+     * @param connection the connection the player entered the world over, the same as while they were configured
      */
-    public Optional<Progress> take(UUID player) {
-        UploadTask task = joining.remove(player);
-        return task != null && task.answer.get() instanceof UploadProgress upload
-                ? Optional.of(upload.progress())
-                : Optional.empty();
+    public Optional<Progress> take(UUID player, Connection connection) {
+        UploadTask task = joining.get(player);
+        if (task == null || connectionOf(task.connection) != connection || !joining.remove(player, task)) {
+            return Optional.empty();
+        }
+        return task.answer.get() instanceof UploadProgress upload ? Optional.of(upload.progress()) : Optional.empty();
+    }
+
+    /** The network connection of a listener, which stays the same from configuration into the world. */
+    public static Connection connectionOf(ServerCommonPacketListenerImpl listener) {
+        return ((ServerCommonPacketListenerImplAccessor) listener).oboecraft$connection();
     }
 
     /**
@@ -159,6 +171,8 @@ public final class ProgressUploads {
                     "Oboecraft couldn't read your progress file. Check your game's log.");
             case IN_USE -> Component.translatableWithFallback("oboecraft.progress.in_use",
                     "Your Oboecraft progress is in use by another running game. Close that game and join again.");
+            case TOO_LARGE -> Component.translatableWithFallback("oboecraft.progress.too_large",
+                    "Your Oboecraft progress file is too large to send. Check your game's log.");
         };
     }
 }

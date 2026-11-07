@@ -13,6 +13,7 @@ The player can't join when their game can't send their progress, and is told why
 - The progress was saved by a newer version of Oboecraft.
 - The progress file can't be read. The player is asked to check their game's log.
 - Another game on the same computer is in a world with the same progress, so the two games never save over each other. The player can join again once that game has left.
+- The progress is too large to send: more than 65,536 items, or more than 1 MiB less 16 KiB. Only a file edited by hand, or a changed server, can make it that large. The player is asked to check their game's log, and the file is left alone.
 - The game didn't send it within 30 seconds.
 
 A progress file that isn't valid progress is kept as `.broken`, so it can be fixed by hand. The player starts with empty progress and is told in chat.

@@ -197,6 +197,12 @@ public final class ProgressStore {
             return new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE);
         }
         return switch (read(file)) {
+            case ReadResult.Usable usable when !UploadProgress.fits(usable.progress()) -> {
+                OboecraftMod.LOGGER.error("The progress in {} has {} states, too many or too large to send",
+                        file, usable.progress().states().size());
+                release(locked.get());
+                yield new ProgressUnavailable(ProgressUnavailable.Reason.TOO_LARGE);
+            }
             case ReadResult.Usable usable -> {
                 session = locked.get();
                 yield new UploadProgress(usable.progress());
