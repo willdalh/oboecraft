@@ -37,3 +37,21 @@ tasks.register<JavaExec>("generateNameList") {
         "--cache", layout.buildDirectory.dir("name-list/cache").get().asFile.absolutePath,
     )
 }
+
+// Makes a reading clip for each name list entry with a running VOICEVOX engine, and a list of the new clips to review.
+// The engine's address can be changed with -Pvoicevox=http://host:port.
+tasks.register<JavaExec>("generateReadingClips") {
+    group = "oboecraft"
+    description = "Makes the reading clips with VOICEVOX, for the entries whose name or reading changed."
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = "io.github.willdalh.oboecraft.tools.readingclips.ReadingClipTool"
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8")
+    args(
+        "--name-list", rootProject.file("fabric/src/main/resources/oboecraft/name_list.json").absolutePath,
+        "--assets", rootProject.file("fabric/src/client/resources/assets/oboecraft").absolutePath,
+        "--clip-list", project.file("reading-clips.json").absolutePath,
+        "--review-list", layout.buildDirectory.file("reading-clips/review.md").get().asFile.absolutePath,
+        "--engine", providers.gradleProperty("voicevox").getOrElse("http://localhost:50021"),
+    )
+}

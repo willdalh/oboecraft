@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.network;
 
+import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.netty.buffer.ByteBuf;
 import java.time.Instant;
@@ -12,7 +13,8 @@ import net.minecraft.util.ByIdMap;
 
 /**
  * Server to client, after an answer or Don't know in the review {@code reviewId}. The Japanese name and reading are
- * only sent after a pass, a fail or a lesson reveal. After a pass, the client only shows the name.
+ * only sent after a pass, a fail or a lesson reveal. After a pass, the client only shows the name and plays the item's
+ * reading clip.
  */
 public record ReviewAnswered(Instant serverTime, int reviewId, ReviewOutcome outcome, Optional<Answer> answer)
         implements CustomPacketPayload {
@@ -35,9 +37,10 @@ public record ReviewAnswered(Instant serverTime, int reviewId, ReviewOutcome out
         return TYPE;
     }
 
-    /** The correct answer, shown to the player. */
-    public record Answer(String japaneseName, String reading) {
+    /** The correct answer, shown to the player, and the item it is for, whose reading clip a pass plays. */
+    public record Answer(ItemId item, String japaneseName, String reading) {
         static final StreamCodec<ByteBuf, Answer> STREAM_CODEC = StreamCodec.composite(
+                NetworkCodecs.ITEM_ID, Answer::item,
                 ByteBufCodecs.STRING_UTF8, Answer::japaneseName,
                 ByteBufCodecs.STRING_UTF8, Answer::reading,
                 Answer::new);

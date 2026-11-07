@@ -219,7 +219,7 @@ public final class ServerReviews {
     private void sendAnswered(ServerPlayer player, ActiveReview review, ReviewOutcome outcome) {
         Optional<ReviewAnswered.Answer> shownAnswer = outcome == ReviewOutcome.WRONG
                 ? Optional.empty()
-                : Optional.of(new ReviewAnswered.Answer(
+                : Optional.of(new ReviewAnswered.Answer(review.entry().id(),
                         review.entry().japaneseName().text(), review.entry().japaneseName().reading()));
         ServerPlayNetworking.send(
                 player, new ReviewAnswered(progress.now(), review.reviewId(), outcome, shownAnswer));

@@ -201,6 +201,15 @@ Decided in milestone 10, see [Display](design/display.md#notification):
 - It is shown for 3 seconds of real time and fades out in the last second. A new pass replaces it. It is drawn after the screen, so a menu's screen doesn't dim it, and hidden with the HUD and while an answer menu is open.
 - Only a pass shows it, also when the answer menu was closed before the pass arrived. After a fail the answer menu already shows the name and reading.
 
+### Reading clips
+
+Decided in [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25), after the milestones, see [Display](design/display.md#reading-clip) and [ADR: Reading clips are made ahead of time with VOICEVOX's 玄野武宏](decisions/20261107-reading-clips-with-voicevox.md):
+
+- After a pass, the item's reading clip plays with the notification: the reading said by VOICEVOX's 玄野武宏 (ノーマル), credited as "VOICEVOX:玄野武宏" in `CREDITS.md`. The clips are made ahead of time by the [reading clip tool](architecture/reading-clip-tool.md) and ship with the mod, one per name list entry.
+- The clip plays in Minecraft's Voice/Speech sound category, so its volume is a Minecraft option and the mod has no setting for it.
+- The server sends the item id with the answer after a pass, so the client knows which clip to play. That raised the network protocol to 6.
+- VOICEVOX is given the name with its kanji when it says it as the reviewed reading, for the pitch accent of the words. Otherwise it is given the name with the kanji replaced by their readings, or the whole reading, whichever it says as the reading, since VOICEVOX reads some kanji and kana wrongly for the name.
+
 ### Game modes and renaming
 
 Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items](design/items.md#renaming):
