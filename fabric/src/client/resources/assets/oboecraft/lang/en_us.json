@@ -5,6 +5,7 @@
   "oboecraft.answer_menu.wrong": "Wrong. One attempt left.",
   "oboecraft.answer_menu.attempt_left": "One attempt left",
   "oboecraft.answer_menu.failed": "Failed. The answer is:",
+  "oboecraft.answer_menu.show_reading": "Show reading",
   "oboecraft.answer_menu.close_hint": "%s: Close",
   "oboecraft.review.banned": "Banned after a fail. Try again in %s.",
   "oboecraft.progress.broken": "Your Oboecraft progress file couldn't be read, so you start with empty progress. The broken file was kept as %s.",

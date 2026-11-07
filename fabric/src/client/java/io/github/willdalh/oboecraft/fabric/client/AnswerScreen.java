@@ -64,6 +64,8 @@ public final class AnswerScreen extends Screen {
     private @Nullable EditBox input;
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
+    private boolean readingShown;
+    private int buttonsTop;
     private boolean failed;
     /** When the menu showed the fail, in {@link Util#getMillis()}. */
     private long failedAtMillis;
@@ -113,6 +115,11 @@ public final class AnswerScreen extends Screen {
         return failed;
     }
 
+    /** Whether the player has chosen to reveal the reading after seeing the Japanese name. */
+    public boolean showsReading() {
+        return shownAnswer != null && readingShown;
+    }
+
     @Override
     protected void init() {
         String typed = input == null ? "" : input.getValue();
@@ -123,6 +130,7 @@ public final class AnswerScreen extends Screen {
         input.setVisible(!failed);
         input.setResponder(value -> wrong = false);
         addRenderableWidget(input);
+        buttonsTop = height;
         if (OboecraftClient.clientSettings().clickableButtons()) {
             addActionButtons();
         }
@@ -132,11 +140,12 @@ public final class AnswerScreen extends Screen {
     /**
      * One button for each action the keys can do now, at the bottom, when the clickable buttons setting is on. The
      * buttons are as wide as the longest label, in one row or more if the screen is too narrow. After a fail, only
-     * Close.
+     * revealing the reading and closing are available.
      */
     private void addActionButtons() {
         List<Button> buttons = new ArrayList<>();
         if (failed) {
+            buttons.add(revealButton());
             buttons.add(actionButton(ReviewKeys.CLOSE, () -> {
                 if (failShownLongEnough()) {
                     onClose();
@@ -148,7 +157,7 @@ public final class AnswerScreen extends Screen {
             buttons.add(actionButton(ReviewKeys.KNOWN, () -> action(ReviewAction.Action.KNOWN)));
             buttons.add(actionButton(ReviewKeys.IGNORE, () -> action(ReviewAction.Action.IGNORE)));
             if (level == 0) {
-                buttons.add(actionButton(ReviewKeys.SHOW, () -> action(ReviewAction.Action.SHOW_ANSWER)));
+                buttons.add(revealButton());
             }
             buttons.add(actionButton(ReviewKeys.CLOSE, this::onClose));
         }
@@ -165,6 +174,7 @@ public final class AnswerScreen extends Screen {
             int rowWidth = inRow * buttonWidth + (inRow - 1) * BUTTON_GAP;
             int x = (width - rowWidth) / 2 + (index % perRow) * (buttonWidth + BUTTON_GAP);
             int y = height - (rows - row) * (BUTTON_HEIGHT + BUTTON_GAP) - 4;
+            buttonsTop = Math.min(buttonsTop, y);
             buttons.get(index).setRectangle(buttonWidth, BUTTON_HEIGHT, x, y);
             addRenderableWidget(buttons.get(index));
         }
@@ -172,7 +182,17 @@ public final class AnswerScreen extends Screen {
 
     /** A button labeled with the action's name, which does what its key does, and gives the typing bar focus back. */
     private Button actionButton(ReviewKeys.Binding binding, Runnable press) {
-        return Button.builder(Component.translatable(binding.mapping().getName()), button -> {
+        return actionButton(Component.translatable(binding.mapping().getName()), press);
+    }
+
+    private Button revealButton() {
+        Button button = actionButton(ReviewKeys.revealLabel(shownAnswer != null), this::revealAnswer);
+        button.active = !readingShown;
+        return button;
+    }
+
+    private Button actionButton(Component label, Runnable press) {
+        return Button.builder(label, button -> {
             if (!composing) {
                 press.run();
             }
@@ -203,7 +223,9 @@ public final class AnswerScreen extends Screen {
             return true;
         }
         if (failed) {
-            if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
+            if (ReviewKeys.SHOW.matches(event)) {
+                if (!repeat) revealAnswer();
+            } else if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
                 onClose();
             }
             return true;
@@ -216,8 +238,8 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.IGNORE);
             return true;
         }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
-            action(ReviewAction.Action.SHOW_ANSWER);
+        if ((level == 0 || shownAnswer != null) && ReviewKeys.SHOW.matches(event)) {
+            if (!repeat) revealAnswer();
             return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
@@ -254,6 +276,10 @@ public final class AnswerScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (composing) return true;
         if (failed) {
+            if (ReviewKeys.SHOW.matches(event)) {
+                revealAnswer();
+                return true;
+            }
             if (failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event))) {
                 onClose();
             }
@@ -261,8 +287,8 @@ public final class AnswerScreen extends Screen {
         }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
-            action(ReviewAction.Action.SHOW_ANSWER); return true;
+        if ((level == 0 || shownAnswer != null) && ReviewKeys.SHOW.matches(event)) {
+            revealAnswer(); return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
             action(ReviewAction.Action.DONT_KNOW); return true;
@@ -287,10 +313,23 @@ public final class AnswerScreen extends Screen {
         return shownAnswer != null;
     }
 
+    /** The server reveals the name first; another deliberate press reveals its reading locally. */
+    private void revealAnswer() {
+        if (shownAnswer == null) {
+            if (level == 0 && !failed) action(ReviewAction.Action.SHOW_ANSWER);
+        } else if (!readingShown) {
+            readingShown = true;
+            refreshButtons();
+            updateHint();
+        }
+    }
+
     void showAnswer(ReviewAnswered.Answer answer) {
         input.setValue("");
         wrong = false;
         shownAnswer = answer;
+        refreshButtons();
+        updateHint();
     }
 
     private void submit() {
@@ -308,7 +347,7 @@ public final class AnswerScreen extends Screen {
         updateHint();
     }
 
-    /** The buttons depend on the level and on a fail, so they are made again when those change. */
+    /** The buttons reflect the level, a fail and which part of the answer has been revealed. */
     private void refreshButtons() {
         if (OboecraftClient.clientSettings().clickableButtons()) {
             rebuildWidgets();
@@ -316,8 +355,15 @@ public final class AnswerScreen extends Screen {
     }
 
     private void updateHint() {
-        Component hint = failed ? ReviewKeys.closeHint() : ReviewKeys.hint(level == 0);
+        Component hint = failed ? ReviewKeys.closeHint(shownAnswer != null && !readingShown)
+                : ReviewKeys.hint(level == 0, shownAnswer != null, readingShown);
         hintLines = font.split(hint, Math.max(100, width - 24));
+        // Reserve both answer lines from the first reveal, so revealing the reading doesn't shift the typing bar.
+        int messageLines = shownAnswer != null ? 2 : (wrong || level > 0 && attemptsLeft == 1 ? 1 : 0);
+        if (failed) messageLines++;
+        int contentHeight = INPUT_HEIGHT + 8 + hintLines.size() * 12
+                + (messageLines == 0 ? 0 : 12 + messageLines * 12);
+        if (input != null) input.setY(Math.max(0, Math.min(height / 2, buttonsTop - 8 - contentHeight)));
     }
 
     /** The server said the answer was wrong. The typing bar is cleared, and the review goes on with one attempt. */
@@ -325,6 +371,7 @@ public final class AnswerScreen extends Screen {
         input.setValue("");
         wrong = true;
         attemptsLeft = ReviewRules.ATTEMPTS - SrsState.Leveled.MAX_WRONG_ATTEMPTS;
+        updateHint();
     }
 
     /**
@@ -337,6 +384,7 @@ public final class AnswerScreen extends Screen {
         failedAtMillis = Util.getMillis();
         wrong = false;
         shownAnswer = answer;
+        readingShown = false;
         input.setValue("");
         input.setEditable(false);
         input.setVisible(false);
@@ -378,7 +426,7 @@ public final class AnswerScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         super.extractRenderState(graphics, mouseX, mouseY, a);
         int centerX = width / 2;
-        int top = height / 2;
+        int top = input == null ? height / 2 : input.getY();
         // Keep the image's bottom above the level label, so growing it never covers the answer field or hint.
         float itemSize = Math.min(16f * OboecraftClient.clientSettings().reviewItemScalePercent() / 100f,
                 Math.max(0, top - 36));
@@ -401,8 +449,11 @@ public final class AnswerScreen extends Screen {
             messageY += 12;
         }
         if (shownAnswer != null) {
-            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName() + " (" + shownAnswer.reading() + ")"),
+            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName()),
                     centerX, messageY, -1);
+            if (readingShown) {
+                graphics.centeredText(font, Component.literal(shownAnswer.reading()), centerX, messageY + 12, 0xFFA0A0A0);
+            }
         }
         if (wrong) {
             graphics.centeredText(font, WRONG, centerX, messageY, -1);

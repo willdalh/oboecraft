@@ -48,7 +48,7 @@ Each player chooses these on their own computer. They are saved in `config/oboec
 | Clickable buttons | Off | The answer menu shows a button for each action it can do, besides the keys |
 | Review item size | 100% | The item image above the answer field, for every item; adjustable from 50% to 400% |
 
-With clickable buttons on, the answer menu has buttons for Answer, Don't know, Already known, Ignore, Show answer (in lessons) and Close at the bottom of the screen, and after a fail only Close. A button does what its key does. Unlike the key, the Don't know button works with text in the typing bar, since a click can't be a typo.
+With clickable buttons on, the answer menu has buttons for Answer, Don't know, Already known, Ignore, Show answer (in lessons) and Close at the bottom of the screen. Once the name is revealed, Show answer becomes Show reading; after a fail, Show reading and Close are available. Show reading is disabled once the reading is visible. A button does what its key does. Unlike the key, the Don't know button works with text in the typing bar, since a click can't be a typo.
 
 Review item size changes only the image above the typing field. It applies equally to every reviewed item, across worlds and servers on this computer. Inventory icons, the held item, the word list and other item displays keep their normal size. The image stays centered above the level label and answer field; if a small window leaves less space above them, the image is limited to that space.
 

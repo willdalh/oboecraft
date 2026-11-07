@@ -49,20 +49,28 @@ public final class ReviewKeys {
         });
     }
 
-    static Component hint(boolean lesson) {
+    static Component hint(boolean lesson, boolean answerShown, boolean readingShown) {
         MutableComponent result = Component.empty();
         boolean first = true;
         for (Binding binding : lesson ? new Binding[]{ANSWER, CLOSE, KNOWN, IGNORE, SHOW, DONT_KNOW}
                 : new Binding[]{ANSWER, CLOSE, DONT_KNOW, KNOWN, IGNORE}) {
+            if (binding == SHOW && readingShown) continue;
             if (!first) result.append("  ·  ");
             first = false;
-            result.append(binding.label()).append(": ").append(Component.translatable(binding.mapping().getName()));
+            result.append(binding.label()).append(": ").append(binding == SHOW ? revealLabel(answerShown)
+                    : Component.translatable(binding.mapping().getName()));
         }
         return result;
     }
 
-    /** After a fail, the menu only shows the answer, and the answer and close keys close it. */
-    static Component closeHint() {
-        return Component.translatable("oboecraft.answer_menu.close_hint", CLOSE.label());
+    static Component revealLabel(boolean answerShown) {
+        return Component.translatable(answerShown ? "oboecraft.answer_menu.show_reading" : SHOW.mapping().getName());
+    }
+
+    /** After a fail, Show answer reveals the reading; Answer and Close still close the menu. */
+    static Component closeHint(boolean canRevealReading) {
+        MutableComponent result = Component.translatable("oboecraft.answer_menu.close_hint", CLOSE.label());
+        if (canRevealReading) result.append("  ·  ").append(SHOW.label()).append(": ").append(revealLabel(true));
+        return result;
     }
 }

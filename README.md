@@ -23,11 +23,11 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 <table>
   <tr>
     <td><img src="docs/images/pass.jpg" alt="After a correct answer, サクラの原木 is shown at the top of the screen"></td>
-    <td><img src="docs/images/fail.jpg" alt="After a fail, the answer menu shows サクラの板材 and its reading"></td>
+    <td><img src="docs/images/answer-reveal/failed-name.png" alt="After a fail, the answer menu shows オークの原木 with its reading still hidden"></td>
   </tr>
   <tr>
     <td>A correct answer shows how the name is written, kanji included, and says it aloud.</td>
-    <td>A fail shows the answer and its reading.</td>
+    <td>A fail shows the Japanese name first. Press F9 to reveal its reading.</td>
   </tr>
   <tr>
     <td><img src="docs/images/inventory.jpg" alt="The inventory, with the tooltip of サクラの板材 showing 49分57秒 until it locks"></td>
@@ -53,7 +53,7 @@ Set the game language to 日本語 under Options → Language, so the names you 
 |---|---|
 | Enter | Answer |
 | Delete | Don't know: fails at once, or shows the answer in a lesson |
-| F9 | Show the answer, in a lesson |
+| F9 | Show the Japanese name in a lesson; press again to reveal its hiragana reading. Also reveals the reading after a fail. |
 | F7 | Already known: unlock the item for good |
 | F8 | Ignore: drop the item and never learn it |
 | Esc | Close without losing anything |
