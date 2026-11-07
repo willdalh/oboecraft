@@ -10,8 +10,9 @@ More detail on each part:
 - [Settings files](settings-files.md): where the server and client settings are saved and their formats.
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
+- [Reading clip tool](reading-clip-tool.md): the tool that makes the reading clips with VOICEVOX.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, and milestone 12 the settings files, sync and screen.
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, and [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool.
 
 ## Core and adapters
 
@@ -26,11 +27,11 @@ The mod id is `oboecraft`. The code is split into four Gradle modules:
 | `core` | `io.github.willdalh.oboecraft.core` | The game rules: levels and intervals, when an item is locked, answer checking, punishment and the name list. Plain Java with no Minecraft or Fabric imports. |
 | `json` | `io.github.willdalh.oboecraft.json` | File formats in JSON that the mod and its tools share, the [name list file](name-list-file.md) (`NameListJson`) and the [server settings file](settings-files.md) (`SettingsJson`). Plain Java and Gson, with no Minecraft or Fabric. Depends on `core`. It only compiles against Gson, so the mod uses the copy Minecraft ships, at the same version. |
 | `fabric` | `io.github.willdalh.oboecraft.fabric` | The adapter: everything that touches Minecraft and Fabric, like catching interactions, the answer menu and other screens, saving progress, networking and playing the reading aloud. Depends on `core` and `json`. |
-| `tools` | `io.github.willdalh.oboecraft.tools` | Tools run by hand to make the mod's data, like the [name list tool](name-list-tool.md). Depends on `core` and `json`, and isn't part of the mod. |
+| `tools` | `io.github.willdalh.oboecraft.tools` | Tools run by hand to make the mod's data: the [name list tool](name-list-tool.md) and the [reading clip tool](reading-clip-tool.md). Depends on `core` and `json`, and isn't part of the mod. |
 
 Minecraft is not on the classpath of `core`, so the compiler enforces the boundary. Support for another mod loader would be another adapter module next to `fabric`.
 
-The released mod is one jar, built by `fabric`. It contains the classes of `core` and `json`, so players install a single file, and the license and [credits](../../CREDITS.md). In dev runs (`runClient`, `runServer`, `runGameTest`), `core` and `json` belong to the `oboecraft` mod too, so things like looking up resources through the mod work the same in dev and in the released jar. For this, `core` and `json` apply Loom's companion plugin, which only exports its classpath and adds no Minecraft or Fabric dependencies.
+The released mod is one jar, built by `fabric`. It contains the classes of `core` and `json`, so players install a single file, the reading clips, and the license and [credits](../../CREDITS.md). In dev runs (`runClient`, `runServer`, `runGameTest`), `core` and `json` belong to the `oboecraft` mod too, so things like looking up resources through the mod work the same in dev and in the released jar. For this, `core` and `json` apply Loom's companion plugin, which only exports its classpath and adds no Minecraft or Fabric dependencies.
 
 ## Source layout
 
@@ -46,14 +47,16 @@ json/
   src/main/java             File formats shared by the mod and its tools
   src/test/java             Unit tests (JUnit)
 tools/
-  src/main/java             The name list tool
+  src/main/java             The name list tool and the reading clip tool
   src/test/java             Unit tests (JUnit)
+  reading-clips.json        What each reading clip was made from, for the reading clip tool
 fabric/
   src/main/java             Code for both sides, and code that only runs on the server
   src/main/resources        fabric.mod.json, the mixin config, the mod's icon in assets/oboecraft/icon.png, and the
                             name list in oboecraft/name_list.json
   src/client/java           Code that only runs on the client
-  src/client/resources      The client mixin config, and the language files in assets/oboecraft/lang
+  src/client/resources      The client mixin config, the language files in assets/oboecraft/lang, and the reading
+                            clips in assets/oboecraft/sounds/reading with their sounds.json
   src/gametest/java         Fabric game tests, on a headless server and in a client
   src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
 ```
@@ -125,3 +128,4 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 - [Progress save format](../decisions/20261105-progress-save-format.md)
 - [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
 - [The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md)
+- [Reading clips are made ahead of time with VOICEVOX's 玄野武宏](../decisions/20261107-reading-clips-with-voicevox.md)
