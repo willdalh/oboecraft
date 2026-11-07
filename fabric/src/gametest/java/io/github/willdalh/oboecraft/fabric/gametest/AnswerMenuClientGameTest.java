@@ -36,7 +36,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
                 }
             }
         });
-        SingleplayerProgress.delete();
+        ProgressFolder.delete();
         try (TestSingleplayerContext singleplayer = context.worldBuilder()
                 .adjustSettings(settings -> settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL))
                 .create()) {

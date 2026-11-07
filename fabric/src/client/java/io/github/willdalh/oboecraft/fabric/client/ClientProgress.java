@@ -6,6 +6,7 @@ import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.lock.ProgressView;
 import java.time.Instant;
+import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.world.entity.player.Player;
@@ -45,13 +46,19 @@ public final class ClientProgress implements ProgressView {
         snapshot = new Snapshot(connection, progress, settings, serverTime, System.nanoTime());
     }
 
-    /** Stores a state the server sent. Ignored before the server sent all states for this connection. */
-    public void update(ClientPacketListener connection, ItemId item, SrsState state, Instant serverTime) {
+    /**
+     * Stores a state the server sent. Ignored before the server sent all states for this connection.
+     *
+     * @return the connection's progress with the state, or empty if it was ignored
+     */
+    public Optional<Progress> update(ClientPacketListener connection, ItemId item, SrsState state, Instant serverTime) {
         Snapshot current = current(connection);
-        if (current != null) {
-            snapshot = new Snapshot(connection, current.progress().with(item, state), current.settings(), serverTime,
-                    System.nanoTime());
+        if (current == null) {
+            return Optional.empty();
         }
+        Progress updated = current.progress().with(item, state);
+        snapshot = new Snapshot(connection, updated, current.settings(), serverTime, System.nanoTime());
+        return Optional.of(updated);
     }
 
     /** Keeps the server's time from a message up to date. */
