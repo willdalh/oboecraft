@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, milestone 9 fails, punishment and bans, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, and [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, milestone 9 fails, punishment and bans, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass, and progress on the player's computer the configuration payloads and the client's `ProgressStore`. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -15,7 +15,7 @@ The parts were designed in milestone 3a and built in milestone 3b, for placing b
 | Clock | `ModClock`, the one `InstantSource` that all game code reads the time from, to the millisecond. It reads the system clock, and game tests swap in a clock they control with `setSource`. |
 | Settings | No service of its own: each side's `ProgressView` has the server settings it uses, `ServerProgress` the server's own, read from the [settings file](settings-files.md) when the server starts, and `ClientProgress` the ones the server sent. `OboecraftClient` holds the client settings. |
 | Locks | `Locks`, the lock check entry point, see [below](#the-lock-check-entry-point). |
-| Server progress and reviews | `ServerProgress` and `ServerReviews`, see below. They are only used on the server thread. |
+| Server progress and reviews | `ProgressUploads`, `ServerProgress` and `ServerReviews`, see below. `ServerProgress` and `ServerReviews` are only used on the server thread, and `ProgressUploads` also on the network threads. |
 
 None of these are global singletons that tests can't reach. Game tests get them from `OboecraftMod` and can replace the clock's source.
 
@@ -87,18 +87,34 @@ The client returns a failed result before it predicts placing or using, but Mine
 
 ## Progress on the server
 
-`ServerProgress` holds the progress of each player who is online, as core `Progress` values, keyed by UUID. Each entry belongs to the player's connection, not to the `ServerPlayer`, since respawning gives the same connection a new `ServerPlayer`:
+The player's client keeps their progress and sends it while the player is configured. The server holds it for the session and never saves it.
 
-- Loaded when the player joins (Fabric's `ServerPlayConnectionEvents.JOIN`), before anything can be checked, and sent in `ProgressSync`. A player whose progress isn't loaded counts as having none, so everything is locked for them.
-- If an earlier session of the same player is still there when they join, its changes are saved first, and it is replaced.
-- Saved when the player leaves (`DISCONNECT`, which only removes the entry of that connection), when the world saves (`ServerLifecycleEvents.AFTER_SAVE`), and when the server stops (`SERVER_STOPPING`). Only progress with unsaved changes is written. A failed save is logged and tried again at the next save.
-- Every change goes through `update(player, item, state)`, which marks the player's progress as unsaved and sends the change in `StateUpdate`.
+`ProgressUploads` gets each player's progress before they enter the world. It keeps at most one connection per account between configuration and the world, so the progress a player enters the world with is always the one their own connection sent. In Fabric's `ServerConfigurationConnectionEvents.CONFIGURE`, after the protocol check, `request` makes a configuration task for the player, which the event adds, and disconnects an earlier connection of the same account that hasn't entered the world yet, with Minecraft's message for a duplicate login. This happens every time the player is configured, also when they go back to configuration from the world, so the server always has the progress the client saved last. Minecraft runs the tasks one after another, and the player only enters the world once every task has finished. The task sends `RequestProgress` when it starts, and only then waits for an answer, so an answer sent before the request, or a second answer, is ignored:
 
-The file is read and written on the server thread. The files are a few kilobytes and are only touched when a player joins or leaves and when the world saves, which is when Minecraft saves its own player data on that thread too.
+- `UploadProgress` finishes the task. `ProgressUploads` holds the progress by UUID until the player joins, and only hands it to the same network `Connection`, which stays the same from configuration into the world. `ServerCommonPacketListenerImplAccessor` reads it from the listeners. So a connection that a later connection of the same account replaced, but that enters the world before its disconnect is handled, gets no progress, and the later connection keeps its own.
+- `ProgressUnavailable` disconnects the player with a message for its reason: the file is from a newer version of the mod, it can't be read, another game on the player's computer uses it, or it is too large to send.
+- No answer within 30 seconds of the request, counted in the task's ticks, disconnects the player.
 
-Saving and loading is in `ProgressFiles`, see [Progress files](progress-files.md).
+A player who leaves while configured is forgotten in `ServerConfigurationConnectionEvents.DISCONNECT`. Fabric runs the configuration of a player, its receivers and often that event on the network threads, while the server ticks the configuration tasks on the server thread. So `ProgressUploads` keeps its connections in a concurrent map, the receivers only record the client's first answer with `answered`, and the task acts on it when the server ticks it: it finishes, or disconnects the player.
+
+`ServerProgress` holds the progress of each player who is online, as core `Progress` values, keyed by UUID. Each session belongs to the player's connection, not to the `ServerPlayer`, since respawning gives the same connection a new `ServerPlayer`:
+
+- Started when the player joins (Fabric's `ServerPlayConnectionEvents.JOIN`), before anything can be checked, with the progress `ProgressUploads` holds for them, and sent back in `ProgressSync` with the settings. A player whose progress isn't held counts as having none, so everything is locked for them. Only players placed in the world without being configured, like the game tests' players, have none.
+- A session of the same player that hasn't ended when they join again is replaced.
+- Ended when the player leaves (`DISCONNECT`, which only ends the session of that connection).
+- Every change goes through `update(player, item, state)`, which sends the change in `StateUpdate`, so the client can save it.
 
 ## Progress on the client
+
+`fabric.progress.ProgressStore` keeps the player's progress file in the game folder, see [Progress files](progress-files.md). It is in `src/main`, though only the client uses it, since it uses no client code and server game tests can test it there. `OboecraftClient` creates one, and each session of it belongs to one network `Connection`, which stays the same from configuration into the world. `ClientCommonPacketListenerImplAccessor` reads it from the configuration listener. Anything another connection asks is ignored, so a message or disconnect of an earlier connection that is handled late never touches the current session:
+
+- `start`, when `RequestProgress` arrives, locks the file, reads it and sends `UploadProgress` or `ProgressUnavailable`. Progress that `UploadProgress.fits` says is too large to send is left alone, and the file unlocked. A missing file is empty progress. A broken file is kept as `.broken` and is empty progress too, and the player is told in chat once in the world (`ClientPlayConnectionEvents.JOIN`). A session that is still going, when the server configures the player again, ends first, so its changes are read back.
+- `changed`, after each `ProgressSync` and each `StateUpdate` that `ClientProgress` applied to the current connection's progress, saves that progress 2 seconds later, so the changes that arrive in that time are saved once, as the latest progress. A failed save is logged, tried again 2 seconds later, and the player is told in chat the first time in a session.
+- `end`, when the player leaves, also while configured (`ClientConfigurationConnectionEvents.DISCONNECT`), saves the latest changes and unlocks the file. `close`, when the game stops (`ClientLifecycleEvents.CLIENT_STOPPING`), ends the session and waits up to 10 seconds for the save. The game stops before it leaves the world, so the connection's own `end` comes after `close`, and is ignored like every later call.
+
+All of its file work runs in order on one background thread of its own, `Oboecraft progress store`, so the game never waits for the disk, two saves never race, and a session's last save is done before the next session reads the file. Fabric runs configuration receivers on the network thread, so `start` hands the work to that thread at once. A failure on that thread is logged.
+
+`ProgressStoreGameTest` checks what the client sends for a missing, broken, newer and too large file, the lock between two instances, the saves, a failed save, calls from another connection, and calls after the game stopped, and `ServerProgressGameTest` how the server holds the progress for the session. Test players aren't configured, so `TestPlayers` starts their session with empty progress, as a client without a file sends. `ProgressStoreClientGameTest` runs the whole path in a real singleplayer client: the file is sent while the player is configured, locked while they play, and holds the server's change after they leave. `ProgressUploadsGameTest` runs `ProgressUploads` with configuration connections that go nowhere, answering from a thread of its own as Fabric does: the progress, answers before the request and second answers, a client that can't send its progress, the timeout, and a second connection of the same account, also one that arrives after the first finished its configuration.
 
 `ClientProgress` holds what the server sent on the current connection: the SRS states, the server's time from the latest message, and the `System.nanoTime` value when it arrived. It keeps these in one immutable snapshot that also records the connection it came from. States from an earlier connection are never used, so the client's locks are off on a new connection until its `ProgressSync` arrives, even if a message from the old connection is handled late. The snapshot is also cleared when the player leaves a world or server. It never changes a state on its own: only messages from the server do.
 
@@ -124,7 +140,7 @@ See [Display](../design/display.md) for the visual rules. No payloads or saved f
 
 `ServerReviews` holds each player's active review, the review id, item and trigger. The client picks the review id when it opens an answer menu, and every message about the review carries it, both ways. So a late reply about an earlier review never acts on a newer answer menu, and a late answer or close for an earlier review never acts on a newer review. `ServerReviews`:
 
-- starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. The lock check is asked again for the stack there, whether the server stopped the action and sent `ShowReview` or the client stopped it itself, and a stack it allows, like any stack in creative mode, is refused as not locked. The location doesn't say what the client tried, so the second check uses `USE`: the lock check treats every interaction alike except dropping, which the client only stops when the drop setting is on, and then like every other. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player whose progress isn't loaded, for example while they are being disconnected, is refused,
+- starts a review when the client asks with `StartReview`, after reading the stack at the given location itself and asking core `ReviewRules.start`. The lock check is asked again for the stack there, whether the server stopped the action and sent `ShowReview` or the client stopped it itself, and a stack it allows, like any stack in creative mode, is refused as not locked. The location doesn't say what the client tried, so the second check uses `USE`: the lock check treats every interaction alike except dropping, which the client only stops when the drop setting is on, and then like every other. The client only asks when it has no answer menu open, so a review that is still going is one the client has left, and the new one replaces it. A player without a progress session, for example while they are being disconnected, is refused,
 - passes each answer and Don't know to core `ReviewRules`, stores the new state through `ServerProgress`, and sends the outcome. A wrong first answer is stored as a wrong attempt. On a fail, it first removes part of the current view, see below, then stores the failed state and ends the review. A start of a banned item is refused as banned, after a `StateUpdate` with its state,
 - cancels the review when the player closes its answer menu, dies or leaves, when the menu its trigger needs closes on the server, and when the player changes to a game mode where `Locks.active` is false, like creative mode. Every way a menu closes on the server ends in `ServerPlayer.doCloseContainer`, which `ServerPlayerMixin` hooks to call `ServerReviews.menuClosing`, and every game mode change goes through `ServerPlayer.setGameMode`, which it hooks to call `ServerReviews.gameModeChanged`.
 
@@ -178,9 +194,19 @@ An anvil only renames name tags, see [Items](../design/items.md#renaming). `Anvi
 
 ## Networking
 
-The mod uses Fabric's networking API with custom payloads, in `fabric.network`. Every payload is in `src/main`, so both sides know it. Fabric runs the receivers on the main thread of each side, and the server's receivers only act for the player who sent the payload.
+The mod uses Fabric's networking API with custom payloads, in `fabric.network`. Every payload is in `src/main`, so both sides know it. Fabric runs the play receivers on the main thread of each side, the configuration receivers on the network threads, and the server's receivers only act for the player who sent the payload.
 
-Server to client:
+While the player is configured, before they enter the world:
+
+| Payload | Way | When | Contents |
+|---|---|---|---|
+| `RequestProgress` | Server to client | The player is configured | Nothing |
+| `UploadProgress` | Client to server | In answer to `RequestProgress` | Every SRS state of the player's progress that isn't `Leveled.NEW`, at most 65,536. It is registered with Fabric's `registerLarge`, which splits it into parts, up to 1 MiB less 16 KiB in all, so the server can send it back in `ProgressSync`, whose largest payload is 1 MiB. |
+| `ProgressUnavailable` | Client to server | In answer to `RequestProgress`, when the client can't send the progress | Why. A reason that doesn't exist fails to decode. |
+
+The two answers are the `ProgressAnswer`s, so the server's receivers hand either to `ProgressUploads.answered`.
+
+When the player is in the world, server to client:
 
 | Payload | When | Contents |
 |---|---|---|
@@ -188,13 +214,13 @@ Server to client:
 | `StateUpdate` | An SRS state changes, or before `ReviewRefused` because the item isn't locked | The item id and its state |
 | `ShowReview` | The server stopped an action because the item is locked | The stack's location. The client opens the answer menu for it, unless an answer menu or another screen than the open menu's is open. |
 | `ReviewStarted` | A review starts | The review id, item id, level and attempts left. Level 0 is a lesson. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
-| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player's progress isn't loaded. Or the item is banned. A refusal because the item isn't locked or is banned comes right after a `StateUpdate` with its state. |
+| `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player has no progress session. Or the item is banned. A refusal because the item isn't locked or is banned comes right after a `StateUpdate` with its state. |
 | `ReviewAnswered` | After an answer or Don't know | The review id, pass, wrong, lesson or fail, and the item id, Japanese name and reading after a pass, a fail or a lesson reveal |
 | `ReviewCancelled` | The server cancels the review, or the client answers in a review that isn't going | The review id |
 
 Every server to client payload also carries the server's current time, so the client keeps its idea of the server's time up to date.
 
-Client to server:
+When the player is in the world, client to server:
 
 | Payload | When | Contents |
 |---|---|---|
@@ -204,7 +230,7 @@ Client to server:
 
 `ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer only reveals the answer at level 0. Don't know reveals it at level 0, and is a fail from level 1. `RevertItem` carries an item id, checked against the sender's progress and the name list.
 
-Protocol 6 adds the item id to the answer in `ReviewAnswered`, for the reading clip. Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the item id, Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
+Protocol 7 adds the configuration payloads for the player's progress. Protocol 6 adds the item id to the answer in `ReviewAnswered`, for the reading clip. Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the item id, Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
 `ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 
@@ -214,4 +240,4 @@ Both sides must run the same version of the mod's network protocol, since the it
 
 ## Messages
 
-Text the server sends, like the disconnect messages and the message about a broken progress file, uses `Component.translatableWithFallback`, so a player without the mod still sees the English text. The client's language files are in `src/client/resources/assets/oboecraft/lang`, in English and Japanese.
+Text the server sends, like the disconnect messages, uses `Component.translatableWithFallback`, so a player without the mod still sees the English text. The client's language files are in `src/client/resources/assets/oboecraft/lang`, in English and Japanese.

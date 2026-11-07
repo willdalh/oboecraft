@@ -8,6 +8,9 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.CloseReview;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
+import io.github.willdalh.oboecraft.fabric.network.ProgressUnavailable;
+import io.github.willdalh.oboecraft.fabric.network.RequestProgress;
+import io.github.willdalh.oboecraft.fabric.network.UploadProgress;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
 import io.github.willdalh.oboecraft.fabric.network.ReviewRefused;
@@ -21,6 +24,7 @@ import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -57,6 +61,7 @@ public class PayloadCodecGameTest {
                 Optional.of(new ReviewAnswered.Answer(new ItemId("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress, Settings.DEFAULTS.withBanLength(java.time.Duration.ofSeconds(30))
                 .withDropCountsAsInteraction(true)));
+        assertRoundTrip(helper, RequestProgress.STREAM_CODEC, RequestProgress.INSTANCE);
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));
         assertRoundTrip(helper, ShowReview.STREAM_CODEC, new ShowReview(TIME, new StackLocation.InventorySlot(40)));
@@ -88,6 +93,14 @@ public class PayloadCodecGameTest {
         }
         assertRoundTrip(helper, RevertItem.STREAM_CODEC, new RevertItem(OAK_LOG));
         assertRoundTrip(helper, CloseReview.STREAM_CODEC, new CloseReview(300));
+        assertRoundTrip(helper, UploadProgress.STREAM_CODEC, new UploadProgress(new Progress(Map.of(
+                OAK_LOG, new SrsState.Leveled(2, Optional.of(TIME), true, 1, Optional.of(TIME.plusSeconds(300))),
+                new ItemId("block.minecraft.dirt"), new SrsState.Known(),
+                new ItemId("block.minecraft.stone"), new SrsState.Ignored()))));
+        assertRoundTrip(helper, UploadProgress.STREAM_CODEC, new UploadProgress(Progress.EMPTY));
+        for (ProgressUnavailable.Reason reason : ProgressUnavailable.Reason.values()) {
+            assertRoundTrip(helper, ProgressUnavailable.STREAM_CODEC, new ProgressUnavailable(reason));
+        }
         helper.succeed();
     }
 
@@ -109,6 +122,21 @@ public class PayloadCodecGameTest {
     }
 
     @GameTest
+    public void aReasonThatDoesntExistIsRefused(GameTestHelper helper) {
+        ByteBuf buffer = Unpooled.buffer();
+        ByteBufCodecs.VAR_INT.encode(buffer, ProgressUnavailable.Reason.values().length);
+        boolean refused;
+        try {
+            ProgressUnavailable.STREAM_CODEC.decode(buffer);
+            refused = false;
+        } catch (RuntimeException e) {
+            refused = true;
+        }
+        helper.assertTrue(refused, "an unknown reason is refused");
+        helper.succeed();
+    }
+
+    @GameTest
     public void anAnswerLongerThanTheTypingBarIsRefused(GameTestHelper helper) {
         ByteBuf buffer = Unpooled.buffer();
         ByteBufCodecs.VAR_INT.encode(buffer, 1);
@@ -121,6 +149,24 @@ public class PayloadCodecGameTest {
             refused = true;
         }
         helper.assertTrue(refused, "a too long answer is refused");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void uploadedProgressFitsWithinItsLimits(GameTestHelper helper) {
+        helper.assertTrue(UploadProgress.fits(Progress.EMPTY), "empty progress");
+        Map<ItemId, SrsState> manyStates = new HashMap<>();
+        for (int i = 0; i <= 65_536; i++) {
+            manyStates.put(new ItemId("item.test.item_" + i), new SrsState.Known());
+        }
+        helper.assertFalse(UploadProgress.fits(new Progress(manyStates)), "more states than can be sent");
+
+        Map<ItemId, SrsState> longIds = new HashMap<>();
+        for (int i = 0; i < 5_000; i++) {
+            longIds.put(new ItemId(("item.test.item_" + i + "_").repeat(20).substring(0, ItemId.MAX_LENGTH)),
+                    new SrsState.Known());
+        }
+        helper.assertFalse(UploadProgress.fits(new Progress(longIds)), "more bytes than can be sent");
         helper.succeed();
     }
 }

@@ -32,7 +32,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 
 ### Items
 
-- `ItemId`: a record around the item id string, like `block.minecraft.oak_log`. Code passes `ItemId`, never a bare string, so it can't be mixed up with a translation key.
+- `ItemId`: a record around the item id string, like `block.minecraft.oak_log`. Code passes `ItemId`, never a bare string, so it can't be mixed up with a translation key. An id is at most `MAX_LENGTH`, 256 characters, longer than any translation key in the game, so a progress file and a payload hold the same ids.
 - `NameListEntry`: the item id, its translation keys and its `JapaneseName`. It rejects an entry with no translation key, or a blank key.
 - `JapaneseName`: the Japanese name as a list of `NamePart`s, see [Name parts](../design/items.md#name-parts). `text()` is the parts' text joined, like オークの原木, and `reading()` their readings joined, like おーくのげんぼく. For answer checking, a position in the name is a position in its reading: `partAt(position)` is the part there, as a `PlacedPart` with its normalized text and where it starts and ends, and `vowelBefore(position)` is the vowel just before it in the same part, or none at the start of a part. All of this is worked out once when the name is built, since it never changes. It rejects a name with no parts.
 - `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, ー or ん, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.

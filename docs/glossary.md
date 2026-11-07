@@ -145,7 +145,7 @@ Everything tracked about one item for one player: whether it is leveled, known o
 _Avoid_: card, item progress
 
 **Progress**:
-All SRS states for one player. It is shared across singleplayer worlds, and each server keeps its own.
+All SRS states for one player. Their game keeps it on their computer and sends it to every world they join.
 _Avoid_: save, profile
 
 **Promote**:
