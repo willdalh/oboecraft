@@ -26,6 +26,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - name: Test working out the release version
+        run: .github/scripts/next-version-test.sh
+
       # build runs the core unit tests and the Fabric game tests on a headless server.
       - run: ./gradlew build
 

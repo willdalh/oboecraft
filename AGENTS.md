@@ -69,10 +69,11 @@ Every name list entry has a reading clip in `fabric/src/client/resources/assets/
 
 The mod is published only as a GitHub release, with the mod jar attached and GitHub's generated release notes.
 
-- The mod version is `version` in `gradle.properties`, like `0.1.0`.
-- To make a release, raise the version in a PR and merge it to `main`. The Release workflow (`.github/workflows/release.yml`) runs on every push to `main`. If the version has no release yet, it builds the mod and creates the release and its tag `v<version>`. Otherwise it does nothing.
+- To make a release, run the Release workflow (`.github/workflows/release.yml`) on `main` from the Actions tab and pick the bump. It takes the highest tag like `v1.2.3`, raises it by the bump, builds the mod with that version and creates the release and its tag `v<version>` at the commit it built. Nobody edits a version file to release, and the workflow never commits or pushes to `main`. Merging to `main` never makes a release.
+- The bump is `patch` by default. Pick `minor` for new features or anything that breaks compatibility with the previous version, such as a change to `ProtocolCheck.PROTOCOL_VERSION`, and `major` as the project decides.
+- `version` in `gradle.properties` is `0.0.0-dev`, the version of local and PR builds. Leave it as it is. The workflow passes the real version to Gradle with `-Pversion`.
 - Nobody pushes tags or creates releases by hand.
-- Agents never change the version unless the user asks for a release.
+- Agents never start a release unless the user asks for one.
 
 ## Testing
 
