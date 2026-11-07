@@ -43,6 +43,7 @@ public final class SettingsScreen extends Screen {
     private @Nullable EditBox banLength;
     private @Nullable EditBox percentageFactor;
     private @Nullable CycleButton<Boolean> dropCountsAsInteraction;
+    private @Nullable CycleButton<Boolean> useOwnProgress;
     private Component error = Component.empty();
 
     public SettingsScreen(@Nullable Screen parent) {
@@ -77,6 +78,10 @@ public final class SettingsScreen extends Screen {
         dropCountsAsInteraction = addRenderableWidget(CycleButton.onOffBuilder(serverSettings.dropCountsAsInteraction())
                 .create(x, y, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.drop")));
         dropCountsAsInteraction.active = serverEditable;
+        y += 24;
+        useOwnProgress = addRenderableWidget(CycleButton.onOffBuilder(serverSettings.useOwnProgress())
+                .create(x, y, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.own_progress")));
+        useOwnProgress.active = serverEditable;
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> save())
                 .bounds(x, height - 24, halfWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> onClose())
@@ -103,7 +108,7 @@ public final class SettingsScreen extends Screen {
             try {
                 newServerSettings = new Settings(LevelsText.parse(intervals.getValue(), demotions.getValue()),
                         DurationText.parse(banLength.getValue()), parsePercentageFactor(percentageFactor.getValue()),
-                        dropCountsAsInteraction.getValue());
+                        dropCountsAsInteraction.getValue(), useOwnProgress.getValue());
             } catch (IllegalArgumentException e) {
                 error = Component.literal(e.getMessage()).withStyle(ChatFormatting.RED);
                 return;
@@ -152,7 +157,7 @@ public final class SettingsScreen extends Screen {
         for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor)) {
             graphics.text(font, box.getMessage(), box.getX(), box.getY() - 10, LABEL_COLOR);
         }
-        int errorY = dropCountsAsInteraction.getY() + 24;
+        int errorY = useOwnProgress.getY() + 24;
         for (var line : font.split(error, FIELD_WIDTH)) {
             graphics.text(font, line, x, errorY, -1);
             errorY += 10;

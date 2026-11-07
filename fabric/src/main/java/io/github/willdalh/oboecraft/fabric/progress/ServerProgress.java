@@ -19,17 +19,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The progress of each player who is online. Every change goes through here, so it is marked as unsaved and sent to
- * the client. Only used on the server thread.
+ * the client. A player uses their own progress, which their client sent while they were configured and which their
+ * client saves, or else server progress, which is saved in the world folder. Only used on the server thread.
  */
 public final class ServerProgress implements ProgressView {
     private static final Component UNREADABLE = Component.translatableWithFallback("oboecraft.progress.unreadable",
@@ -49,11 +49,12 @@ public final class ServerProgress implements ProgressView {
      */
     private static final class PlayerProgress {
         final ServerGamePacketListenerImpl connection;
-        final Path file;
+        /** The server progress file, or null for own progress, which the player's client saves. */
+        final @Nullable Path file;
         Progress progress;
         boolean unsaved;
 
-        PlayerProgress(ServerGamePacketListenerImpl connection, Path file, Progress progress) {
+        PlayerProgress(ServerGamePacketListenerImpl connection, @Nullable Path file, Progress progress) {
             this.connection = connection;
             this.file = file;
             this.progress = progress;
@@ -61,15 +62,20 @@ public final class ServerProgress implements ProgressView {
     }
 
     /**
-     * Loads the player's progress when they join, and sends it to them. A file from a newer version of the mod, or
-     * one that can't be read, disconnects the player and is left untouched. A file that isn't valid progress is kept
-     * as {@code .broken}, and the player starts with empty progress and is told in chat.
+     * Loads the player's progress when they join, and sends it to them: the own progress their client sent while they
+     * were configured, see {@link ProgressUploads}, or else their server progress file. A file from a newer version of the mod, or one that can't be
+     * read, disconnects the player and is left untouched. A file that isn't valid progress is kept as
+     * {@code .broken}, and the player starts with empty progress and is told in chat.
      */
-    public void load(ServerPlayer player) {
+    public void load(ServerPlayer player, Optional<Progress> ownProgress) {
         PlayerProgress earlierSession = online.remove(player.getUUID());
         if (earlierSession != null) {
             // An earlier session of this player hasn't left yet. Its changes are saved first, so the file is current.
             save(earlierSession);
+        }
+        if (ownProgress.isPresent()) {
+            start(player, null, ownProgress.get());
+            return;
         }
         Path file = progressFile(player);
         ProgressFiles.ReadResult result;
@@ -93,10 +99,13 @@ public final class ServerProgress implements ProgressView {
             }
             case ProgressFiles.ReadResult.Broken broken -> keepBroken(player, file, broken.reason());
         };
-        progress.ifPresent(loaded -> {
-            online.put(player.getUUID(), new PlayerProgress(player.connection, file, loaded));
-            ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), loaded, settings));
-        });
+        progress.ifPresent(loaded -> start(player, file, loaded));
+    }
+
+    /** Holds the player's progress for the session, and sends it to them. */
+    private void start(ServerPlayer player, @Nullable Path file, Progress progress) {
+        online.put(player.getUUID(), new PlayerProgress(player.connection, file, progress));
+        ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), progress, settings));
     }
 
     /** Moves a broken file out of the way and tells the player, or disconnects them if it can't be moved. */
@@ -117,16 +126,16 @@ public final class ServerProgress implements ProgressView {
         return Optional.of(Progress.EMPTY);
     }
 
-    /**
-     * Where the player's progress is saved: in the game folder for the singleplayer player and the host of a world
-     * opened to LAN, so it is shared across worlds, and in the world folder for everyone else.
-     */
+    /** Where the player's server progress is saved: in the world folder. */
     private static Path progressFile(ServerPlayer player) {
-        MinecraftServer server = player.level().getServer();
-        Path folder = server.isSingleplayerOwner(player.nameAndId())
-                ? FabricLoader.getInstance().getGameDir()
-                : server.getWorldPath(LevelResource.ROOT);
-        return folder.resolve(Oboecraft.MOD_ID).resolve("progress").resolve(player.getUUID() + ".json");
+        return player.level().getServer().getWorldPath(LevelResource.ROOT)
+                .resolve(Oboecraft.MOD_ID).resolve("progress").resolve(player.getUUID() + ".json");
+    }
+
+    /** Whether the player uses their own progress, which their client saves, in this session. */
+    public boolean usesOwnProgress(ServerPlayer player) {
+        PlayerProgress playerProgress = online.get(player.getUUID());
+        return playerProgress != null && playerProgress.file == null;
     }
 
     /** Whether the player's progress is loaded. */
@@ -208,9 +217,12 @@ public final class ServerProgress implements ProgressView {
         }
     }
 
-    /** Saves the progress if it has unsaved changes. A failed save is logged and tried again at the next save. */
+    /**
+     * Saves server progress if it has unsaved changes. A failed save is logged and tried again at the next save. Own
+     * progress is never saved here: the player's client saves it.
+     */
     private static void save(PlayerProgress playerProgress) {
-        if (!playerProgress.unsaved) {
+        if (playerProgress.file == null || !playerProgress.unsaved) {
             return;
         }
         try {

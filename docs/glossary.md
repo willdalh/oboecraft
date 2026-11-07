@@ -145,8 +145,16 @@ Everything tracked about one item for one player: whether it is leveled, known o
 _Avoid_: card, item progress
 
 **Progress**:
-All SRS states for one player. It is shared across singleplayer worlds, and each server keeps its own.
+All SRS states for one player. It is either their own progress or server progress.
 _Avoid_: save, profile
+
+**Own progress**:
+A player's progress that their game keeps on their computer and sends to each server that uses it, so it is the same in singleplayer and on those servers. The server still decides every change.
+_Avoid_: client progress, global progress, local progress
+
+**Server progress**:
+A player's progress that a server keeps in its world folder, used when the server doesn't use own progress.
+_Avoid_: world progress, remote progress
 
 **Promote**:
 Raise an item's level by one after a pass.
@@ -211,7 +219,7 @@ _Avoid_: formula, pattern
 ### Settings
 
 **Server settings**:
-The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor` and whether dropping counts as an interaction. In singleplayer, the built-in server's.
+The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor`, whether dropping counts as an interaction and whether players use their own progress. In singleplayer, the built-in server's.
 _Avoid_: config, options, game rules
 
 **Client settings**:

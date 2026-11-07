@@ -35,7 +35,7 @@ import net.minecraft.world.level.block.Blocks;
 public class SettingsClientGameTest implements FabricClientGameTest {
     private static final Settings CUSTOM = new Settings(List.of(
             new LevelSettings(Duration.ofMinutes(1), 1), new LevelSettings(Duration.ofMinutes(2), 1)),
-            Duration.ofSeconds(30), 10, true);
+            Duration.ofSeconds(30), 10, true, false);
 
     @Override
     public void runTest(ClientGameTestContext context) {
@@ -79,7 +79,8 @@ public class SettingsClientGameTest implements FabricClientGameTest {
             fields.get(1).setValue("1, 1");
             fields.get(2).setValue("30s");
             fields.get(3).setValue("10");
-            // Both toggles, clickable buttons and the drop setting, go from off to on.
+            // Every toggle changes: clickable buttons and the drop setting go from off to on, and own progress from on
+            // to off. Players already in the world keep their own progress until they leave.
             client.gui.screen().children().stream().filter(CycleButton.class::isInstance)
                     .forEach(toggle -> ((CycleButton<?>) toggle).onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
             pressButton(client, "gui.done");

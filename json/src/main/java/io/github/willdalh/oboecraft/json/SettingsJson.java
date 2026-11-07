@@ -18,31 +18,34 @@ import java.util.Set;
  * {@link DurationText}, like {@code "10m"} or {@code "1d 12h"}.
  */
 public final class SettingsJson {
-    /** The format version this code reads and writes. */
-    public static final int VERSION = 1;
+    /** The format version this code writes. Version 1, without {@code useOwnProgress}, is read too. */
+    public static final int VERSION = 2;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    private static final Set<String> FIELDS =
+    private static final Set<String> VERSION_1_FIELDS =
             Set.of("version", "levels", "banLength", "percentageFactor", "dropCountsAsInteraction");
+    private static final Set<String> FIELDS = Set.of(
+            "version", "levels", "banLength", "percentageFactor", "dropCountsAsInteraction", "useOwnProgress");
     private static final Set<String> LEVEL_FIELDS = Set.of("interval", "demotion");
 
     private SettingsJson() {
     }
 
     /**
-     * Parses a settings file. Every field must be there, with no others, and the values must pass the checks of
-     * {@link Settings}.
+     * Parses a settings file. Every field of its version must be there, with no others, and the values must pass the
+     * checks of {@link Settings}. A version 1 file has no {@code useOwnProgress}, which is then on, the default.
      *
-     * @throws IllegalArgumentException if the file isn't valid settings of this version, saying what is wrong
+     * @throws IllegalArgumentException if the file isn't valid settings of a version this code reads, saying what is
+     *                                  wrong
      */
     public static Settings parse(JsonElement json) {
         JsonObject object = requireObject(json, "The settings");
-        requireFields(object, FIELDS, "The settings");
         int version = requireInt(object.get("version"), "version");
-        if (version != VERSION) {
+        if (version != 1 && version != VERSION) {
             throw new IllegalArgumentException("The settings are version " + version + ", but this version of "
-                    + "Oboecraft reads version " + VERSION);
+                    + "Oboecraft reads versions 1 and " + VERSION);
         }
+        requireFields(object, version == 1 ? VERSION_1_FIELDS : FIELDS, "The settings");
         JsonElement levelsJson = object.get("levels");
         if (!levelsJson.isJsonArray()) {
             throw new IllegalArgumentException("levels must be an array");
@@ -66,7 +69,8 @@ public final class SettingsJson {
         }
         return new Settings(levels, requireDuration(object.get("banLength"), "banLength"),
                 requireInt(object.get("percentageFactor"), "percentageFactor"),
-                requireBoolean(object.get("dropCountsAsInteraction"), "dropCountsAsInteraction"));
+                requireBoolean(object.get("dropCountsAsInteraction"), "dropCountsAsInteraction"),
+                version == 1 || requireBoolean(object.get("useOwnProgress"), "useOwnProgress"));
     }
 
     /** The file's text, with every field and the current version. */
@@ -84,6 +88,7 @@ public final class SettingsJson {
         json.addProperty("banLength", DurationText.format(settings.banLength()));
         json.addProperty("percentageFactor", settings.percentageFactor());
         json.addProperty("dropCountsAsInteraction", settings.dropCountsAsInteraction());
+        json.addProperty("useOwnProgress", settings.useOwnProgress());
         return GSON.toJson(json) + "\n";
     }
 

@@ -10,6 +10,9 @@
   "oboecraft.progress.broken": "Oboecraftの進行状況ファイルを読み込めなかったため、進行状況は空から始まります。壊れたファイルは %s として保存されています。",
   "oboecraft.progress.too_new": "Oboecraftの進行状況は新しいバージョンのOboecraftで保存されています。ここで遊ぶにはOboecraftを更新してください。",
   "oboecraft.progress.unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。サーバーの管理者にサーバーのログを確認してもらってください。",
+  "oboecraft.progress.own_unreadable": "Oboecraftの進行状況ファイルを読み込めませんでした。ゲームのログを確認してください。",
+  "oboecraft.progress.in_use": "Oboecraftの進行状況は、起動中の別のゲームで使われています。そのゲームを閉じてから、もう一度参加してください。",
+  "oboecraft.progress.upload_timeout": "ゲームからOboecraftの進行状況が時間内に届きませんでした。",
   "oboecraft.protocol.mismatch": "このサーバーにはネットワークプロトコルバージョン %s のOboecraft MODが必要です。サーバーと同じバージョンのOboecraftを導入してください。",
   "oboecraft.display.locks_in": "ロックまで %s",
   "oboecraft.display.days": "%s日",
@@ -41,6 +44,7 @@
   "oboecraft.settings.ban_length": "失敗後の禁止時間",
   "oboecraft.settings.percentage_factor": "レベルごとの削除率の減少（%）",
   "oboecraft.settings.drop": "捨てる操作もやり取りに含める",
+  "oboecraft.settings.own_progress": "プレイヤー自身の進行状況を使う",
   "oboecraft.settings.save_failed": "設定を保存できませんでした。ゲームのログを確認してください。",
   "subtitles.oboecraft.reading": "日本語名の読み上げ"
 }

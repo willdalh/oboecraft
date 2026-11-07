@@ -18,7 +18,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.LevelResource;
 
-/** Loading progress when a player joins and saving it when they leave, on a server. */
+/**
+ * Loading progress when a player joins and saving it when they leave, on a server. Test players join without being
+ * configured, so they send no own progress and use server progress, unless a test gives them own progress.
+ */
 public class ServerProgressGameTest {
     private static final ItemId OAK_LOG = new ItemId("block.minecraft.oak_log");
     private static final SrsState LEVEL_THREE =
@@ -46,6 +49,34 @@ public class ServerProgressGameTest {
         helper.assertFalse(OboecraftMod.serverProgress().isLoaded(player), "progress is forgotten on leave");
         helper.assertValueEqual(ProgressFiles.read(file),
                 new ProgressFiles.ReadResult.Loaded(Progress.EMPTY.with(OAK_LOG, passed)), "saved progress");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void ownProgressIsUsedAndNeverSavedOnTheServer(GameTestHelper helper) {
+        UUID id = UUID.randomUUID();
+        ServerPlayer player = TestPlayers.join(helper, id);
+        OboecraftMod.serverProgress().load(player, Optional.of(Progress.EMPTY.with(OAK_LOG, LEVEL_THREE)));
+        helper.assertTrue(OboecraftMod.serverProgress().usesOwnProgress(player), "the player uses own progress");
+        helper.assertValueEqual(OboecraftMod.serverProgress().state(player, OAK_LOG), LEVEL_THREE, "own state");
+
+        OboecraftMod.serverProgress().update(player, OAK_LOG,
+                new SrsState.Leveled(4, Optional.of(Instant.parse("2030-01-02T00:00:00Z"))));
+        OboecraftMod.serverProgress().saveAll();
+        TestPlayers.leave(player);
+
+        helper.assertFalse(Files.exists(progressFile(helper, id)), "no server progress file");
+        helper.succeed();
+    }
+
+    @GameTest
+    public void aPlayerWhoSentNoOwnProgressUsesServerProgress(GameTestHelper helper) {
+        ServerPlayer player = TestPlayers.join(helper, UUID.randomUUID());
+        try {
+            helper.assertFalse(OboecraftMod.serverProgress().usesOwnProgress(player), "server progress");
+        } finally {
+            TestPlayers.leave(player);
+        }
         helper.succeed();
     }
 

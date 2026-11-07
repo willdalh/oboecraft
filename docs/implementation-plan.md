@@ -220,12 +220,14 @@ Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items]
 
 ### Progress
 
-See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md).
+See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md) and [ADR: Own progress kept on the player's computer](decisions/20261107-own-progress-on-the-players-computer.md), which replaced where the files are after the milestones, so players have one progress in singleplayer and on servers. See [Own progress and server progress](design/settings.md#own-progress-and-server-progress).
 
-- Singleplayer: one progress file per Minecraft account, in the game folder outside the worlds.
-- Dedicated server: one file per player, in the server's world folder.
-- Open to LAN: the host keeps their shared progress, and guests' progress is saved in that world's folder.
-- The files are JSON with a version number, so old saves can be upgraded.
+- Own progress: one progress file per Minecraft account, in the game folder on the player's computer. The client sends it while the player is configured, before they enter the world, and saves the changes the server sends back. The server decides every change as before and stores nothing. Every world uses it, singleplayer and LAN hosts too.
+- Server progress: with the server setting `useOwnProgress` off, one file per player in the server's world folder.
+- The server trusts the client's progress once it is valid, so a player can cheat by editing their file. Server owners who mind turn `useOwnProgress` off. It is on by default.
+- The client locks its file while it is connected, so two games on one computer never save over each other.
+- No progress moves between own and server progress when a server changes the setting. No server used the mod when own progress came, so nothing needed merging.
+- The files are JSON with a version number, so old saves can be upgraded. The server settings file went to version 2 for `useOwnProgress`, and still reads version 1. The network protocol went to 7.
 
 ### Release and licenses
 

@@ -4,10 +4,12 @@ import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.settings.LevelSettings;
 import io.github.willdalh.oboecraft.core.settings.Settings;
+import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.netty.buffer.ByteBuf;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -63,7 +65,16 @@ final class NetworkCodecs {
             DURATION, Settings::banLength,
             ByteBufCodecs.VAR_INT, Settings::percentageFactor,
             ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
+            ByteBufCodecs.BOOL, Settings::useOwnProgress,
             Settings::new);
+
+    /** Far more than the name list has, which leaves room for saved items that left the name list. */
+    static final int MAX_STATES = 65_536;
+
+    /** A player's SRS states. At most {@link #MAX_STATES} are read, and each state is checked by its record. */
+    static final StreamCodec<ByteBuf, Progress> PROGRESS = ByteBufCodecs.map(
+                    HashMap<ItemId, SrsState>::new, ITEM_ID, SRS_STATE, MAX_STATES)
+            .map(Progress::new, progress -> new HashMap<>(progress.states()));
 
     private NetworkCodecs() {
     }
