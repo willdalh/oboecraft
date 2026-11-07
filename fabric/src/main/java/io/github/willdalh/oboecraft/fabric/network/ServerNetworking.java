@@ -38,14 +38,14 @@ public final class ServerNetworking {
     }
 
     /**
-     * Registers the server's receivers. Fabric runs them on the server thread, and each one acts only for the player
-     * who sent the payload.
+     * Registers the server's receivers. Each one acts only for the player who sent the payload. Fabric runs the play
+     * receivers on the server thread, and the configuration receivers on the network threads.
      */
     public static void registerReceivers(ServerReviews reviews, ProgressUploads uploads) {
         ServerConfigurationNetworking.registerGlobalReceiver(UploadProgress.TYPE,
-                (payload, context) -> uploads.received(context.packetListener(), payload.progress()));
+                (payload, context) -> uploads.answered(context.packetListener(), payload));
         ServerConfigurationNetworking.registerGlobalReceiver(ProgressUnavailable.TYPE,
-                (payload, context) -> uploads.unavailable(context.packetListener(), payload.reason()));
+                (payload, context) -> uploads.answered(context.packetListener(), payload));
         ServerPlayNetworking.registerGlobalReceiver(ReviewAction.TYPE,
                 (payload, context) -> reviews.action(context.player(), payload.reviewId(), payload.action()));
         ServerPlayNetworking.registerGlobalReceiver(RevertItem.TYPE,
@@ -65,7 +65,7 @@ public final class ServerNetworking {
     public static void registerConfiguration(ProgressUploads uploads) {
         ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
             if (ServerConfigurationNetworking.canSend(handler, ProtocolCheck.TYPE)) {
-                uploads.request(handler);
+                handler.addTask(uploads.request(handler));
             } else {
                 handler.disconnect(Component.translatableWithFallback("oboecraft.protocol.mismatch",
                         "This server needs the Oboecraft mod, with network protocol version %s. "

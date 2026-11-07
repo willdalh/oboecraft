@@ -15,7 +15,7 @@ The parts were designed in milestone 3a and built in milestone 3b, for placing b
 | Clock | `ModClock`, the one `InstantSource` that all game code reads the time from, to the millisecond. It reads the system clock, and game tests swap in a clock they control with `setSource`. |
 | Settings | No service of its own: each side's `ProgressView` has the server settings it uses, `ServerProgress` the server's own, read from the [settings file](settings-files.md) when the server starts, and `ClientProgress` the ones the server sent. `OboecraftClient` holds the client settings. |
 | Locks | `Locks`, the lock check entry point, see [below](#the-lock-check-entry-point). |
-| Server progress and reviews | `ProgressUploads`, `ServerProgress` and `ServerReviews`, see below. They are only used on the server thread. |
+| Server progress and reviews | `ProgressUploads`, `ServerProgress` and `ServerReviews`, see below. `ServerProgress` and `ServerReviews` are only used on the server thread, and `ProgressUploads` also on the network threads. |
 
 None of these are global singletons that tests can't reach. Game tests get them from `OboecraftMod` and can replace the clock's source.
 
@@ -89,13 +89,13 @@ The client returns a failed result before it predicts placing or using, but Mine
 
 The player's client keeps their progress and sends it while the player is configured. The server holds it for the session and never saves it.
 
-`ProgressUploads` gets each player's progress before they enter the world. It keeps at most one connection per account between configuration and the world, so the progress a player enters the world with is always the one their own connection sent. In Fabric's `ServerConfigurationConnectionEvents.CONFIGURE`, after the protocol check, `request` adds a configuration task for the player, and disconnects an earlier connection of the same account that hasn't entered the world yet, with Minecraft's message for a duplicate login. This happens every time the player is configured, also when they go back to configuration from the world, so the server always has the progress the client saved last. Minecraft runs the tasks one after another, and the player only enters the world once every task has finished. The task sends `RequestProgress` when it starts, and only then waits for an answer, so an answer sent before the request, or a second answer, is ignored:
+`ProgressUploads` gets each player's progress before they enter the world. It keeps at most one connection per account between configuration and the world, so the progress a player enters the world with is always the one their own connection sent. In Fabric's `ServerConfigurationConnectionEvents.CONFIGURE`, after the protocol check, `request` makes a configuration task for the player, which the event adds, and disconnects an earlier connection of the same account that hasn't entered the world yet, with Minecraft's message for a duplicate login. This happens every time the player is configured, also when they go back to configuration from the world, so the server always has the progress the client saved last. Minecraft runs the tasks one after another, and the player only enters the world once every task has finished. The task sends `RequestProgress` when it starts, and only then waits for an answer, so an answer sent before the request, or a second answer, is ignored:
 
 - `UploadProgress` finishes the task. `ProgressUploads` holds the progress by UUID until the player joins.
 - `ProgressUnavailable` disconnects the player with a message for its reason: the file is from a newer version of the mod, it can't be read, or another game on the player's computer uses it.
 - No answer within 30 seconds of the request, counted in the task's ticks, disconnects the player.
 
-A player who leaves while configured is forgotten in `ServerConfigurationConnectionEvents.DISCONNECT`. Fabric runs these receivers and events on the server thread.
+A player who leaves while configured is forgotten in `ServerConfigurationConnectionEvents.DISCONNECT`. Fabric runs the configuration of a player, its receivers and often that event on the network threads, while the server ticks the configuration tasks on the server thread. So `ProgressUploads` keeps its connections in a concurrent map, the receivers only record the client's first answer with `answered`, and the task acts on it when the server ticks it: it finishes, or disconnects the player.
 
 `ServerProgress` holds the progress of each player who is online, as core `Progress` values, keyed by UUID. Each session belongs to the player's connection, not to the `ServerPlayer`, since respawning gives the same connection a new `ServerPlayer`:
 
@@ -114,7 +114,7 @@ A player who leaves while configured is forgotten in `ServerConfigurationConnect
 
 All of its file work runs in order on one background thread of its own, `Oboecraft progress store`, so the game never waits for the disk, two saves never race, and a session's last save is done before the next session reads the file. Fabric runs configuration receivers on the network thread, so `start` hands the work to that thread at once. A failure on that thread is logged.
 
-`ProgressStoreGameTest` checks what the client sends for a missing, broken and newer file, the lock between two instances, the saves, a failed save, calls from another connection, and calls after the game stopped, and `ServerProgressGameTest` how the server holds the progress for the session. Test players aren't configured, so `TestPlayers` starts their session with empty progress, as a client without a file sends. `ProgressStoreClientGameTest` runs the whole path in a real singleplayer client: the file is sent while the player is configured, locked while they play, and holds the server's change after they leave. `ProgressUploads` needs real configuration connections, so only the client game test runs it, and its timeout, duplicate connections and reasons for no progress haven't been run.
+`ProgressStoreGameTest` checks what the client sends for a missing, broken and newer file, the lock between two instances, the saves, a failed save, calls from another connection, and calls after the game stopped, and `ServerProgressGameTest` how the server holds the progress for the session. Test players aren't configured, so `TestPlayers` starts their session with empty progress, as a client without a file sends. `ProgressStoreClientGameTest` runs the whole path in a real singleplayer client: the file is sent while the player is configured, locked while they play, and holds the server's change after they leave. `ProgressUploadsGameTest` runs `ProgressUploads` with configuration connections that go nowhere, answering from a thread of its own as Fabric does: the progress, answers before the request and second answers, a client that can't send its progress, the timeout, and a second connection of the same account.
 
 `ClientProgress` holds what the server sent on the current connection: the SRS states, the server's time from the latest message, and the `System.nanoTime` value when it arrived. It keeps these in one immutable snapshot that also records the connection it came from. States from an earlier connection are never used, so the client's locks are off on a new connection until its `ProgressSync` arrives, even if a message from the old connection is handled late. The snapshot is also cleared when the player leaves a world or server. It never changes a state on its own: only messages from the server do.
 
@@ -194,7 +194,7 @@ An anvil only renames name tags, see [Items](../design/items.md#renaming). `Anvi
 
 ## Networking
 
-The mod uses Fabric's networking API with custom payloads, in `fabric.network`. Every payload is in `src/main`, so both sides know it. Fabric runs the play receivers on the main thread of each side, the server's configuration receivers on the server thread and the client's on the network thread, and the server's receivers only act for the player who sent the payload.
+The mod uses Fabric's networking API with custom payloads, in `fabric.network`. Every payload is in `src/main`, so both sides know it. Fabric runs the play receivers on the main thread of each side, the configuration receivers on the network threads, and the server's receivers only act for the player who sent the payload.
 
 While the player is configured, before they enter the world:
 
@@ -203,6 +203,8 @@ While the player is configured, before they enter the world:
 | `RequestProgress` | Server to client | The player is configured | Nothing |
 | `UploadProgress` | Client to server | In answer to `RequestProgress` | Every SRS state of the player's progress that isn't `Leveled.NEW`, at most 65,536. It is registered with Fabric's `registerLarge`, which splits it into parts, up to 1 MiB less 16 KiB in all, so the server can send it back in `ProgressSync`, whose largest payload is 1 MiB. |
 | `ProgressUnavailable` | Client to server | In answer to `RequestProgress`, when the client can't send the progress | Why. A reason that doesn't exist fails to decode. |
+
+The two answers are the `ProgressAnswer`s, so the server's receivers hand either to `ProgressUploads.answered`.
 
 When the player is in the world, server to client:
 

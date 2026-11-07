@@ -3,13 +3,12 @@ package io.github.willdalh.oboecraft.fabric.network;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * Client to server, in answer to {@link RequestProgress}, when the client can't send the player's progress. The
  * server disconnects the player with a message that says why.
  */
-public record ProgressUnavailable(Reason reason) implements CustomPacketPayload {
+public record ProgressUnavailable(Reason reason) implements ProgressAnswer {
     public static final Type<ProgressUnavailable> TYPE = NetworkCodecs.type("progress_unavailable");
 
     public static final StreamCodec<ByteBuf, ProgressUnavailable> STREAM_CODEC =
