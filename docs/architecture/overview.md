@@ -37,7 +37,7 @@ The released mod is one jar, built by `fabric`. It contains the classes of `core
 
 ```
 build.gradle.kts            Settings shared by all modules: group, Java 25 toolchain
-gradle.properties           The mod version and Gradle's settings
+gradle.properties           The mod version of local and PR builds, and Gradle's settings
 settings.gradle.kts         The two modules and the toolchain download plugin
 gradle/libs.versions.toml   All dependency and plugin versions
 core/
@@ -78,9 +78,9 @@ Mixins are listed in `oboecraft.mixins.json` (package `fabric.mixin`, both sides
 
 The build uses Gradle through the wrapper and Fabric Loom's non-remapping plugin, `net.fabricmc.fabric-loom`, since Minecraft ships unobfuscated. Loom needs Gradle itself to run on Java 25. `gradle/gradle-daemon-jvm.properties` asks for that, and the compile toolchain asks for Java 25 too. If Java 25 isn't installed, Gradle downloads it.
 
-Dependency and plugin versions live in `gradle/libs.versions.toml`, and the mod version in `gradle.properties`. The mod version and the Minecraft and Fabric Loader versions in `fabric.mod.json` are filled in from there when the jar is built.
+Dependency and plugin versions live in `gradle/libs.versions.toml`. The mod version is `0.0.0-dev` from `gradle.properties`, unless a release build passes its own with `-Pversion`. The mod version and the Minecraft and Fabric Loader versions in `fabric.mod.json` are filled in from there when the jar is built, and the jar is named `oboecraft-<version>.jar`.
 
-GitHub Actions runs two workflows. Build (`.github/workflows/build.yml`) builds and tests every PR and every push to `main`. Release (`.github/workflows/release.yml`) runs on every push to `main` and publishes a GitHub release with the mod jar when the mod version has no release yet, see [AGENTS.md](../../AGENTS.md#releases).
+GitHub Actions runs two workflows. Build (`.github/workflows/build.yml`) builds and tests every PR and every push to `main`, and tests `.github/scripts/next-version.sh`. Release (`.github/workflows/release.yml`) only runs when someone starts it by hand on `main`. It works out the next version from the highest `vX.Y.Z` tag with `.github/scripts/next-version.sh`, builds the mod with it and publishes a GitHub release with the mod jar, see [AGENTS.md](../../AGENTS.md#releases).
 
 ## A thin core
 
