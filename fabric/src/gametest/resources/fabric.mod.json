@@ -26,7 +26,8 @@
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.SettingsClientGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.SettingsClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ReadingClipsClientGameTest"
     ]
   },
   "depends": {

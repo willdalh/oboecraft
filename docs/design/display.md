@@ -1,6 +1,6 @@
 # Display
 
-The client displays the player's [synced progress](time.md#the-client). It never changes progress while drawing. Names, the lock timer and the slot marker were added in milestone 7, and the notification in milestone 10.
+The client displays the player's [synced progress](time.md#the-client). It never changes progress while drawing. Names, the lock timer and the slot marker were added in milestone 7, the notification in milestone 10, and the reading clip in [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
 
 ## Names
 
@@ -31,6 +31,14 @@ The notification is shown for 3 seconds of real time and fades out during the la
 The server sends the name with the pass, and the client shows it even if the player closed the answer menu before the reply came, since the item was passed.
 
 Only a pass shows it. After a fail, the answer menu shows the Japanese name and reading instead, see [Reviews](reviews.md#outcomes).
+
+## Reading clip
+
+With the notification, the item's reading clip plays: the reading of the Japanese name, said by a voice, so the player hears how the name is said. The clips are made ahead of time with VOICEVOX, in the voice 玄野武宏, from the reviewed readings in the name list, and ship with the mod as one sound file per item. So they work offline and sound the same for everyone. See [Reading clip tool](../architecture/reading-clip-tool.md).
+
+The clip plays in Minecraft's Voice/Speech sound category, so the player sets its volume, or turns it off, under Options → Music & Sounds. It isn't placed in the world, so it sounds the same wherever the player looks, and it shows the subtitle "Japanese name is said" when subtitles are on. A new pass stops the clip that is playing and plays its own. Leaving the world or server stops it.
+
+Like the notification, it plays after every pass, also when the answer menu was closed before the pass arrived, and only after a pass. An item without a clip, which only happens when the name list changed and the tool wasn't run again, passes without a sound.
 
 ## Later milestones
 

@@ -2,7 +2,7 @@
 
 The `fabric` module connects the [core](core.md) to Minecraft, in `io.github.willdalh.oboecraft.fabric`. It gathers inputs from the game, asks the core for decisions, and carries them out. This page describes its parts. What the rules do is in [`docs/design/`](../design/README.md).
 
-The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, milestone 9 fails, punishment and bans, milestone 10 the notification after a pass, and milestone 11 the game mode and anvil rules. Later milestones add hooks, payloads and screens to them.
+The parts were designed in milestone 3a and built in milestone 3b, for placing blocks. Milestone 6 added a hook for every interaction and the answer menu over open menus. Milestone 7 added item displays, milestone 9 fails, punishment and bans, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, and [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass. Later milestones add hooks, payloads and screens to them.
 
 ## Shared services
 
@@ -144,7 +144,7 @@ The screen only sends what the player does and shows what the server sends. It n
 
 Since 26.3, Minecraft hands every key event from SDL3 to the screen, and doesn't check whether the IME is converting. The IME's text that isn't confirmed yet reaches the screen as a `PreeditEvent`, and the answer menu ignores every key while one is shown, since the keys belong to the conversion. So an Enter that confirms a conversion never submits the answer, an Esc that cancels it never closes the menu, and a Backspace never deletes confirmed text, on any platform, whether or not SDL3 also passes those keys on. The client game test checks Enter and Esc with a simulated conversion.
 
-`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it closes the answer menu and hands the Japanese name to the notification, see [below](#the-notification). After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
+`ClientReviews` opens the answer menu and handles the server's review messages. After a pass it closes the answer menu, hands the Japanese name to the notification, see [below](#the-notification), and plays the item's reading clip, see [Reading clips](#reading-clips). After a fail the answer menu stays open with the Japanese name and reading, ignores every action, and closes with Answer or Close without telling the server, since the review is over. It tracks which keys are held, since Minecraft sends a held key's repeats as presses, and only a new press closes it, at least half a second after the fail. Don't know only acts while the typing bar is empty, so Delete reaches the text box otherwise. When the client's lock check decides Banned, when right-clicking a banned stack in the inventory, and after a refusal because of a ban, it shows how long the ban has left above the hotbar, from the item's banned-until time and the estimated server time.
 
 The answer menu reads the client settings when it builds its widgets. With clickable buttons on, it adds a button for each action it can do now, labeled with the action's name from the Controls screen, and builds its widgets again when the server's level arrives or the review fails, since the buttons depend on them. A button runs the same code as its key and gives the typing bar its focus back. The buttons are as wide as the longest label, in one row, or more rows on a narrow screen.
 
@@ -155,6 +155,14 @@ The answer menu reads the client settings when it builds its widgets. With click
 `GuiMixin` draws it in `Gui.extractRenderState`, after the screen and before the saving indicator, the toasts and the debug overlay, so it is on top of a menu's screen. It is skipped while `Hud.isHidden()` or an `AnswerScreen` is open. The name is drawn with `GuiGraphicsExtractor.text`, scaled to twice the normal size or less so it fits the GUI width with a margin. Its top is below the boss bars: `BossHealthOverlayAccessor` gives the number of bars, and the layout follows vanilla's, 19 GUI pixels per bar from y 12 until a third of the screen's height. Disconnecting clears it. See [Display](../design/display.md#notification) for the visual rules.
 
 `NotificationTimingTest` checks the timing. `AnswerMenuClientGameTest` checks that a pass with a boss bar shown puts オークの原木 in the notification, that its white text is in the screenshot, and that it is gone again. `MenuClientGameTest` passes a review from the inventory and checks that the text is drawn at full brightness over the inventory screen.
+
+## Reading clips
+
+`client.ReadingClips` plays an item's reading clip after a pass. `ClientReviews` calls `play` with the item id from `ReviewAnswered`, next to the notification. Each clip is a sound event of its own, `oboecraft:reading.<item id>`, which the [reading clip tool](reading-clip-tool.md) lists in the mod's `sounds.json` and which plays `assets/oboecraft/sounds/reading/<item id>.ogg`. The events are only in `sounds.json`, not in Minecraft's sound event registry, since only the client plays them and nothing refers to them by holder. An id that isn't a valid sound event name, or has no event, plays nothing.
+
+The clip is a `SimpleSoundInstance` in `SoundSource.VOICE`, relative to the listener and with no attenuation, so it isn't placed in the world. Minecraft loads a clip's file the first time it plays, so the clips cost no memory until they are heard. `ReadingClips` keeps the instance that is playing, so a new pass, or disconnecting, stops it first.
+
+`ReadingClipsClientGameTest` checks that every name list entry has a sound event whose file is in the resources. That a pass plays the clip isn't checked by a test, since a test can't hear it, and a client in a virtual display may have no sound device to play it on.
 
 ## Anvil renaming
 
@@ -181,7 +189,7 @@ Server to client:
 | `ShowReview` | The server stopped an action because the item is locked | The stack's location. The client opens the answer menu for it, unless an answer menu or another screen than the open menu's is open. |
 | `ReviewStarted` | A review starts | The review id, item id, level and attempts left. Level 0 is a lesson. If the item isn't the one the answer menu shows, the client's inventory was out of date, and the menu closes. |
 | `ReviewRefused` | A review can't start | The review id, and why: not locked, the stack is gone or its location isn't valid, or the player's progress isn't loaded. Or the item is banned. A refusal because the item isn't locked or is banned comes right after a `StateUpdate` with its state. |
-| `ReviewAnswered` | After an answer or Don't know | The review id, pass, wrong, lesson or fail, and the Japanese name and reading after a pass, a fail or a lesson reveal |
+| `ReviewAnswered` | After an answer or Don't know | The review id, pass, wrong, lesson or fail, and the item id, Japanese name and reading after a pass, a fail or a lesson reveal |
 | `ReviewCancelled` | The server cancels the review, or the client answers in a review that isn't going | The review id |
 
 Every server to client payload also carries the server's current time, so the client keeps its idea of the server's time up to date.
@@ -196,7 +204,7 @@ Client to server:
 
 `ReviewAction` carries a review id and a checked action enum (show answer, don't know, known, ignore). Show answer only reveals the answer at level 0. Don't know reveals it at level 0, and is a fail from level 1. `RevertItem` carries an item id, checked against the sender's progress and the name list.
 
-Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
+Protocol 6 adds the item id to the answer in `ReviewAnswered`, for the reading clip. Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the item id, Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
 `ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
 
