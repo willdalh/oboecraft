@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 class ReadingClipListTest {
     private static final ReadingClipList.Voice VOICE =
-            new ReadingClipList.Voice("冥鳴ひまり", "8eaad775-3119-417e-8cf4-2a10bfd592c8", "ノーマル");
+            new ReadingClipList.Voice("玄野武宏", "c30dc15a-0992-4f8d-8bb8-ad3b314e6a6f", "ノーマル");
 
     @Test
     void theFileHasOneClipPerLineAndReadsBackTheSame() {
@@ -22,7 +22,7 @@ class ReadingClipListTest {
 
         assertEquals("""
                 {
-                  "voice": {"speaker":"冥鳴ひまり","speakerUuid":"8eaad775-3119-417e-8cf4-2a10bfd592c8","style":"ノーマル"},
+                  "voice": {"speaker":"玄野武宏","speakerUuid":"c30dc15a-0992-4f8d-8bb8-ad3b314e6a6f","style":"ノーマル"},
                   "format": "Ogg Vorbis",
                   "engineVersion": "0.26.1",
                   "clips": [

@@ -1,4 +1,4 @@
-# ADR-20261107: Reading clips are made ahead of time with VOICEVOX's 冥鳴ひまり
+# ADR-20261107: Reading clips are made ahead of time with VOICEVOX's 玄野武宏
 
 ## Status
 Accepted
@@ -13,18 +13,18 @@ VOICEVOX's software can be used for anything, but each voice has its own terms f
 - 青山龍星 and 後鬼 need their makers' agreement first when a company is involved, and ぞん子 for commercial use. Voidoll needs it for any use by a company.
 - The others allow commercial and non-commercial use with the credit alone.
 
-Among the voices whose terms ask for nothing but the credit, the voice should suit a learner: clear, calm and close to standard Japanese, not a character voice with a strong manner of speaking, like ずんだもん, or a whispering or emotional style.
+The voice should also suit a learner, and the owner asked for a male voice that isn't cringy. A learner hears a word to say it the same way, so a plain voice close to standard Japanese is best: not a character voice with a strong manner of speaking, a child or an old man, or a whispering or emotional style. Among the male voices whose terms ask for nothing but the credit, 白上虎太郎 is a boy's voice, ちび式じい an old man's, and †聖騎士 紅桜† a role. 玄野武宏, 雀松朱司, 剣崎雌雄, 麒ヶ島宗麟 and 黒沢冴白 are adult men.
 
 ## Decision
-Every reading clip is said by 冥鳴ひまり in the style ノーマル. Her terms allow commercial and non-commercial use with the credit "VOICEVOX:冥鳴ひまり", without an application or report, and only forbid uses against public order, that harm others, that promote a particular ideology or group, or that she finds inappropriate. A name list entry says nothing like that. Her normal style is a calm, clear adult voice, often used for narration, which suits hearing a word to learn it.
+Every reading clip is said by 玄野武宏 in the style ノーマル. He is a young adult man's voice from the VirVox Project, and his normal style is plain, even speech, without a character's manner of speaking, so it suits hearing a word to learn it. He was VOICEVOX's first adult male voice, so his normal style is the most widely used and heard of the men's. His terms allow commercial and non-commercial use with the credit "VOICEVOX:玄野武宏", and unlike those of 青山龍星, from the same project, add no condition for companies.
 
-The credit is in `CREDITS.md`, which ships in the mod jar, with links to the VOICEVOX terms and hers. The clips are under those terms, not under MIT or CC BY-SA 4.0.
+The credit is in `CREDITS.md`, which ships in the mod jar, with links to the VOICEVOX terms and the VirVox Project's. The clips are under those terms, not under MIT or CC BY-SA 4.0.
 
 The reading clip tool makes the clips with a VOICEVOX engine run by hand, and keeps each clip until its entry's name or reading changes. It names the voice in its code, by VOICEVOX's id for it, so the voice can't change by accident.
 
 ## Consequences
 - The clips need nothing on the player's computer and no network, and every player hears the same clip.
-- The mod jar grows by about 10 MB of clips, and the repository holds them as binary files. A clip changes only when its entry does, since the encoding is bit-exact.
+- The mod jar grows by about 15 MB of clips, and the repository holds them as binary files. A clip changes only when its entry does, since the encoding is bit-exact.
 - A name list update needs a run of the tool after the name list tool, with VOICEVOX and FFmpeg installed. A client game test fails while an entry has no clip.
 - Changing the voice makes every clip again, which takes about half an hour, and changes the credit. The new voice's terms must allow its clips to ship in a published mod that others may redistribute.
-- Anyone who uses the clips outside the mod has to follow VOICEVOX's terms and 冥鳴ひまり's, and give the credit.
+- Anyone who uses the clips outside the mod has to follow VOICEVOX's terms and the VirVox Project's, and give the credit.

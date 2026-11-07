@@ -40,11 +40,11 @@ import java.util.stream.Stream;
  */
 public final class ReadingClipTool {
     /**
-     * The voice of every clip. Chosen in willdalh/oboecraft#25: a calm, clear voice whose terms allow commercial and
+     * The voice of every clip. Chosen in willdalh/oboecraft#25: a plain adult male voice whose terms allow commercial and
      * non-commercial use with only a credit, see {@code CREDITS.md}.
      */
     static final ReadingClipList.Voice VOICE =
-            new ReadingClipList.Voice("冥鳴ひまり", "8eaad775-3119-417e-8cf4-2a10bfd592c8", "ノーマル");
+            new ReadingClipList.Voice("玄野武宏", "c30dc15a-0992-4f8d-8bb8-ad3b314e6a6f", "ノーマル");
 
     private static final List<String> ARGUMENTS = List.of("name-list", "assets", "clip-list", "review-list", "engine");
     private static final String CLIP_EXTENSION = ".ogg";
@@ -100,7 +100,8 @@ public final class ReadingClipTool {
         Files.writeString(reviewListFile, ReviewList.format(made, VOICE, engineVersion), StandardCharsets.UTF_8);
         System.out.println("Made " + made.size() + " clips, deleted " + plan.toDelete().size() + ". "
                 + made.stream().filter(clip -> clip.spoken().fromReading()).count()
-                + " were said from their reading, see " + reviewListFile);
+                + " were said from their reading and " + made.stream().filter(clip -> !clip.spoken().checked()).count()
+                + " need a listen, see " + reviewListFile);
     }
 
     private static Map<String, String> parseArguments(String[] args) {

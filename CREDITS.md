@@ -17,8 +17,8 @@ None of these files ship with the mod. Only the name list tool, which is run by 
 
 ## Reading clips
 
-VOICEVOX:冥鳴ひまり
+VOICEVOX:玄野武宏
 
-The reading clips (`assets/oboecraft/sounds/reading/` in the mod jar), which say each item's reading after a pass, were made with [VOICEVOX](https://voicevox.hiroshiba.jp/) in the voice of [冥鳴ひまり](https://www.meimeihimari.com/), and are used under the [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/) and the [terms of use of 冥鳴ひまり](https://www.meimeihimari.com/terms-of-use), which allow commercial and non-commercial use with the credit above. Anyone who uses the clips outside the mod must follow those terms too, and give the same credit. The clips are not under the MIT license or CC BY-SA 4.0. See [ADR: Reading clips are made ahead of time with VOICEVOX's 冥鳴ひまり](docs/decisions/20261107-reading-clips-with-voicevox.md).
+The reading clips (`assets/oboecraft/sounds/reading/` in the mod jar), which say each item's reading after a pass, were made with [VOICEVOX](https://voicevox.hiroshiba.jp/) in the voice of [玄野武宏](https://www.virvoxproject.com/), and are used under the [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/) and the [terms of use of 玄野武宏, by the VirVox Project](https://www.virvoxproject.com/voicevoxの利用規約), which allow commercial and non-commercial use with the credit above. Anyone who uses the clips outside the mod must follow those terms too, and give the same credit. The clips are not under the MIT license or CC BY-SA 4.0. See [ADR: Reading clips are made ahead of time with VOICEVOX's 玄野武宏](docs/decisions/20261107-reading-clips-with-voicevox.md).
 
 VOICEVOX itself doesn't ship with the mod. Only the reading clip tool, which is run by hand to make the clips, uses it.

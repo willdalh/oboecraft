@@ -29,8 +29,8 @@ The tool is in the `tools` Gradle module, package `io.github.willdalh.oboecraft.
 ## Steps
 
 1. **Plan** (`ClipPlan`). An entry keeps its clip when the clip list has it with the same Japanese name and reading, in the same voice and format, and its file is there. Every other entry gets a new clip, so after a name list update only new and changed entries are made, and a first run makes them all. A new voice or format in the code makes every clip again. Clip files of items that aren't in the name list any more are deleted. Every item id must be a file name Minecraft allows in its resources (`a-z`, `0-9`, `_`, `.` and `-`), or the tool stops before it makes anything.
-2. **What to say** (`SpokenText`). VOICEVOX is given the name as it is written, like オークの原木, since the words give it their pitch accent. But VOICEVOX reads kanji with its own dictionary, which can be wrong for the name, like 間 read あいだ in 試練の間, or 白色 read はくしょく for しろいろ. So the tool asks VOICEVOX how it would say the name, and how it would say the reading in katakana, and compares the sounds of each mora: its consonant and vowel. A long vowel counts as the vowel before it, since VOICEVOX writes こう as コオ in some words and コウ in others. If the sounds are the same, the name is said. Otherwise the reading in katakana is said, which VOICEVOX can only say one way, but whose pitch accent it guesses from the kana alone. The review list names these clips first.
-3. **Speaking** (`Voicevox`). The engine makes the clip as a WAV file, from its `audio_query` and `synthesis` endpoints, in the voice 冥鳴ひまり, style ノーマル, with the engine's default speed, pitch and pauses. The voice is found by its id, so the tool stops if the engine doesn't have it.
+2. **What to say** (`SpokenText`). VOICEVOX is given the name as it is written, like オークの原木, since the words give it their pitch accent. But VOICEVOX reads kanji with its own dictionary, which can be wrong for the name, like 間 read あいだ in 試練の間, or 白色 read はくしょく for しろいろ. So the tool asks VOICEVOX how it would say the name, as moras in katakana, and checks them against the reviewed reading, split into moras the same way: each mora must be the same kana, except where VOICEVOX writes the same sound another way. It writes a long vowel as the vowel it lengthens, so ー after a mora in o, or う after one, may be オ, and い after a mora in e may be エ, and it writes を, ぢ and づ as オ, ジ and ズ. If the name passes, the name is said. Otherwise the reading in hiragana is said, whose pitch accent VOICEVOX guesses from the kana alone. Hiragana, since VOICEVOX splits some katakana wrongly, like リョ after ン as リ and ヨ, so センリョクガン would be said センリヨクガン. The reading is checked the same way, and a clip whose reading doesn't pass either is still made from the reading, and named first in the review list.
+3. **Speaking** (`Voicevox`). The engine makes the clip as a WAV file, from its `audio_query` and `synthesis` endpoints, in the voice 玄野武宏, style ノーマル, with the engine's default speed, pitch and pauses. The voice is found by its id, so the tool stops if the engine doesn't have it.
 4. **Encoding** (`OggEncoder`). FFmpeg turns the WAV file into Ogg Vorbis, the format Minecraft plays: mono, 24 kHz, at quality 1, about 4 to 10 KB per clip. It runs bit-exact, so the same WAV file always gives the same bytes and an unchanged clip never shows up as changed. Each clip is written to a `.part` file first, and moved in place once it is complete.
 5. **Output.** Once every clip is made, `sounds.json` and the clip list are replaced, each only once the new file is fully written, and the clips of removed items are deleted. A run that stops halfway leaves the clips it made, which the next run makes again since the clip list doesn't have them yet.
 
@@ -40,7 +40,7 @@ The tool is in the `tools` Gradle module, package `io.github.willdalh.oboecraft.
 
 ```json
 {
-  "voice": {"speaker":"冥鳴ひまり","speakerUuid":"8eaad775-3119-417e-8cf4-2a10bfd592c8","style":"ノーマル"},
+  "voice": {"speaker":"玄野武宏","speakerUuid":"c30dc15a-0992-4f8d-8bb8-ad3b314e6a6f","style":"ノーマル"},
   "format": "Ogg Vorbis, quality 1, mono, 24000 Hz",
   "engineVersion": "0.26.1",
   "clips": [
@@ -50,11 +50,11 @@ The tool is in the `tools` Gradle module, package `io.github.willdalh.oboecraft.
 }
 ```
 
-`spoken` is the text VOICEVOX was given: the name, or the reading in katakana. The engine version is only recorded: a new engine doesn't make the clips again by itself.
+`spoken` is the text VOICEVOX was given: the name, or the reading in hiragana. The engine version is only recorded: a new engine doesn't make the clips again by itself.
 
 ## Reviewing
 
-The review list has the clips that were said from their reading, with how VOICEVOX would have read the name, and then every clip the run made. A person who listens to them checks the pitch accent of the clips said from their reading. The sounds themselves are already checked against the reviewed reading by the tool.
+The review list has the clips whose reading didn't pass the check, which may be said wrong, then the clips that were said from their reading, with how VOICEVOX would have read the name, and then every clip the run made. A person who listens to them checks the clips that didn't pass, and the pitch accent of the clips said from their reading. The kana of every other clip are already checked against the reviewed reading by the tool, but not its pitch accent.
 
 ## Tests
 

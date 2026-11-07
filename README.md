@@ -66,6 +66,6 @@ The levels, their intervals, the ban length and how much a fail removes can be c
 
 ## License
 
-The code is under the [MIT license](LICENSE). The Japanese names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:冥鳴ひまり. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The code is under the [MIT license](LICENSE). The Japanese names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:玄野武宏. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 [AGENTS.md](AGENTS.md) has the commands to build and test the mod, and [`docs/`](docs/) describes how it works.

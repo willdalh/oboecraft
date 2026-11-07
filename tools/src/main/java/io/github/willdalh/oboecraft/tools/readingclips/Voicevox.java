@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * A running VOICEVOX engine, reached over its HTTP API. The engine is started by hand, from the VOICEVOX app or its
@@ -56,21 +55,14 @@ final class Voicevox implements SpokenText.Pronouncer {
     }
 
     @Override
-    public List<Mora> moras(String text) {
+    public List<String> moras(String text) {
         try {
-            List<Mora> moras = new ArrayList<>();
+            List<String> moras = new ArrayList<>();
             JsonElement phrases = send(post("/accent_phrases?speaker=" + styleId + "&text=" + encode(text),
                     HttpRequest.BodyPublishers.noBody()));
             for (JsonElement phrase : phrases.getAsJsonArray()) {
-                for (JsonElement element : phrase.getAsJsonObject().getAsJsonArray("moras")) {
-                    var mora = element.getAsJsonObject();
-                    JsonElement consonant = mora.get("consonant");
-                    moras.add(new Mora(
-                            mora.get("text").getAsString(),
-                            consonant == null || consonant.isJsonNull()
-                                    ? Optional.empty()
-                                    : Optional.of(consonant.getAsString()),
-                            mora.get("vowel").getAsString()));
+                for (JsonElement mora : phrase.getAsJsonObject().getAsJsonArray("moras")) {
+                    moras.add(mora.getAsJsonObject().get("text").getAsString());
                 }
             }
             return moras;

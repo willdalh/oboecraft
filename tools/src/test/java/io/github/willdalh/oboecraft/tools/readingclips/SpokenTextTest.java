@@ -8,18 +8,13 @@ import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NamePart;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class SpokenTextTest {
-    private static Mora mora(String text, String consonant, String vowel) {
-        return new Mora(text, Optional.ofNullable(consonant), vowel);
-    }
-
     /** Says each text as the moras given for it, like VOICEVOX would. */
-    private static SpokenText.Pronouncer pronouncer(Map<String, List<Mora>> moras) {
+    private static SpokenText.Pronouncer pronouncer(Map<String, List<String>> moras) {
         return text -> {
-            List<Mora> said = moras.get(text);
+            List<String> said = moras.get(text);
             if (said == null) {
                 throw new AssertionError("Unexpected text " + text);
             }
@@ -30,74 +25,68 @@ class SpokenTextTest {
     private static final JapaneseName OAK_LOG = new JapaneseName(List.of(
             NamePart.kana("オーク"), NamePart.kana("の"), new NamePart("原", "げん"), new NamePart("木", "ぼく")));
 
+    private static final JapaneseName TRIAL_CHAMBER = new JapaneseName(List.of(
+            new NamePart("試", "し"), new NamePart("練", "れん"), NamePart.kana("の"), new NamePart("間", "ま")));
+
     @Test
-    void theNameIsSpokenWhenVoicevoxSaysItLikeTheReading() {
+    void theNameIsSpokenWhenVoicevoxSaysTheReadingForIt() {
         // VOICEVOX writes the long vowel of オーク as オ.
-        List<Mora> oakLog = List.of(mora("オ", null, "o"), mora("オ", null, "o"), mora("ク", "k", "U"),
-                mora("ノ", "n", "o"), mora("ゲ", "g", "e"), mora("ン", null, "N"), mora("ボ", "b", "o"),
-                mora("ク", "k", "u"));
-        List<Mora> reading = List.of(mora("オ", null, "o"), mora("ー", null, "o"), mora("ク", "k", "u"),
-                mora("ノ", "n", "o"), mora("ゲ", "g", "e"), mora("ン", null, "N"), mora("ボ", "b", "o"),
-                mora("ク", "k", "u"));
+        SpokenText spoken = SpokenText.of(OAK_LOG, pronouncer(Map.of(
+                "オークの原木", List.of("オ", "オ", "ク", "ノ", "ゲ", "ン", "ボ", "ク"))));
 
-        SpokenText spoken = SpokenText.of(OAK_LOG, pronouncer(Map.of("オークの原木", oakLog, "オークノゲンボク", reading)));
-
-        assertEquals("オークの原木", spoken.text());
-        assertFalse(spoken.fromReading());
-        assertEquals("オオクノゲンボク", spoken.nameSaid());
+        assertEquals(new SpokenText("オークの原木", false, "オオクノゲンボク", true), spoken);
     }
 
     @Test
-    void theReadingIsSpokenWhenVoicevoxReadsAKanjiDifferently() {
-        JapaneseName trialChamber = new JapaneseName(List.of(
-                new NamePart("試", "し"), new NamePart("練", "れん"), NamePart.kana("の"), new NamePart("間", "ま")));
-        List<Mora> trial = List.of(mora("シ", "sh", "i"), mora("レ", "r", "e"), mora("ン", null, "N"),
-                mora("ノ", "n", "o"));
-        List<Mora> aida = List.of(mora("ア", null, "a"), mora("イ", null, "i"), mora("ダ", "d", "a"));
-        List<Mora> ma = List.of(mora("マ", "m", "a"));
+    void theReadingInHiraganaIsSpokenWhenVoicevoxReadsAKanjiDifferently() {
+        SpokenText spoken = SpokenText.of(TRIAL_CHAMBER, pronouncer(Map.of(
+                "試練の間", List.of("シ", "レ", "ン", "ノ", "ア", "イ", "ダ"),
+                "しれんのま", List.of("シ", "レ", "ン", "ノ", "マ"))));
 
-        SpokenText spoken = SpokenText.of(trialChamber, pronouncer(Map.of(
-                "試練の間", concat(trial, aida), "シレンノマ", concat(trial, ma))));
+        assertEquals(new SpokenText("しれんのま", true, "シレンノアイダ", true), spoken);
+    }
 
-        assertEquals("シレンノマ", spoken.text());
+    @Test
+    void aReadingThatVoicevoxDoesntSayEitherIsNotChecked() {
+        SpokenText spoken = SpokenText.of(TRIAL_CHAMBER, pronouncer(Map.of(
+                "試練の間", List.of("シ", "レ", "ン", "ノ", "ア", "イ", "ダ"),
+                "しれんのま", List.of("シ", "レ", "ン", "ノ", "マ", "ア"))));
+
         assertTrue(spoken.fromReading());
-        assertEquals("シレンノアイダ", spoken.nameSaid());
+        assertFalse(spoken.checked());
     }
 
     @Test
-    void aLongVowelCountsAsTheVowelBeforeIt() {
-        List<Mora> kouAsKoo = List.of(mora("コ", "k", "o"), mora("オ", null, "o"));
-        List<Mora> kouAsKou = List.of(mora("コ", "k", "o"), mora("ウ", null, "u"));
-        List<Mora> keiAsKee = List.of(mora("ケ", "k", "e"), mora("エ", null, "e"));
-        List<Mora> keiAsKei = List.of(mora("ケ", "k", "e"), mora("イ", null, "i"));
-
-        assertEquals(SpokenText.sounds(kouAsKoo), SpokenText.sounds(kouAsKou));
-        assertEquals(SpokenText.sounds(keiAsKee), SpokenText.sounds(keiAsKei));
+    void smallKanaJoinTheKanaBeforeThem() {
+        assertEquals(List.of("キョ", "ウ", "リョ", "ク"), SpokenText.moras("キョウリョク"));
+        assertEquals(List.of("ティ", "ー", "エ", "ヌ"), SpokenText.moras("ティーエヌ"));
+        assertEquals(List.of("ベ", "ッ", "ド"), SpokenText.moras("ベッド"));
     }
 
     @Test
-    void otherVowelsAfterAVowelAreTheirOwnSound() {
-        List<Mora> ai = List.of(mora("ア", null, "a"), mora("イ", null, "i"));
-        List<Mora> aa = List.of(mora("ア", null, "a"), mora("ア", null, "a"));
-        List<Mora> ou = List.of(mora("オ", null, "o"), mora("ウ", "w", "u"));
-        List<Mora> oo = List.of(mora("オ", null, "o"), mora("オ", null, "o"));
-
-        assertFalse(SpokenText.sounds(ai).equals(SpokenText.sounds(aa)));
-        // A vowel with a consonant is never a long vowel.
-        assertFalse(SpokenText.sounds(ou).equals(SpokenText.sounds(oo)));
+    void aSplitSmallKanaIsNotTheReading() {
+        // VOICEVOX splits リョ after ン in katakana, which says another word.
+        assertFalse(SpokenText.says(List.of("セ", "ン", "リ", "ヨ", "ク", "ガ", "ン"), SpokenText.moras("センリョクガン")));
+        assertTrue(SpokenText.says(List.of("セ", "ン", "リョ", "ク", "ガ", "ン"), SpokenText.moras("センリョクガン")));
     }
 
     @Test
-    void devoicedVowelsCountAsVoiced() {
-        assertEquals(SpokenText.sounds(List.of(mora("ク", "k", "U"))), SpokenText.sounds(List.of(mora("ク", "k", "u"))));
+    void longVowelsMayBeWrittenAsTheVowelTheyLengthen() {
+        assertTrue(SpokenText.says(List.of("キョ", "オ"), SpokenText.moras("キョウ")));
+        assertTrue(SpokenText.says(List.of("ケ", "エ"), SpokenText.moras("ケイ")));
+        assertTrue(SpokenText.says(List.of("テ", "エ"), SpokenText.moras("テー")));
+        assertTrue(SpokenText.says(List.of("ティ", "イ", "エ", "ヌ"), SpokenText.moras("ティーエヌ")));
+        assertFalse(SpokenText.says(List.of("テ", "イ"), SpokenText.moras("テー")));
+        assertFalse(SpokenText.says(List.of("カ", "エ"), SpokenText.moras("カイ")));
+        assertFalse(SpokenText.says(List.of("カ", "オ"), SpokenText.moras("カウ")));
     }
 
     @Test
-    void nAndSmallTsuAreNotVowels() {
-        // ン followed by ン isn't a long vowel, and neither is a vowel after ッ.
-        List<Mora> nn = List.of(mora("ン", null, "N"), mora("ン", null, "N"));
-        assertEquals(List.of(":N", ":N"), SpokenText.sounds(nn));
-        assertEquals(List.of(":cl", ":o"), SpokenText.sounds(List.of(mora("ッ", null, "cl"), mora("オ", null, "o"))));
+    void kanaWithTheSameSoundMayBeWrittenAsTheOther() {
+        assertTrue(SpokenText.says(List.of("ジュ", "ヒ", "オ"), SpokenText.moras("ジュヒヲ")));
+        assertTrue(SpokenText.says(List.of("ミ", "カ", "ズ", "キ"), SpokenText.moras("ミカヅキ")));
+        assertTrue(SpokenText.says(List.of("ハ", "ナ", "ジ"), SpokenText.moras("ハナヂ")));
+        assertFalse(SpokenText.says(List.of("ネ", "ツ", "イ", "タ"), SpokenText.moras("ネヅイタ")));
     }
 
     @Test
@@ -105,9 +94,5 @@ class SpokenTextTest {
         assertEquals("オークノゲンボク", SpokenText.katakana("おーくのげんぼく"));
         assertEquals("ティーエヌティー", SpokenText.katakana("てぃーえぬてぃー"));
         assertEquals("ヴ", SpokenText.katakana("ゔ"));
-    }
-
-    private static List<Mora> concat(List<Mora> first, List<Mora> second) {
-        return java.util.stream.Stream.concat(first.stream(), second.stream()).toList();
     }
 }

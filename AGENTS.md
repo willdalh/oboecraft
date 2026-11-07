@@ -63,7 +63,7 @@ Versions of Minecraft, Fabric and libraries are in `gradle/libs.versions.toml`.
 
 ### Reading clips
 
-Every name list entry has a reading clip in `fabric/src/client/resources/assets/oboecraft/sounds/reading/`, made by the reading clip tool, and `ReadingClipsClientGameTest` fails if one is missing. After a change to the name list, run the tool, which only makes the clips of new and changed entries. The voice is VOICEVOX:冥鳴ひまり, whose credit is in `CREDITS.md`. A change of voice needs a voice whose terms allow its clips to ship in the published mod, and the credit in `CREDITS.md` changes with it, see `docs/decisions/20261107-reading-clips-with-voicevox.md`.
+Every name list entry has a reading clip in `fabric/src/client/resources/assets/oboecraft/sounds/reading/`, made by the reading clip tool, and `ReadingClipsClientGameTest` fails if one is missing. After a change to the name list, run the tool, which only makes the clips of new and changed entries. The voice is VOICEVOX:玄野武宏, whose credit is in `CREDITS.md`. A change of voice needs a voice whose terms allow its clips to ship in the published mod, and the credit in `CREDITS.md` changes with it, see `docs/decisions/20261107-reading-clips-with-voicevox.md`.
 
 ## Releases
 

@@ -46,7 +46,7 @@ record ReadingClipList(Voice voice, String format, String engineVersion, List<Cl
      * @param item    the item whose reading it says
      * @param name    the Japanese name, as it is written
      * @param reading the reading
-     * @param spoken  the text VOICEVOX was given: the name, or the reading in katakana
+     * @param spoken  the text VOICEVOX was given: the name, or the reading in hiragana
      */
     record Clip(ItemId item, String name, String reading, String spoken) {
         Clip {

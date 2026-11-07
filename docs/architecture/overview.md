@@ -128,4 +128,4 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 - [Progress save format](../decisions/20261105-progress-save-format.md)
 - [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
 - [The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md)
-- [Reading clips are made ahead of time with VOICEVOX's 冥鳴ひまり](../decisions/20261107-reading-clips-with-voicevox.md)
+- [Reading clips are made ahead of time with VOICEVOX's 玄野武宏](../decisions/20261107-reading-clips-with-voicevox.md)
