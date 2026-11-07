@@ -25,15 +25,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The player's own progress on this computer, which the client keeps and sends to every server that uses it. It is
- * one progress file per account in the game folder, see {@code docs/architecture/progress-files.md}.
+ * The player's progress on this computer, which the client keeps and sends to every server the player joins. It is one
+ * progress file per account in the game folder, see {@code docs/architecture/progress-files.md}.
  *
- * <p>A session is one connection to a server that uses own progress. While it lasts, the file is locked, so another
- * game on the same computer can't use it at the same time, and the server's changes are saved soon after they arrive.
+ * <p>A session lasts from the server's request for the progress until the player leaves. While it lasts, the file is
+ * locked, so another game on the same computer can't use it at the same time, and the server's changes are saved soon
+ * after they arrive.
  * All file work runs in order on one background thread, so the game never waits for the disk, and two saves of the
  * file never race.
  */
-public final class OwnProgress {
+public final class ProgressStore {
     /** How long after a change the progress is saved, so changes that arrive close together are saved once. */
     public static final Duration SAVE_DELAY = Duration.ofSeconds(2);
     /** How long the game waits for the last save when it stops. */
@@ -42,7 +43,7 @@ public final class OwnProgress {
     private final Path folder;
     private final Duration saveDelay;
     private final ScheduledThreadPoolExecutor fileThread = new ScheduledThreadPoolExecutor(1, task -> {
-        Thread thread = new Thread(task, "Oboecraft own progress");
+        Thread thread = new Thread(task, "Oboecraft progress store");
         thread.setDaemon(true);
         return thread;
     });
@@ -71,22 +72,23 @@ public final class OwnProgress {
      * @param folder    the folder of the progress files
      * @param saveDelay how long after a change the progress is saved
      */
-    public OwnProgress(Path folder, Duration saveDelay) {
+    public ProgressStore(Path folder, Duration saveDelay) {
         this.folder = Objects.requireNonNull(folder, "folder");
         this.saveDelay = Objects.requireNonNull(saveDelay, "saveDelay");
         // When the game stops, the session's end saves the changes, so waiting saves can be dropped.
         fileThread.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
     }
 
-    /** The folder of the own progress files in a game folder. */
+    /** The folder of the progress files in a game folder. */
     public static Path folder(Path gameDir) {
         return gameDir.resolve(Oboecraft.MOD_ID).resolve("progress");
     }
 
     /**
-     * Starts a session when the server asks for the player's own progress: locks and reads the player's file, and sends
-     * the server {@link UploadProgress}, or {@link ProgressUnavailable} if it can't. A file that isn't valid progress is
-     * kept as {@code .broken}, and the player starts with empty progress, see {@link #takeBrokenFileKeptAs}.
+     * Starts a session when the server asks for the player's progress: locks and reads the player's file, and sends the
+     * server {@link UploadProgress}, or {@link ProgressUnavailable} if it can't. A file that isn't valid progress is
+     * kept as {@code .broken}, and the player starts with empty progress, see {@link #takeBrokenFileKeptAs}. A session
+     * that is still going, when the server configures the player again, ends first, so its changes are read back.
      *
      * @param send sends a payload to the server. Called on the file thread.
      * @return when the answer has been sent
@@ -126,7 +128,7 @@ public final class OwnProgress {
         fileThread.shutdown();
         try {
             if (!fileThread.awaitTermination(CLOSE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
-                OboecraftMod.LOGGER.error("The own progress wasn't saved in time when the game stopped");
+                OboecraftMod.LOGGER.error("The progress wasn't saved in time when the game stopped");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -65,7 +65,6 @@ final class NetworkCodecs {
             DURATION, Settings::banLength,
             ByteBufCodecs.VAR_INT, Settings::percentageFactor,
             ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
-            ByteBufCodecs.BOOL, Settings::useOwnProgress,
             Settings::new);
 
     /** Far more than the name list has, which leaves room for saved items that left the name list. */

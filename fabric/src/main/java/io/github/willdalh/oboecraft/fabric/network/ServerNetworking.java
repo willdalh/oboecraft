@@ -1,7 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.network;
 
 import io.github.willdalh.oboecraft.fabric.progress.ProgressUploads;
-import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import io.github.willdalh.oboecraft.fabric.review.ServerReviews;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
@@ -61,18 +60,17 @@ public final class ServerNetworking {
 
     /**
      * Disconnects players whose client doesn't have the mod, or has another network protocol version, and asks the
-     * others for their own progress when the server uses it. Fabric fires this event once it knows which payloads the
-     * client can receive. A player who goes back to configuration from the world already has their progress.
+     * others for their progress. Fabric fires this event once it knows which payloads the client can receive.
      */
-    public static void registerConfiguration(ServerProgress progress, ProgressUploads uploads) {
+    public static void registerConfiguration(ProgressUploads uploads) {
         ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
-            if (!ServerConfigurationNetworking.canSend(handler, ProtocolCheck.TYPE)) {
+            if (ServerConfigurationNetworking.canSend(handler, ProtocolCheck.TYPE)) {
+                uploads.request(handler);
+            } else {
                 handler.disconnect(Component.translatableWithFallback("oboecraft.protocol.mismatch",
                         "This server needs the Oboecraft mod, with network protocol version %s. "
                                 + "Install the same version of Oboecraft as the server.",
                         ProtocolCheck.PROTOCOL_VERSION));
-            } else if (!ServerConfigurationNetworking.isReconfiguring(handler)) {
-                uploads.configure(handler, progress.settings().useOwnProgress());
             }
         });
         ServerConfigurationConnectionEvents.DISCONNECT.register((handler, server) -> uploads.disconnected(handler));

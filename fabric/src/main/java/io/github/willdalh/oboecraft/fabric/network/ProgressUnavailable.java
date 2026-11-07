@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Client to server, in answer to {@link RequestProgress}, when the client can't send the player's own progress. The
+ * Client to server, in answer to {@link RequestProgress}, when the client can't send the player's progress. The
  * server disconnects the player with a message that says why.
  */
 public record ProgressUnavailable(Reason reason) implements CustomPacketPayload {
@@ -20,7 +20,7 @@ public record ProgressUnavailable(Reason reason) implements CustomPacketPayload 
         return TYPE;
     }
 
-    /** Why the client can't send the player's own progress. */
+    /** Why the client can't send the player's progress. */
     public enum Reason {
         /** The progress file was saved by a newer version of the mod. */
         TOO_NEW,
@@ -30,7 +30,8 @@ public record ProgressUnavailable(Reason reason) implements CustomPacketPayload 
         IN_USE;
 
         /** A reason that doesn't exist fails to decode, which disconnects the sender. */
-        static final StreamCodec<ByteBuf, Reason> STREAM_CODEC = ByteBufCodecs.VAR_INT.map(Reason::byId, Reason::ordinal);
+        static final StreamCodec<ByteBuf, Reason> STREAM_CODEC =
+                ByteBufCodecs.VAR_INT.map(Reason::byId, Reason::ordinal);
 
         private static Reason byId(int id) {
             Reason[] reasons = values();

@@ -48,7 +48,7 @@ public final class OboecraftMod implements ModInitializer {
 
         ServerNetworking.registerPayloadTypes();
         ServerNetworking.registerReceivers(serverReviews, progressUploads);
-        ServerNetworking.registerConfiguration(serverProgress, progressUploads);
+        ServerNetworking.registerConfiguration(progressUploads);
         ServerLockHooks.register();
         registerProgressEvents(serverProgress, progressUploads, serverReviews);
 
@@ -61,13 +61,12 @@ public final class OboecraftMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(server ->
                 serverProgress.useSettings(ServerSettingsFile.load(ServerSettingsFile.path())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                serverProgress.load(handler.player, progressUploads.take(handler.player.getUUID())));
+                progressUploads.take(handler.player.getUUID())
+                        .ifPresent(progress -> serverProgress.start(handler.player, progress)));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             serverReviews.forget(handler.player.getUUID());
-            serverProgress.unload(handler);
+            serverProgress.end(handler);
         });
-        ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> serverProgress.saveAll());
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> serverProgress.saveAll());
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (entity instanceof ServerPlayer player) {
                 serverReviews.cancel(player);

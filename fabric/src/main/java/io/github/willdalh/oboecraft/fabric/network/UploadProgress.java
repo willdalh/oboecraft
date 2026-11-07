@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Client to server, in answer to {@link RequestProgress}: the player's own progress, which the server uses for the
+ * Client to server, in answer to {@link RequestProgress}: the player's progress, which the server uses for the
  * session. It can be larger than a normal payload, so Fabric splits it into parts, up to {@link #MAX_SIZE} in all.
  */
 public record UploadProgress(Progress progress) implements CustomPacketPayload {

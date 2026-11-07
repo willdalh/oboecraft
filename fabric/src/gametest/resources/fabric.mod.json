@@ -12,7 +12,7 @@
       "io.github.willdalh.oboecraft.fabric.gametest.PlacingGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ProgressFilesGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ServerProgressGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.OwnProgressGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ProgressStoreGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.PayloadCodecGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.HeldStackGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.MenuGameTest",
@@ -28,7 +28,7 @@
       "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.SettingsClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.OwnProgressClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ProgressStoreClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ReadingClipsClientGameTest"
     ]
   },

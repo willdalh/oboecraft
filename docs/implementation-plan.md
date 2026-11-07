@@ -128,7 +128,7 @@ See [Settings](design/settings.md) and [Settings files](architecture/settings-fi
 
 Decided in milestone 12:
 
-- The server settings are in `config/oboecraft/server.json`, so in singleplayer every world uses the same settings, like the singleplayer progress. A dedicated server reads them when it starts. Every field must be in the file, and durations are written like `10m` or `1h 30m`.
+- The server settings are in `config/oboecraft/server.json`, so in singleplayer every world uses the same settings. A dedicated server reads them when it starts. Every field must be in the file, and durations are written like `10m` or `1h 30m`.
 - A missing file is written with the defaults. An invalid file is logged and left untouched, and the defaults are used.
 - Settings have upper limits, so values from a file or the network can't overflow the rules: at most 100 levels, demotions up to 100, durations up to 1,000,000 days and `percentageFactor` up to 100.
 - The server sends its settings in `ProgressSync`, with the player's progress, and sends it again to every player when they change. Each side's `ProgressView` has the settings it uses, so the lock check, displays and reviews on both sides read the same value. The network protocol went to 5.
@@ -220,14 +220,14 @@ Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items]
 
 ### Progress
 
-See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md) and [ADR: Own progress kept on the player's computer](decisions/20261107-own-progress-on-the-players-computer.md), which replaced where the files are after the milestones, so players have one progress in singleplayer and on servers. See [Own progress and server progress](design/settings.md#own-progress-and-server-progress).
+See [ADR: Progress saved as versioned JSON files](decisions/20261105-progress-save-format.md) and [ADR: Progress kept on the player's computer](decisions/20261107-progress-on-the-players-computer.md), and [Progress](design/progress.md).
 
-- Own progress: one progress file per Minecraft account, in the game folder on the player's computer. The client sends it while the player is configured, before they enter the world, and saves the changes the server sends back. The server decides every change as before and stores nothing. Every world uses it, singleplayer and LAN hosts too.
-- Server progress: with the server setting `useOwnProgress` off, one file per player in the server's world folder.
-- The server trusts the client's progress once it is valid, so a player can cheat by editing their file. Server owners who mind turn `useOwnProgress` off. It is on by default.
+- One progress file per Minecraft account, in the game folder on the player's computer. Every world uses it: singleplayer, worlds opened to LAN and servers.
+- The client sends it while the player is configured, before they enter the world, and saves the changes the server sends back. The server decides every change as before and stores no progress.
+- The server trusts the client's progress once it is valid, so a player can master every item by editing their file. It only hurts their own learning.
 - The client locks its file while it is connected, so two games on one computer never save over each other.
-- No progress moves between own and server progress when a server changes the setting. No server used the mod when own progress came, so nothing needed merging.
-- The files are JSON with a version number, so old saves can be upgraded. The server settings file went to version 2 for `useOwnProgress`, and still reads version 1. The network protocol went to 7.
+- The files are JSON with a version number, so old saves can be upgraded.
+- Progress moved from servers to the player's computer after the milestones, when no server used the mod, so no server progress needed moving. The network protocol went to 7.
 
 ### Release and licenses
 

@@ -2,7 +2,7 @@
 
 These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
-The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, milestone 11 the game mode and renaming rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass, and own progress, which follows each player to every world and server, see [Settings](settings.md#own-progress-and-server-progress). Each doc says which milestone builds which part, so the docs never claim more than the mod does.
+The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, milestone 11 the game mode and renaming rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass, and progress that follows each player to every world and server. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
 | Doc | Contents |
 |---|---|
@@ -12,6 +12,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Reviews](reviews.md) | The answer menu's rules: starting a review, attempts, actions, lessons and what punishment needs |
 | [Punishment](punishment.md) | What a fail removes from the current view, protected items and bans |
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
+| [Progress](progress.md) | Where a player's progress is kept, how it reaches the server and what stops a player from joining |
 | [Settings](settings.md) | The values that settings control, their defaults, the settings files and the settings screen |
 | [Display](display.md) | Hidden names, the lock timer, the slot marker, and the notification and reading clip after a pass |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
@@ -34,5 +35,6 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Creative mode cancels a review, the anvil only renames name tags | 11 |
 | Settings files, sync and screens | 12 |
 | The reading clip after a pass | [#25](https://github.com/willdalh/oboecraft/issues/25) |
+| Progress kept on the player's computer and sent to every server | After the milestones |
 
 - [Word list](word-list.md): known, ignored and mastered items, and Revert.

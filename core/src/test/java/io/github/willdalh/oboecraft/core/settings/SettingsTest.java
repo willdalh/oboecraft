@@ -3,7 +3,6 @@ package io.github.willdalh.oboecraft.core.settings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.List;
@@ -26,12 +25,6 @@ class SettingsTest {
     @Test
     void droppingIsntAnInteractionByDefault() {
         assertFalse(Settings.DEFAULTS.dropCountsAsInteraction());
-    }
-
-    @Test
-    void playersUseTheirOwnProgressByDefault() {
-        assertTrue(Settings.DEFAULTS.useOwnProgress());
-        assertFalse(Settings.DEFAULTS.withUseOwnProgress(false).useOwnProgress());
     }
 
     @Test

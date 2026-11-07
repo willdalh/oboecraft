@@ -9,8 +9,7 @@
   "oboecraft.review.banned": "Banned after a fail. Try again in %s.",
   "oboecraft.progress.broken": "Your Oboecraft progress file couldn't be read, so you start with empty progress. The broken file was kept as %s.",
   "oboecraft.progress.too_new": "Your Oboecraft progress was saved by a newer version of Oboecraft. Update Oboecraft to play here.",
-  "oboecraft.progress.unreadable": "Oboecraft couldn't read your progress file. Ask the server owner to check the server log.",
-  "oboecraft.progress.own_unreadable": "Oboecraft couldn't read your progress file. Check your game's log.",
+  "oboecraft.progress.unreadable": "Oboecraft couldn't read your progress file. Check your game's log.",
   "oboecraft.progress.in_use": "Your Oboecraft progress is in use by another running game. Close that game and join again.",
   "oboecraft.progress.upload_timeout": "Your game didn't send your Oboecraft progress in time.",
   "oboecraft.protocol.mismatch": "This server needs the Oboecraft mod, with network protocol version %s. Install the same version of Oboecraft as the server.",
@@ -44,7 +43,6 @@
   "oboecraft.settings.ban_length": "Ban after a fail",
   "oboecraft.settings.percentage_factor": "Removal drop per level, in %",
   "oboecraft.settings.drop": "Dropping counts as an interaction",
-  "oboecraft.settings.own_progress": "Players use their own progress",
   "oboecraft.settings.save_failed": "The settings couldn't be saved. See the game log.",
   "subtitles.oboecraft.reading": "Japanese name is said"
 }

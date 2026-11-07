@@ -8,9 +8,9 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 import net.fabricmc.loader.api.FabricLoader;
 
-/** Singleplayer progress is shared across worlds, so each client game test starts from no progress. */
-final class SingleplayerProgress {
-    private SingleplayerProgress() {
+/** The client keeps progress in the game folder across worlds, so each client game test starts from no progress. */
+final class ProgressFolder {
+    private ProgressFolder() {
     }
 
     static void delete() {

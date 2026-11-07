@@ -13,12 +13,9 @@ import java.util.Objects;
  * @param percentageFactor        how many percentage points the removal rate drops for each level above 1
  * @param dropCountsAsInteraction whether dropping a stack out of the inventory is an interaction, so a locked item
  *                                can't be dropped
- * @param useOwnProgress          whether players bring their own progress, which their client keeps, instead of the
- *                                server keeping each player's progress
  */
 public record Settings(
-        List<LevelSettings> levels, Duration banLength, int percentageFactor, boolean dropCountsAsInteraction,
-        boolean useOwnProgress) {
+        List<LevelSettings> levels, Duration banLength, int percentageFactor, boolean dropCountsAsInteraction) {
     /** The most levels there can be. */
     public static final int MAX_LEVELS = 100;
     /** The longest interval or ban there can be, so the times worked out from them never overflow. */
@@ -38,8 +35,7 @@ public record Settings(
             new LevelSettings(Duration.ofDays(30), 2)),
             Duration.ofMinutes(5),
             5,
-            false,
-            true);
+            false);
 
     public Settings {
         levels = List.copyOf(levels);
@@ -62,27 +58,22 @@ public record Settings(
 
     /** These settings with the levels replaced. */
     public Settings withLevels(List<LevelSettings> levels) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, useOwnProgress);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction);
     }
 
     /** These settings with the ban length replaced. */
     public Settings withBanLength(Duration banLength) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, useOwnProgress);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction);
     }
 
     /** These settings with the percentage factor replaced. */
     public Settings withPercentageFactor(int percentageFactor) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, useOwnProgress);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction);
     }
 
     /** These settings with the drop setting replaced. */
     public Settings withDropCountsAsInteraction(boolean dropCountsAsInteraction) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, useOwnProgress);
-    }
-
-    /** These settings with the own progress setting replaced. */
-    public Settings withUseOwnProgress(boolean useOwnProgress) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, useOwnProgress);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction);
     }
 
     /** The top level, mastered. */

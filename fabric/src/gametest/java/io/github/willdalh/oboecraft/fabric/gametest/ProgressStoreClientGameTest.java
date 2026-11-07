@@ -6,7 +6,7 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.network.ProgressUnavailable;
-import io.github.willdalh.oboecraft.fabric.progress.OwnProgress;
+import io.github.willdalh.oboecraft.fabric.progress.ProgressStore;
 import io.github.willdalh.oboecraft.fabric.progress.ProgressFiles;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,10 +26,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.level.storage.LevelResource;
 
 /**
- * The player's own progress in a real client in singleplayer: the client sends its file while the player is
- * configured, the file is locked while the player is in the world, and the server's changes are saved in it.
+ * The player's progress in a real client in singleplayer: the client sends its file while the player is configured,
+ * the file is locked while the player is in the world, and the server's changes are saved in it, never in the world.
  */
-public class OwnProgressClientGameTest implements FabricClientGameTest {
+public class ProgressStoreClientGameTest implements FabricClientGameTest {
     private static final ItemId OAK_LOG = new ItemId("block.minecraft.oak_log");
     private static final SrsState LEVEL_THREE =
             new SrsState.Leveled(3, Optional.of(Instant.parse("2030-01-01T00:00:00Z")));
@@ -38,9 +38,9 @@ public class OwnProgressClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
-        SingleplayerProgress.delete();
+        ProgressFolder.delete();
         UUID player = context.computeOnClient(client -> client.getUser().getProfileId());
-        Path folder = OwnProgress.folder(FabricLoader.getInstance().getGameDir());
+        Path folder = ProgressStore.folder(FabricLoader.getInstance().getGameDir());
         Path file = folder.resolve(player + ".json");
         write(file, Progress.EMPTY.with(OAK_LOG, LEVEL_THREE));
 
@@ -52,12 +52,10 @@ public class OwnProgressClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> OboecraftClient.progress().hasProgress(client.player));
             check(context.computeOnClient(client -> OboecraftClient.progress().state(client.player, OAK_LOG))
                     .equals(LEVEL_THREE), "the client sent the file's progress");
-            check(singleplayer.getServer().computeOnServer(server -> OboecraftMod.serverProgress().usesOwnProgress(
-                    server.getPlayerList().getPlayers().getFirst())), "the server uses own progress");
             worldProgress = singleplayer.getServer().computeOnServer(server ->
                     server.getWorldPath(LevelResource.ROOT).resolve("oboecraft"));
 
-            OwnProgress otherGame = new OwnProgress(folder, OwnProgress.SAVE_DELAY);
+            ProgressStore otherGame = new ProgressStore(folder, ProgressStore.SAVE_DELAY);
             try {
                 List<CustomPacketPayload> sent = new ArrayList<>();
                 otherGame.start(player, sent::add).join();
@@ -75,7 +73,7 @@ public class OwnProgressClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> read(file).equals(
                 new ProgressFiles.ReadResult.Loaded(Progress.EMPTY.with(OAK_LOG, LEVEL_FOUR))));
         check(!Files.exists(worldProgress), "the world has no progress files");
-        SingleplayerProgress.delete();
+        ProgressFolder.delete();
     }
 
     private static void write(Path file, Progress progress) {

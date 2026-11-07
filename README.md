@@ -43,7 +43,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 
 You need Minecraft: Java Edition 26.3 with [Fabric Loader](https://fabricmc.net/use/) 0.20.1 or newer and [Fabric API](https://modrinth.com/mod/fabric-api). Download `oboecraft-<version>.jar` from the [latest release](https://github.com/willdalh/oboecraft/releases/latest) and put it in your `mods` folder with Fabric API.
 
-On a server, install the mod on the server too. Players need the same version of Oboecraft to join. The server checks every answer. Your progress is kept on your computer and goes with you to all your worlds and to every server, unless the server owner turns off `useOwnProgress`, in which case that server keeps its own progress for each player.
+On a server, install the mod on the server too. Players need the same version of Oboecraft to join. The server checks every answer. Your progress is kept on your computer and goes with you to all your worlds and to every server.
 
 Set the game language to 日本語 under Options → Language, so the names you learn are the ones you see. Locks only apply in survival and adventure mode.
 

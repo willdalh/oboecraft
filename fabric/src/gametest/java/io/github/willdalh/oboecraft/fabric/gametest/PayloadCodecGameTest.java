@@ -59,7 +59,7 @@ public class PayloadCodecGameTest {
         assertRoundTrip(helper, ReviewAnswered.STREAM_CODEC, new ReviewAnswered(TIME, 7, ReviewOutcome.LESSON,
                 Optional.of(new ReviewAnswered.Answer(new ItemId("block.minecraft.oak_log"), "オークの原木", "おーくのげんぼく"))));
         assertRoundTrip(helper, ProgressSync.STREAM_CODEC, new ProgressSync(TIME, progress, Settings.DEFAULTS.withBanLength(java.time.Duration.ofSeconds(30))
-                .withDropCountsAsInteraction(true).withUseOwnProgress(false)));
+                .withDropCountsAsInteraction(true)));
         assertRoundTrip(helper, RequestProgress.STREAM_CODEC, RequestProgress.INSTANCE);
         assertRoundTrip(helper, StateUpdate.STREAM_CODEC,
                 new StateUpdate(TIME, OAK_LOG, new SrsState.Leveled(1, Optional.of(TIME))));

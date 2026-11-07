@@ -22,10 +22,10 @@ import net.minecraft.server.network.ConfigurationTask;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 
 /**
- * Players' own progress, which their clients send while the players are configured, before they enter the world.
- * The server asks with {@link RequestProgress} and waits for the answer, so a player who uses their own progress
- * never plays without it. Each player is asked once per join, and only the first answer counts. Only used on the
- * server thread.
+ * The progress players' clients send while the players are configured, before they enter the world. The server asks
+ * with {@link RequestProgress} and waits for the answer, so a player never enters the world without their progress.
+ * Each player is asked every time they are configured, and only the first answer counts. Only used on the server
+ * thread.
  */
 public final class ProgressUploads {
     /** How long the server waits for the client's progress before it disconnects the player. */
@@ -47,20 +47,18 @@ public final class ProgressUploads {
     }
 
     /**
-     * Sets up a player who joins and is configured. When the server uses own progress, asks the player's client for
-     * it, as one of the tasks of configuration, which run one after another, so the player stays in configuration
-     * until the client answers. Progress an earlier connection of the player sent, which left before it entered the
-     * world, is forgotten first, so it is never used for this one.
+     * Asks the player's client for their progress when the player is configured, as one of the tasks of
+     * configuration, which run one after another, so the player stays in configuration until the client answers.
+     * Progress an earlier connection of the player sent, which left before it entered the world, is forgotten first,
+     * so it is never used for this one.
      */
-    public void configure(ServerConfigurationPacketListenerImpl connection, boolean useOwnProgress) {
+    public void request(ServerConfigurationPacketListenerImpl connection) {
         uploaded.remove(connection.getOwner().id());
-        if (useOwnProgress) {
-            connection.addTask(new UploadTask(connection));
-        }
+        connection.addTask(new UploadTask(connection));
     }
 
     /**
-     * The client sent the player's own progress. Ignored unless the server has asked and is still waiting, so only the
+     * The client sent the player's progress. Ignored unless the server has asked and is still waiting, so only the
      * first answer to the request counts.
      */
     public void received(ServerConfigurationPacketListenerImpl connection, Progress progress) {
@@ -72,19 +70,19 @@ public final class ProgressUploads {
     }
 
     /**
-     * The client can't send the player's own progress, so the player is disconnected. Ignored unless the server has
+     * The client can't send the player's progress, so the player is disconnected. Ignored unless the server has
      * asked and is still waiting.
      */
     public void unavailable(ServerConfigurationPacketListenerImpl connection, ProgressUnavailable.Reason reason) {
         if (!awaiting.remove(connection)) {
             return;
         }
-        OboecraftMod.LOGGER.warn("{} couldn't send their own progress: {}", connection.getOwner().name(), reason);
+        OboecraftMod.LOGGER.warn("{} couldn't send their progress: {}", connection.getOwner().name(), reason);
         connection.disconnect(switch (reason) {
             case TOO_NEW -> Component.translatableWithFallback("oboecraft.progress.too_new",
                     "Your Oboecraft progress was saved by a newer version of Oboecraft. "
                             + "Update Oboecraft to play here.");
-            case UNREADABLE -> Component.translatableWithFallback("oboecraft.progress.own_unreadable",
+            case UNREADABLE -> Component.translatableWithFallback("oboecraft.progress.unreadable",
                     "Oboecraft couldn't read your progress file. Check your game's log.");
             case IN_USE -> Component.translatableWithFallback("oboecraft.progress.in_use",
                     "Your Oboecraft progress is in use by another running game. Close that game and join again.");
@@ -101,7 +99,10 @@ public final class ProgressUploads {
         }
     }
 
-    /** Takes the own progress the player sent before they entered the world, if they sent any. */
+    /**
+     * Takes the progress the player sent before they entered the world. Every player sent it, since configuration waits
+     * for it, except players who are placed in the world without being configured, like the game tests' players.
+     */
     public Optional<Progress> take(UUID player) {
         return Optional.ofNullable(uploaded.remove(player)).map(Uploaded::progress);
     }
@@ -127,7 +128,7 @@ public final class ProgressUploads {
         public boolean tick() {
             if (awaiting.contains(connection) && !clock.instant().isBefore(deadline)) {
                 awaiting.remove(connection);
-                OboecraftMod.LOGGER.warn("{} didn't send their own progress in time",
+                OboecraftMod.LOGGER.warn("{} didn't send their progress in time",
                         connection.getOwner().name());
                 connection.disconnect(Component.translatableWithFallback("oboecraft.progress.upload_timeout",
                         "Your game didn't send your Oboecraft progress in time."));

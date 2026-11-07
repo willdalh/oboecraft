@@ -6,7 +6,7 @@ import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettings;
 import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettingsFile;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
-import io.github.willdalh.oboecraft.fabric.progress.OwnProgress;
+import io.github.willdalh.oboecraft.fabric.progress.ProgressStore;
 import io.github.willdalh.oboecraft.fabric.network.ProtocolCheck;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAnswered;
 import io.github.willdalh.oboecraft.fabric.network.ReviewCancelled;
@@ -28,7 +28,7 @@ import net.minecraft.network.chat.Component;
 /** Sets up the parts of the mod that only run on the client. */
 public final class OboecraftClient implements ClientModInitializer {
     private static ClientProgress progress;
-    private static OwnProgress ownProgress;
+    private static ProgressStore progressStore;
     private static ClientReviews reviews;
     private static PassNotification notification;
     private static ReadingClips readingClips;
@@ -37,7 +37,8 @@ public final class OboecraftClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         progress = new ClientProgress();
-        ownProgress = new OwnProgress(OwnProgress.folder(FabricLoader.getInstance().getGameDir()), OwnProgress.SAVE_DELAY);
+        progressStore = new ProgressStore(
+                ProgressStore.folder(FabricLoader.getInstance().getGameDir()), ProgressStore.SAVE_DELAY);
         clientSettings = ClientSettingsFile.read(ClientSettingsFile.path());
         notification = new PassNotification();
         readingClips = new ReadingClips();
@@ -47,7 +48,7 @@ public final class OboecraftClient implements ClientModInitializer {
         ReviewKeys.register();
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
-        registerOwnProgressEvents();
+        registerProgressStoreEvents();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             progress.clear();
             notification.clear();
@@ -82,15 +83,16 @@ public final class OboecraftClient implements ClientModInitializer {
     }
 
     /**
-     * A session of own progress lasts from the server's request until the player leaves, also when they leave while
-     * configured, and its file is saved when the game stops. The player is told about a broken file once in the world.
+     * A session of the progress store lasts from the server's request until the player leaves, also when they leave
+     * while configured, and its file is saved when the game stops. The player is told about a broken file once in the
+     * world.
      */
-    private static void registerOwnProgressEvents() {
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ownProgress.end());
-        ClientConfigurationConnectionEvents.DISCONNECT.register((handler, client) -> ownProgress.end());
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> ownProgress.close());
+    private static void registerProgressStoreEvents() {
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> progressStore.end());
+        ClientConfigurationConnectionEvents.DISCONNECT.register((handler, client) -> progressStore.end());
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> progressStore.close());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                ownProgress.takeBrokenFileKeptAs().ifPresent(keptAs -> client.execute(() -> client.gui.chatListener()
+                progressStore.takeBrokenFileKeptAs().ifPresent(keptAs -> client.execute(() -> client.gui.chatListener()
                         .handleSystemMessage(Component.translatable("oboecraft.progress.broken", keptAs), false))));
     }
 
@@ -103,14 +105,14 @@ public final class OboecraftClient implements ClientModInitializer {
         ClientConfigurationNetworking.registerGlobalReceiver(ProtocolCheck.TYPE, (payload, context) -> {
         });
         ClientConfigurationNetworking.registerGlobalReceiver(RequestProgress.TYPE, (payload, context) ->
-                ownProgress.start(context.client().getUser().getProfileId(), context.responseSender()::sendPacket));
+                progressStore.start(context.client().getUser().getProfileId(), context.responseSender()::sendPacket));
         ClientPlayNetworking.registerGlobalReceiver(ProgressSync.TYPE, (payload, context) -> {
             progress.sync(context.player().connection, payload.progress(), payload.settings(), payload.serverTime());
-            ownProgress.changed(progress.progress());
+            progressStore.changed(progress.progress());
         });
         ClientPlayNetworking.registerGlobalReceiver(StateUpdate.TYPE, (payload, context) -> {
             progress.update(context.player().connection, payload.item(), payload.state(), payload.serverTime());
-            ownProgress.changed(progress.progress());
+            progressStore.changed(progress.progress());
         });
         ClientPlayNetworking.registerGlobalReceiver(ShowReview.TYPE, (payload, context) -> {
             updateServerTime(context, payload.serverTime());

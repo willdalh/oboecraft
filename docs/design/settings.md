@@ -12,23 +12,10 @@ On a dedicated server, the server owner controls these. In singleplayer and in a
 | Ban length | 5 minutes | Fail |
 | `percentageFactor` | 5, in whole percentage points | Removal rate, see [Punishment](punishment.md) |
 | Dropping counts as an interaction | Off | Lock check |
-| `useOwnProgress`: players use their own progress | On | Where each player's progress is, see [below](#own-progress-and-server-progress) |
 
 The removal rate on a fail at level `L` is `50% - (L - 1) × percentageFactor%`, and never below 0%. Since `percentageFactor` can't be negative, the rate is never above 50%.
 
 The top level, mastered, is always one more than the number of levels in the setting.
-
-### Own progress and server progress
-
-With `useOwnProgress` on, each player brings their **own progress**: one progress per account, which their game keeps on their computer and sends to the server when they join. So a player has the same progress in singleplayer, in worlds opened to LAN and on every server that uses own progress. The server still decides every review and every change, and sends each change back for the player's game to save. It stores nothing itself.
-
-With it off, the server keeps **server progress** for each player in its world folder, and their own progress is left alone. A server owner turns it off when players shouldn't bring progress from elsewhere: a player can edit their own progress file to master every item, so their items never lock and are never removed on a fail.
-
-The setting decides when a player joins. A change applies to the players who join after it, and moves no progress between the two places. A server that turns it on doesn't take the server progress it kept with it, and one that turns it off starts players from the server progress it kept before, or empty.
-
-Settings belong to each server, so one player's own progress meets different levels in different places. A level above a server's top level counts as mastered there, see [Locking](srs-state.md#locking). The stored level only changes when that server changes the item. A locks-at time stays as the server that set it worked it out.
-
-A player's game uses the file in one game at a time. If another game on the same computer is already connected with it, the player can't join until that game leaves. If the player's game can't send their progress, the player can't join: the file is from a newer version of Oboecraft, can't be read, or the game didn't answer within 30 seconds. A file that isn't valid progress is kept as `.broken`, the player starts with empty progress and is told in chat. See [Progress files](../architecture/progress-files.md).
 
 ### Checks
 
@@ -42,7 +29,7 @@ Settings are checked as a whole when they are read, from the file, from the scre
 
 ### The settings file
 
-The server reads its settings from `config/oboecraft/server.json` when it starts. On a dedicated server, that is in the server's folder. In singleplayer, it is in the game folder, so every singleplayer world uses the same settings, like the singleplayer progress. Durations are written like `10m`, `1h 30m` or `14d`, with the units `d`, `h`, `m` and `s`. See [Settings files](../architecture/settings-files.md) for the format.
+The server reads its settings from `config/oboecraft/server.json` when it starts. On a dedicated server, that is in the server's folder. In singleplayer, it is in the game folder, so every singleplayer world uses the same settings. Durations are written like `10m`, `1h 30m` or `14d`, with the units `d`, `h`, `m` and `s`. See [Settings files](../architecture/settings-files.md) for the format.
 
 - A missing file is written with the defaults, so the server owner has a file to edit.
 - A file that can't be read or isn't valid settings is logged with what is wrong, and the defaults are used. The file is left as it is, so a typo never loses the owner's other values.
