@@ -37,7 +37,7 @@ The tool is in the `tools` Gradle module, package `io.github.willdalh.oboecraft.
 
    To check a text, the tool asks VOICEVOX for its moras, in katakana, and compares them with the reading, split into moras the same way. Each mora must be the same kana, except where VOICEVOX writes the same sound another way. It writes a long vowel as the vowel it lengthens, so ー after a mora in o, or う after one, may be オ, and い after a mora in e may be エ. It writes を, ぢ and づ as オ, ジ and ズ. And it has no mora for some kana with a small vowel, like くぉ, which it says as ク and オ. If no text passes, the clip is made from the second one, and the review list names it first. VOICEVOX guesses the pitch accent of a reading from the kana alone, so the clips made from a reading are listed too.
 3. **Speaking** (`Voicevox`). The engine makes the clip as a WAV file, from its `audio_query` and `synthesis` endpoints, in the voice 玄野武宏, style ノーマル, with the engine's default speed, pitch and pauses. The voice is found by its id, so the tool stops if the engine doesn't have it.
-4. **Encoding** (`OggEncoder`). FFmpeg turns the WAV file into Ogg Vorbis, the format Minecraft plays: mono, 24 kHz, at quality 1, about 4 to 10 KB per clip. It runs bit-exact, so the same WAV file always gives the same bytes and an unchanged clip never shows up as changed. Each clip is written to a `.part` file first, and moved in place once it is complete.
+4. **Encoding** (`OggEncoder`). FFmpeg turns the WAV file into Ogg Vorbis, the format Minecraft plays: mono, 24 kHz, at quality 1, about 9 KB per clip, 16 MB in all. It runs bit-exact, so the same WAV file always gives the same bytes and an unchanged clip never shows up as changed. Each clip is written to a `.part` file first, and moved in place once it is complete.
 5. **Output.** Once every clip is made, `sounds.json` and the clip list are replaced, each only once the new file is fully written, and the clips of removed items are deleted. A run that stops halfway leaves the clips it made, which the next run makes again since the clip list doesn't have them yet.
 
 ## Clip list
@@ -51,7 +51,7 @@ The tool is in the `tools` Gradle module, package `io.github.willdalh.oboecraft.
   "engineVersion": "0.26.1",
   "clips": [
     {"id":"block.minecraft.stone","name":"石","reading":"いし","spoken":"石"},
-    {"id":"block.minecraft.trial_spawner","name":"トライアルスポナー","reading":"とらいあるすぽなー","spoken":"トライアルスポナー"}
+    {"id":"block.minecraft.cinnabar_slab","name":"辰砂のハーフブロック","reading":"しんしゃのはーふぶろっく","spoken":"しんしゃのハーフブロック"}
   ]
 }
 ```

@@ -115,6 +115,8 @@ class SpokenTextTest {
         assertTrue(SpokenText.says(List.of("プ", "ル", "プ", "ア"), SpokenText.moras("プルプァ")));
         assertFalse(SpokenText.says(List.of("ク", "ア", "オ", "ツ"), SpokenText.moras("クォーツ")));
         assertFalse(SpokenText.says(List.of("ク", "オ"), SpokenText.moras("クォオ")));
+        // VOICEVOX has a mora for ディ, so デ and イ is another sound.
+        assertFalse(SpokenText.says(List.of("ヴィ", "ン", "デ", "イ"), SpokenText.moras("ヴィンディ")));
     }
 
     @Test

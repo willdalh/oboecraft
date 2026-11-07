@@ -42,6 +42,13 @@ record SpokenText(String text, String nameSaid, boolean checked) {
     private static final String SMALL_KANA = "ァィゥェォャュョヮ";
     /** Small vowels, which VOICEVOX says as a vowel of their own after kana it has no mora for, like クォ as ク and オ. */
     private static final String SMALL_VOWELS = "ァィゥェォ";
+    /**
+     * The kana with a small vowel that VOICEVOX 0.26.1 says as one mora, found by asking it for each. VOICEVOX saying
+     * one of these as two moras, like ディ as デ and イ, says another sound.
+     */
+    private static final Set<String> MORAS_WITH_SMALL_VOWEL = Set.of("キェ", "ギェ", "シェ", "スィ", "ジェ", "ズィ",
+            "チェ", "ツァ", "ツィ", "ツェ", "ツォ", "ティ", "トゥ", "ディ", "ドゥ", "ニェ", "ヒェ", "ファ", "フィ", "フェ", "フォ",
+            "ビェ", "ピェ", "ミェ", "リェ", "ヴァ", "ヴィ", "ヴェ", "ヴォ", "ウィ", "ウェ", "ウォ", "イェ");
     /** Kana that VOICEVOX writes as another kana with the same sound. */
     private static final Map<String, String> SAME_SOUND = Map.of("ヲ", "オ", "ヂ", "ジ", "ヅ", "ズ");
     private static final String LONG_VOWEL_MARK = "ー";
@@ -123,9 +130,13 @@ record SpokenText(String text, String nameSaid, boolean checked) {
         return at == said.size();
     }
 
-    /** Whether a mora like クォ is said as its kana and its small vowel, ク and オ, at {@code at}. */
+    /**
+     * Whether a mora like クォ, which VOICEVOX has no mora for, is said as its kana and its small vowel, ク and オ, at
+     * {@code at}.
+     */
     private static boolean saidAsKanaAndVowel(String expected, List<String> said, int at) {
-        if (expected.length() != 2 || SMALL_VOWELS.indexOf(expected.charAt(1)) < 0 || at + 1 >= said.size()) {
+        if (expected.length() != 2 || SMALL_VOWELS.indexOf(expected.charAt(1)) < 0
+                || MORAS_WITH_SMALL_VOWEL.contains(expected) || at + 1 >= said.size()) {
             return false;
         }
         String vowel = VOWEL_KANA.get(JapaneseText.vowelOf(hiragana(expected.charAt(1))));

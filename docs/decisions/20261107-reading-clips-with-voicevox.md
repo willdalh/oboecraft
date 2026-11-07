@@ -24,7 +24,7 @@ The reading clip tool makes the clips with a VOICEVOX engine run by hand, and ke
 
 ## Consequences
 - The clips need nothing on the player's computer and no network, and every player hears the same clip.
-- The mod jar grows by about 15 MB of clips, and the repository holds them as binary files. A clip changes only when its entry does, since the encoding is bit-exact.
+- The mod jar grows by about 16 MB of clips, and the repository holds them as binary files. A clip changes only when its entry does, since the encoding is bit-exact.
 - A name list update needs a run of the tool after the name list tool, with VOICEVOX and FFmpeg installed. A client game test fails while an entry has no clip.
 - Changing the voice makes every clip again, which takes about half an hour, and changes the credit. The new voice's terms must allow its clips to ship in a published mod that others may redistribute.
 - Anyone who uses the clips outside the mod has to follow VOICEVOX's terms and the VirVox Project's, and give the credit.
