@@ -46,14 +46,19 @@ Each player chooses these on their own computer. They are saved in `config/oboec
 | Setting | Default | Used by |
 |---|---|---|
 | Clickable buttons | Off | The answer menu shows a button for each action it can do, besides the keys |
+| Review item size | 100% | The item image above the answer field, for every item; adjustable from 50% to 400% |
 
 With clickable buttons on, the answer menu has buttons for Answer, Don't know, Already known, Ignore, Show answer (in lessons) and Close at the bottom of the screen, and after a fail only Close. A button does what its key does. Unlike the key, the Don't know button works with text in the typing bar, since a click can't be a typo.
+
+Review item size changes only the image above the typing field. It applies equally to every reviewed item, across worlds and servers on this computer. Inventory icons, the held item, the word list and other item displays keep their normal size. The image stays centered above the level label and answer field; if a small window leaves less space above them, the image is limited to that space.
+
+Screenshots show the [default 100% size](../images/review-item-size/default.png), the [same item at 300%](../images/review-item-size/large.png), [another item using the same 300% setting](../images/review-item-size/large-sword.png), and the [size slider](../images/review-item-size/settings.png).
 
 ## The settings screen
 
 The mod has its own settings screen. [Mod Menu](https://modrinth.com/mod/modmenu), an optional mod, opens it from the mod list. Without Mod Menu, the settings are changed in the files.
 
-The screen shows the clickable buttons setting and the server settings. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
+The screen shows the clickable buttons setting, a review item size slider, and the server settings. Done saves and applies the client settings; Cancel leaves them unchanged. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
 
 - Away from a server, or in singleplayer or a world opened to LAN that the player runs, the server settings are this computer's settings file, and can be changed. Saving checks them first. Invalid settings aren't saved, and the screen stays open and says what is wrong. A running world uses saved settings at once and sends them to its players.
 - On another server, the screen shows that server's settings and can't change them, since only the server owner can.

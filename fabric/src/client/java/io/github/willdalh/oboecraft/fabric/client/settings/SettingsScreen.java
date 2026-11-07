@@ -28,9 +28,9 @@ public final class SettingsScreen extends Screen {
     private static final int FIELD_WIDTH = 260;
     private static final int GAP = 4;
     private static final int CLIENT_TOP = 22;
-    private static final int SERVER_TOP = 46;
+    private static final int SERVER_TOP = 70;
     /** A label and its field. */
-    private static final int ROW_HEIGHT = 34;
+    private static final int ROW_HEIGHT = 30;
     private static final int LABEL_COLOR = 0xFFA0A0A0;
 
     private final @Nullable Screen parent;
@@ -38,6 +38,7 @@ public final class SettingsScreen extends Screen {
     private ClientSettings clientSettings;
     private Settings serverSettings;
     private @Nullable CycleButton<Boolean> clickableButtons;
+    private @Nullable ReviewItemScaleSlider reviewItemScale;
     private @Nullable EditBox intervals;
     private @Nullable EditBox demotions;
     private @Nullable EditBox banLength;
@@ -62,6 +63,8 @@ public final class SettingsScreen extends Screen {
         int halfWidth = (FIELD_WIDTH - GAP) / 2;
         clickableButtons = addRenderableWidget(CycleButton.onOffBuilder(clientSettings.clickableButtons())
                 .create(x, CLIENT_TOP, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.clickable_buttons")));
+        int scale = reviewItemScale == null ? clientSettings.reviewItemScalePercent() : reviewItemScale.scalePercent();
+        reviewItemScale = addRenderableWidget(new ReviewItemScaleSlider(x, CLIENT_TOP + 24, FIELD_WIDTH, scale));
         int y = SERVER_TOP + 10;
         intervals = field(x, y, FIELD_WIDTH, LevelsText.intervals(serverSettings.levels()),
                 "oboecraft.settings.intervals");
@@ -109,7 +112,7 @@ public final class SettingsScreen extends Screen {
                 return;
             }
         }
-        ClientSettings newClientSettings = new ClientSettings(clickableButtons.getValue());
+        ClientSettings newClientSettings = new ClientSettings(clickableButtons.getValue(), reviewItemScale.scalePercent());
         try {
             ClientSettingsFile.write(ClientSettingsFile.path(), newClientSettings);
             if (serverEditable) {

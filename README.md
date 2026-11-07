@@ -61,7 +61,7 @@ J opens the word list, where known, ignored and mastered items can go back to le
 
 ## Settings
 
-The levels, their intervals, the ban length and how much a fail removes can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. There is also a setting for clickable buttons in the answer menu.
+The levels, their intervals, the ban length and how much a fail removes can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. Each player can also choose clickable buttons and the size of the item image above the answer field (50–400%) in Mod Menu or `config/oboecraft/client.json`. The image size applies to all reviews and leaves other item displays unchanged.
 
 ## License
 

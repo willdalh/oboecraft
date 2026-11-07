@@ -379,7 +379,16 @@ public final class AnswerScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, a);
         int centerX = width / 2;
         int top = height / 2;
-        graphics.fakeItem(icon, centerX - 8, top - 44);
+        // Keep the image's bottom above the level label, so growing it never covers the answer field or hint.
+        float itemSize = Math.min(16f * OboecraftClient.clientSettings().reviewItemScalePercent() / 100f,
+                Math.max(0, top - 36));
+        if (itemSize > 0) {
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(centerX - itemSize / 2, top - 28 - itemSize);
+            graphics.pose().scale(itemSize / 16f);
+            graphics.fakeItem(icon, 0, 0);
+            graphics.pose().popMatrix();
+        }
         graphics.centeredText(font, Component.translatable("oboecraft.answer_menu.level", level), centerX, top - 20, -1);
         int hintY = top + INPUT_HEIGHT + 8;
         for (var line : hintLines) {
