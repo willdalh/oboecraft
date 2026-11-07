@@ -99,7 +99,7 @@ public final class ReadingClipTool {
         Files.createDirectories(reviewListFile.toAbsolutePath().getParent());
         Files.writeString(reviewListFile, ReviewList.format(made, VOICE, engineVersion), StandardCharsets.UTF_8);
         System.out.println("Made " + made.size() + " clips, deleted " + plan.toDelete().size() + ". "
-                + made.stream().filter(clip -> clip.spoken().fromReading()).count()
+                + made.stream().filter(ReviewList.Made::fromReading).count()
                 + " were said from their reading and " + made.stream().filter(clip -> !clip.spoken().checked()).count()
                 + " need a listen, see " + reviewListFile);
     }

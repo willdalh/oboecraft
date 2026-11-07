@@ -28,32 +28,60 @@ class SpokenTextTest {
     private static final JapaneseName TRIAL_CHAMBER = new JapaneseName(List.of(
             new NamePart("試", "し"), new NamePart("練", "れん"), NamePart.kana("の"), new NamePart("間", "ま")));
 
+    private static final JapaneseName CINNABAR_SLAB = new JapaneseName(List.of(
+            new NamePart("辰", "しん"), new NamePart("砂", "しゃ"), NamePart.kana("の"), NamePart.kana("ハーフブロック")));
+
     @Test
     void theNameIsSpokenWhenVoicevoxSaysTheReadingForIt() {
         // VOICEVOX writes the long vowel of オーク as オ.
         SpokenText spoken = SpokenText.of(OAK_LOG, pronouncer(Map.of(
                 "オークの原木", List.of("オ", "オ", "ク", "ノ", "ゲ", "ン", "ボ", "ク"))));
 
-        assertEquals(new SpokenText("オークの原木", false, "オオクノゲンボク", true), spoken);
+        assertEquals(new SpokenText("オークの原木", "オオクノゲンボク", true), spoken);
+        assertTrue(spoken.isName(OAK_LOG));
     }
 
     @Test
-    void theReadingInHiraganaIsSpokenWhenVoicevoxReadsAKanjiDifferently() {
+    void kanjiThatVoicevoxReadsDifferentlyAreGivenAsTheirReading() {
         SpokenText spoken = SpokenText.of(TRIAL_CHAMBER, pronouncer(Map.of(
                 "試練の間", List.of("シ", "レ", "ン", "ノ", "ア", "イ", "ダ"),
                 "しれんのま", List.of("シ", "レ", "ン", "ノ", "マ"))));
 
-        assertEquals(new SpokenText("しれんのま", true, "シレンノアイダ", true), spoken);
+        assertEquals(new SpokenText("しれんのま", "シレンノアイダ", true), spoken);
+        assertFalse(spoken.isName(TRIAL_CHAMBER));
     }
 
     @Test
-    void aReadingThatVoicevoxDoesntSayEitherIsNotChecked() {
-        SpokenText spoken = SpokenText.of(TRIAL_CHAMBER, pronouncer(Map.of(
-                "試練の間", List.of("シ", "レ", "ン", "ノ", "ア", "イ", "ダ"),
-                "しれんのま", List.of("シ", "レ", "ン", "ノ", "マ", "ア"))));
+    void kanaPartsStayAsTheyAreWritten() {
+        SpokenText spoken = SpokenText.of(CINNABAR_SLAB, pronouncer(Map.of(
+                "辰砂のハーフブロック", List.of("タ", "ツ", "ス", "ナ", "ノ", "ハ", "ア", "フ", "ブ", "ロ", "ッ", "ク"),
+                "しんしゃのハーフブロック", List.of("シ", "ン", "シャ", "ノ", "ハ", "ア", "フ", "ブ", "ロ", "ッ", "ク"))));
 
-        assertTrue(spoken.fromReading());
-        assertFalse(spoken.checked());
+        assertEquals("しんしゃのハーフブロック", spoken.text());
+        assertTrue(spoken.checked());
+    }
+
+    @Test
+    void readingsAreTriedInKatakanaWhenHiraganaIsReadWrongly() {
+        JapaneseName leaves = new JapaneseName(List.of(NamePart.kana("ポプラ"), NamePart.kana("の"),
+                new NamePart("葉", "は")));
+
+        // A hiragana は after の is read as the particle わ.
+        SpokenText spoken = SpokenText.of(leaves, pronouncer(Map.of(
+                "ポプラの葉", List.of("ポ", "プ", "ラ", "ノ", "ヨ", "オ"),
+                "ポプラのは", List.of("ポ", "プ", "ラ", "ノ", "ワ"),
+                "ポプラのハ", List.of("ポ", "プ", "ラ", "ノ", "ハ"))));
+
+        assertEquals(new SpokenText("ポプラのハ", "ポプラノヨオ", true), spoken);
+    }
+
+    @Test
+    void aNameThatVoicevoxDoesntSayAsTheReadingFromAnyTextIsNotChecked() {
+        List<String> wrong = List.of("シ", "レ", "ン", "ノ", "ア", "イ", "ダ");
+        SpokenText spoken = SpokenText.of(TRIAL_CHAMBER, pronouncer(Map.of(
+                "試練の間", wrong, "しれんのま", wrong, "シレンのマ", wrong)));
+
+        assertEquals(new SpokenText("しれんのま", "シレンノアイダ", false), spoken);
     }
 
     @Test
@@ -79,6 +107,14 @@ class SpokenTextTest {
         assertFalse(SpokenText.says(List.of("テ", "イ"), SpokenText.moras("テー")));
         assertFalse(SpokenText.says(List.of("カ", "エ"), SpokenText.moras("カイ")));
         assertFalse(SpokenText.says(List.of("カ", "オ"), SpokenText.moras("カウ")));
+    }
+
+    @Test
+    void aKanaWithASmallVowelMayBeSaidAsTheKanaAndTheVowel() {
+        assertTrue(SpokenText.says(List.of("ク", "オ", "オ", "ツ"), SpokenText.moras("クォーツ")));
+        assertTrue(SpokenText.says(List.of("プ", "ル", "プ", "ア"), SpokenText.moras("プルプァ")));
+        assertFalse(SpokenText.says(List.of("ク", "ア", "オ", "ツ"), SpokenText.moras("クォーツ")));
+        assertFalse(SpokenText.says(List.of("ク", "オ"), SpokenText.moras("クォオ")));
     }
 
     @Test

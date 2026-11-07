@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * The list of clips a run of the reading clip tool made, for a person to listen to. Clips where VOICEVOX didn't say the
- * reading even from the reading come first, since they may be said wrong. Then the clips said from their reading, with
+ * The list of clips a run of the reading clip tool made, for a person to listen to. Clips that VOICEVOX didn't say as
+ * the reading from any text come first, since they may be said wrong. Then the clips said from their reading, with
  * how VOICEVOX reads the name as it is written, since VOICEVOX guessed their pitch accent from the kana alone. It is a
  * Markdown file.
  */
@@ -17,6 +17,11 @@ final class ReviewList {
             Objects.requireNonNull(entry, "entry");
             Objects.requireNonNull(spoken, "spoken");
         }
+
+        /** Whether VOICEVOX was given the reading, or part of it, since it reads the name differently. */
+        boolean fromReading() {
+            return !spoken.isName(entry.japaneseName());
+        }
     }
 
     private ReviewList() {
@@ -24,7 +29,7 @@ final class ReviewList {
 
     static String format(List<Made> made, ReadingClipList.Voice voice, String engineVersion) {
         List<Made> unchecked = made.stream().filter(clip -> !clip.spoken().checked()).toList();
-        List<Made> fromReading = made.stream().filter(clip -> clip.spoken().fromReading()).toList();
+        List<Made> fromReading = made.stream().filter(Made::fromReading).toList();
         StringBuilder text = new StringBuilder();
         text.append("# Reading clip review\n\n")
                 .append("Made with VOICEVOX ").append(engineVersion).append(", in the voice ").append(voice.speaker())
