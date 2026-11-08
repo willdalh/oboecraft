@@ -81,18 +81,6 @@ A review of an item at level 0 is a lesson:
 - A wrong answer, or Don't know, shows the Japanese name alone. The same Show answer binding can then reveal its reading. It isn't a fail: nothing is removed, the item isn't banned and wrong attempts aren't counted.
 - A pass puts the item at level 1.
 
-The two reveal stages in a lesson:
-
-| Japanese name | Reading revealed |
-|---|---|
-| ![The Japanese name alone](../images/answer-reveal/lesson-name.png) | ![The hiragana reading below the name](../images/answer-reveal/lesson-reading.png) |
-
-After a fail, the name appears automatically and Show reading reveals the second line:
-
-| Japanese name | Reading revealed |
-|---|---|
-| ![A fail with the reading hidden](../images/answer-reveal/failed-name.png) | ![A fail with the reading revealed](../images/answer-reveal/failed-reading.png) |
-
 ## What the client is told
 
 The answer menu shows the item's level, and "one attempt left" when a wrong attempt is saved. When a review starts, the server sends the level, which says whether it is a lesson, and how many attempts are left.

@@ -95,7 +95,10 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         check(ClientSettingsFile.read(ClientSettingsFile.path()).clickableButtons(), "the saved client settings file");
     }
 
-    /** A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. */
+    /**
+     * A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. Show answer
+     * shows the name, then becomes Show reading, which shows the reading and is then disabled.
+     */
     private static void clickingTheAnswerMenusButtons(
             ClientGameTestContext context, TestSingleplayerContext singleplayer) {
         BlockPos target = singleplayer.getServer().computeOnServer(server -> {
@@ -115,7 +118,13 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         context.takeScreenshot("answer-menu-buttons");
         context.runOnClient(client -> pressButton(client, "key.oboecraft.show"));
         context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
-        context.runOnClient(client -> pressButton(client, "key.oboecraft.close"));
+        context.runOnClient(client -> {
+            check(!((AnswerScreen) client.gui.screen()).showsReading(), "Show answer should show only the name");
+            pressButton(client, "oboecraft.answer_menu.show_reading");
+            check(((AnswerScreen) client.gui.screen()).showsReading(), "Show reading should show the reading");
+            check(!button(client, "oboecraft.answer_menu.show_reading").active, "Show reading should then be disabled");
+            pressButton(client, "key.oboecraft.close");
+        });
         context.waitForScreen(null);
     }
 
@@ -125,12 +134,15 @@ public class SettingsClientGameTest implements FabricClientGameTest {
     }
 
     private static void pressButton(Minecraft client, String translationKey) {
+        button(client, translationKey).onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+    }
+
+    private static Button button(Minecraft client, String translationKey) {
         String label = Component.translatable(translationKey).getString();
-        client.gui.screen().children().stream()
+        return client.gui.screen().children().stream()
                 .filter(child -> child instanceof Button button && button.getMessage().getString().equals(label))
                 .map(Button.class::cast).findFirst()
-                .orElseThrow(() -> new AssertionError("No button " + label))
-                .onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+                .orElseThrow(() -> new AssertionError("No button " + label));
     }
 
     private static void check(boolean condition, String what) {

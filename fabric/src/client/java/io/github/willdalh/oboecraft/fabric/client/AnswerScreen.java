@@ -45,6 +45,7 @@ public final class AnswerScreen extends Screen {
             .withStyle(ChatFormatting.GOLD);
     private static final Component FAILED = Component.translatable("oboecraft.answer_menu.failed")
             .withStyle(ChatFormatting.RED);
+    private static final Component SHOW_READING = Component.translatable("oboecraft.answer_menu.show_reading");
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
     private static final int BUTTON_HEIGHT = 20;
@@ -192,11 +193,18 @@ public final class AnswerScreen extends Screen {
         return actionButton(Component.translatable(binding.mapping().getName()), press);
     }
 
-    /** Show answer before the Japanese name is shown, and Show reading after, disabled once the reading is shown. */
+    /** Show answer's button, labeled with what it shows next, and disabled once everything is shown. */
     private Button revealButton() {
-        Button button = actionButton(ReviewKeys.revealLabel(shownAnswer != null), this::revealAnswer);
-        button.active = !readingShown;
+        Component label = showLabel();
+        Button button = actionButton(label == null ? SHOW_READING : label, this::revealAnswer);
+        button.active = label != null;
         return button;
+    }
+
+    /** What Show answer shows next: the Japanese name, then its reading, or null once both are shown. */
+    private @Nullable Component showLabel() {
+        if (readingShown) return null;
+        return shownAnswer == null ? Component.translatable(ReviewKeys.SHOW.mapping().getName()) : SHOW_READING;
     }
 
     private Button actionButton(Component label, Runnable press) {
@@ -366,8 +374,7 @@ public final class AnswerScreen extends Screen {
     }
 
     private void updateHint() {
-        Component hint = failed ? ReviewKeys.closeHint(shownAnswer != null && !readingShown)
-                : ReviewKeys.hint(level == 0, shownAnswer != null, readingShown);
+        Component hint = failed ? ReviewKeys.closeHint(showLabel()) : ReviewKeys.hint(level == 0, showLabel());
         hintLines = font.split(hint, Math.max(100, width - 24));
         placeInput();
     }
