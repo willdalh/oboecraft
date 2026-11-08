@@ -51,6 +51,11 @@ public final class AnswerScreen extends Screen {
     /** The space around a button's label. */
     private static final int BUTTON_PADDING = 12;
     private static final int BUTTON_GAP = 4;
+    /** The height of a line of text below the typing bar: a hint line, a message or a line of the answer. */
+    private static final int LINE_HEIGHT = 12;
+    /** The space between the typing bar and the hint below it. */
+    private static final int HINT_GAP = 8;
+    private static final int SECONDARY_TEXT_COLOR = 0xFFA0A0A0;
     /** How long the answer stays on screen after a fail before a key can close the menu, so a double press doesn't. */
     private static final long FAIL_SHOWN_MILLIS = 500;
 
@@ -64,7 +69,9 @@ public final class AnswerScreen extends Screen {
     private @Nullable EditBox input;
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
+    /** Whether the reading is shown below the Japanese name. Only set once the name is shown. */
     private boolean readingShown;
+    /** The top of the highest action button, or the screen's height without buttons. The menu's text stays above it. */
     private int buttonsTop;
     private boolean failed;
     /** When the menu showed the fail, in {@link Util#getMillis()}. */
@@ -117,7 +124,7 @@ public final class AnswerScreen extends Screen {
 
     /** Whether the player has chosen to reveal the reading after seeing the Japanese name. */
     public boolean showsReading() {
-        return shownAnswer != null && readingShown;
+        return readingShown;
     }
 
     @Override
@@ -185,6 +192,7 @@ public final class AnswerScreen extends Screen {
         return actionButton(Component.translatable(binding.mapping().getName()), press);
     }
 
+    /** Show answer before the Japanese name is shown, and Show reading after, disabled once the reading is shown. */
     private Button revealButton() {
         Button button = actionButton(ReviewKeys.revealLabel(shownAnswer != null), this::revealAnswer);
         button.active = !readingShown;
@@ -238,7 +246,7 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.IGNORE);
             return true;
         }
-        if ((level == 0 || shownAnswer != null) && ReviewKeys.SHOW.matches(event)) {
+        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             if (!repeat) revealAnswer();
             return true;
         }
@@ -287,7 +295,7 @@ public final class AnswerScreen extends Screen {
         }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
-        if ((level == 0 || shownAnswer != null) && ReviewKeys.SHOW.matches(event)) {
+        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
             revealAnswer(); return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
@@ -313,10 +321,13 @@ public final class AnswerScreen extends Screen {
         return shownAnswer != null;
     }
 
-    /** The server reveals the name first; another deliberate press reveals its reading locally. */
+    /**
+     * Shows the answer in two steps: the first asks the server for the Japanese name, which only a lesson gives, and
+     * the next shows the reading the server sent with it. The reading is only display, so the server isn't told.
+     */
     private void revealAnswer() {
         if (shownAnswer == null) {
-            if (level == 0 && !failed) action(ReviewAction.Action.SHOW_ANSWER);
+            if (level == 0) action(ReviewAction.Action.SHOW_ANSWER);
         } else if (!readingShown) {
             readingShown = true;
             refreshButtons();
@@ -358,12 +369,20 @@ public final class AnswerScreen extends Screen {
         Component hint = failed ? ReviewKeys.closeHint(shownAnswer != null && !readingShown)
                 : ReviewKeys.hint(level == 0, shownAnswer != null, readingShown);
         hintLines = font.split(hint, Math.max(100, width - 24));
-        // Reserve both answer lines from the first reveal, so revealing the reading doesn't shift the typing bar.
+        placeInput();
+    }
+
+    /**
+     * Puts the typing bar in the middle of the screen, or higher if the hint and messages below it would reach the
+     * buttons. Both lines of the answer are kept free once the name is shown, so showing the reading doesn't move it.
+     * The heights match what {@link #extractRenderState} draws below the typing bar.
+     */
+    private void placeInput() {
         int messageLines = shownAnswer != null ? 2 : (wrong || level > 0 && attemptsLeft == 1 ? 1 : 0);
         if (failed) messageLines++;
-        int contentHeight = INPUT_HEIGHT + 8 + hintLines.size() * 12
-                + (messageLines == 0 ? 0 : 12 + messageLines * 12);
-        if (input != null) input.setY(Math.max(0, Math.min(height / 2, buttonsTop - 8 - contentHeight)));
+        int belowInput = HINT_GAP + hintLines.size() * LINE_HEIGHT
+                + (messageLines == 0 ? 0 : LINE_HEIGHT + messageLines * LINE_HEIGHT);
+        input.setY(Math.max(0, Math.min(height / 2, buttonsTop - 8 - INPUT_HEIGHT - belowInput)));
     }
 
     /** The server said the answer was wrong. The typing bar is cleared, and the review goes on with one attempt. */
@@ -426,7 +445,7 @@ public final class AnswerScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         super.extractRenderState(graphics, mouseX, mouseY, a);
         int centerX = width / 2;
-        int top = input == null ? height / 2 : input.getY();
+        int top = input.getY();
         // Keep the image's bottom above the level label, so growing it never covers the answer field or hint.
         float itemSize = Math.min(16f * OboecraftClient.clientSettings().reviewItemScalePercent() / 100f,
                 Math.max(0, top - 36));
@@ -438,21 +457,21 @@ public final class AnswerScreen extends Screen {
             graphics.pose().popMatrix();
         }
         graphics.centeredText(font, Component.translatable("oboecraft.answer_menu.level", level), centerX, top - 20, -1);
-        int hintY = top + INPUT_HEIGHT + 8;
+        int hintY = top + INPUT_HEIGHT + HINT_GAP;
         for (var line : hintLines) {
-            graphics.text(font, line, centerX - font.width(line) / 2, hintY, 0xFFA0A0A0);
-            hintY += 12;
+            graphics.text(font, line, centerX - font.width(line) / 2, hintY, SECONDARY_TEXT_COLOR);
+            hintY += LINE_HEIGHT;
         }
-        int messageY = hintY + 12;
+        int messageY = hintY + LINE_HEIGHT;
         if (failed) {
             graphics.centeredText(font, FAILED, centerX, messageY, -1);
-            messageY += 12;
+            messageY += LINE_HEIGHT;
         }
         if (shownAnswer != null) {
-            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName()),
-                    centerX, messageY, -1);
+            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName()), centerX, messageY, -1);
             if (readingShown) {
-                graphics.centeredText(font, Component.literal(shownAnswer.reading()), centerX, messageY + 12, 0xFFA0A0A0);
+                graphics.centeredText(font, Component.literal(shownAnswer.reading()), centerX,
+                        messageY + LINE_HEIGHT, SECONDARY_TEXT_COLOR);
             }
         }
         if (wrong) {

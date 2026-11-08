@@ -63,6 +63,7 @@ public final class ReviewKeys {
         return result;
     }
 
+    /** Show answer's label: its name from the Controls screen, or Show reading once the Japanese name is shown. */
     static Component revealLabel(boolean answerShown) {
         return Component.translatable(answerShown ? "oboecraft.answer_menu.show_reading" : SHOW.mapping().getName());
     }
