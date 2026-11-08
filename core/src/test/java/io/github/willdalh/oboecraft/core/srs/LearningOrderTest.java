@@ -1,7 +1,6 @@
 package io.github.willdalh.oboecraft.core.srs;
 
 import static org.junit.jupiter.api.Assertions.*;
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -9,20 +8,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class LearningOrderTest {
-    private static final Settings SETTINGS = Settings.DEFAULTS;
     private static final Instant NOW = Instant.parse("2026-11-08T12:00:00Z");
 
     private static SrsState.Leveled leveled(int level, Duration fromNow) {
         return new SrsState.Leveled(level, Optional.of(NOW.plus(fromNow)));
-    }
-
-    @Test void onlyLevelsFromOneUpToMasteredAreLearning() {
-        for (int level = 0; level <= SETTINGS.topLevel() + 1; level++) {
-            assertEquals(level >= 1 && level < SETTINGS.topLevel(),
-                    LearningOrder.isLearning(new SrsState.Leveled(level, Optional.empty()), SETTINGS));
-        }
-        assertFalse(LearningOrder.isLearning(new SrsState.Known(), SETTINGS));
-        assertFalse(LearningOrder.isLearning(new SrsState.Ignored(), SETTINGS));
     }
 
     @Test void urgencyPutsLongestLockedFirstWithBannedAmongThemThenLeastTimeLeft() {

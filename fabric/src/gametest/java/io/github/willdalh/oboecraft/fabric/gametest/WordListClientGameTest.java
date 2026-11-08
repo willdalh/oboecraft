@@ -81,7 +81,8 @@ public class WordListClientGameTest implements FabricClientGameTest {
 
     /**
      * The word list opens on the Learning tab, where only the unlocked item has a reading clip button, since a locked
-     * one's clip would give the answer away. The sort button switches between the orders, and the choice is kept when
+     * one's clip would give the answer away. When the unlocked item locks while the list is open, its row loses the
+     * button, without any change to progress. The sort button switches between the orders, and the choice is kept when
      * the word list opens again.
      */
     private static void opensOnTheLearningTab(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
@@ -102,10 +103,16 @@ public class WordListClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             Screen screen = client.gui.screen();
             if (button(screen, "Learning").active) throw new AssertionError("The word list should open on Learning");
-            long clipButtons = screen.children().stream().filter(SpriteIconButton.class::isInstance).count();
-            if (clipButtons != 1) {
-                throw new AssertionError("Only the unlocked item should have a reading clip button, not " + clipButtons);
+            if (clipButtons(screen) != 1) {
+                throw new AssertionError("Only the unlocked item should have a reading clip button, not " + clipButtons(screen));
             }
+        });
+        context.runOnClient(client -> OboecraftClient.progress().updateServerTime(
+                client.getConnection(), OboecraftClient.progress().now().plus(Duration.ofHours(2))));
+        context.waitFor(client -> clipButtons(client.gui.screen()) == 0);
+        context.runOnClient(client -> {
+            OboecraftClient.progress().updateServerTime(client.getConnection(), OboecraftMod.serverProgress().now());
+            Screen screen = client.gui.screen();
             button(screen, "Sort: Urgency").onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
             button(client.gui.screen(), "Sort: Level");
         });
@@ -121,6 +128,15 @@ public class WordListClientGameTest implements FabricClientGameTest {
         context.waitForScreen(InventoryScreen.class);
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
+        singleplayer.getServer().runOnServer(server -> {
+            OboecraftMod.serverProgress().update(player(server), STONE, SrsState.Leveled.NEW);
+            OboecraftMod.serverProgress().update(player(server), DIRT, SrsState.Leveled.NEW);
+        });
+        singleplayer.getConnection().waitForClientboundPackets();
+    }
+
+    private static long clipButtons(Screen screen) {
+        return screen.children().stream().filter(SpriteIconButton.class::isInstance).count();
     }
 
     private static Button button(Screen screen, String message) {

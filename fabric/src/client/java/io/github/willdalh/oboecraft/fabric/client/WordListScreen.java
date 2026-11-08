@@ -60,7 +60,10 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     private static final int READING_CLIP_SPRITE_HEIGHT = 14;
     private static final int READING_CLIP_BUTTON_SIZE = 20;
     private static final int READING_CLIP_BUTTON_GAP = 4;
-    /** The width of the lock timer column at the right of a Learning row, which fits the longest label. */
+    /**
+     * The width of the lock timer column at the right of a Learning row. It fits the labels of the default intervals in
+     * both languages; a label for an interval of many days may run into the right margin.
+     */
     private static final int TIMER_WIDTH = 110;
     private static final int LEVEL_GAP = 8;
     private static final int LOCKED_NAME_COLOR = 0xFFA0A0A0;
@@ -82,6 +85,8 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     private List<String> rowTexts = List.of();
     /** Whether each row on the current page was locked when it was laid out, since a locked row looks different. */
     private List<Boolean> rowsLocked = List.of();
+    /** The level labels of the rows on the current page of the Learning tab, made once per layout. */
+    private List<Component> rowLevels = List.of();
     private @Nullable ItemId selected;
     /** Where the Learning tab's level column starts, wide enough for the top level, set once per layout. */
     private int levelLeft;
@@ -124,6 +129,8 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
         levelLeft = timerLeft() - LEVEL_GAP - font.width(levelText(settings().topLevel()));
         List<NameListEntry> pageEntries = pageEntries();
         rowsLocked = pageRowsLocked();
+        rowLevels = group != LEARNING ? List.of() : pageEntries.stream()
+                .map(entry -> levelText(((SrsState.Leveled) snapshot.state(entry.id())).level())).toList();
         rowTexts = IntStream.range(0, pageEntries.size())
                 .mapToObj(row -> rowText(pageEntries.get(row), rowsLocked.get(row))).toList();
         for (int row = 0; row < rowTexts.size(); row++) {
@@ -189,7 +196,7 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
 
     private boolean inGroup(SrsState state) {
         return switch (group) {
-            case LEARNING -> LearningOrder.isLearning(state, settings());
+            case LEARNING -> SrsRules.isLearning(state, settings());
             case KNOWN -> state instanceof SrsState.Known;
             case IGNORED -> state instanceof SrsState.Ignored;
             default -> state instanceof SrsState.Leveled && SrsRules.canRevert(state, settings());
@@ -280,7 +287,10 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
             }
             graphics.text(font, rowTexts.get(row), textLeft(), textY,
                     rowsLocked.get(row) ? LOCKED_NAME_COLOR : entry.id().equals(selected) ? 0xFFFFFF55 : -1);
-            if (group == LEARNING) extractLearningState((SrsState.Leveled) snapshot.state(entry.id()), now, y, textY, graphics);
+            if (group == LEARNING) {
+                graphics.text(font, rowLevels.get(row), levelLeft, textY, LEVEL_COLOR);
+                extractLockState((SrsState.Leveled) snapshot.state(entry.id()), now, y, textY, graphics);
+            }
         }
         if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
         int pages = Math.max(1, (entries.size() + pageSize - 1) / pageSize);
@@ -290,11 +300,10 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     }
 
     /**
-     * The level, then the lock timer's label and draining bar as in the item tooltip, or the ban time left. When an item
-     * locks, its timer goes at once, and its name is replaced by {@code ???} at the next tick's layout.
+     * The lock timer's label and draining bar as in the item tooltip, or the ban time left. When an item locks, its timer
+     * goes at once, and its name is replaced by {@code ???} at the next tick's layout.
      */
-    private void extractLearningState(SrsState.Leveled state, Instant now, int y, int textY, GuiGraphicsExtractor graphics) {
-        graphics.text(font, levelText(state.level()), levelLeft, textY, LEVEL_COLOR);
+    private void extractLockState(SrsState.Leveled state, Instant now, int y, int textY, GuiGraphicsExtractor graphics) {
         if (DisplayRules.of(state, now, settings()) instanceof DisplayState.Timed timed) {
             var timer = new ClientLockTimerTooltip(timed.timer());
             timer.extractText(graphics, font, timerLeft(), y);

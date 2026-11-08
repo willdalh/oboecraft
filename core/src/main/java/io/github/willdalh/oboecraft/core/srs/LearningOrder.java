@@ -1,12 +1,11 @@
 package io.github.willdalh.oboecraft.core.srs;
 
-import io.github.willdalh.oboecraft.core.settings.Settings;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
 
 /**
- * The orders of the word list's Learning tab, which lists the items that are being learned. The player switches
+ * The orders of the word list's Learning tab, which lists the items that {@link SrsRules#isLearning} accepts. The player switches
  * between them, starting from {@link #URGENCY}.
  */
 public enum LearningOrder {
@@ -34,14 +33,5 @@ public enum LearningOrder {
     /** The order the sort button switches to next. */
     public LearningOrder next() {
         return values()[(ordinal() + 1) % values().length];
-    }
-
-    /**
-     * Whether the item is being learned, so it is on the Learning tab: leveled from level 1 up to, but not including,
-     * mastered. Since a fail never drops below level 1, an item joins on its first pass and stays until it is mastered,
-     * marked known or ignored, or reverted.
-     */
-    public static boolean isLearning(SrsState state, Settings settings) {
-        return state instanceof SrsState.Leveled leveled && leveled.level() >= 1 && leveled.level() < settings.topLevel();
     }
 }
