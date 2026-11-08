@@ -53,6 +53,7 @@ public final class OboecraftClient implements ClientModInitializer {
                 OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification, readingClips);
         registerReceivers();
         ReviewKeys.register();
+        WordListButton.register();
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
         registerProgressStoreEvents();

@@ -35,7 +35,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
   </tr>
   <tr>
     <td>Unlocked items show when they lock again. The amber corner means soon.</td>
-    <td>The word list (J) keeps known, ignored and mastered words.</td>
+    <td>The word list, from the あ button in the inventory, keeps known, ignored and mastered words.</td>
   </tr>
 </table>
 
@@ -58,7 +58,7 @@ Set the game language to 日本語 under Options → Language, so the names you 
 | F8 | Ignore: drop the item and never learn it |
 | Esc | Close without losing anything |
 
-J opens the word list, where known, ignored and mastered items can go back to level 0. You can right-click a locked item in your inventory to answer it without using it. All keys can be changed under Options → Controls.
+The あ button in your inventory, right of the recipe book, opens the word list, where known, ignored and mastered items can go back to level 0. Esc goes back to the inventory. You can right-click a locked item in your inventory to answer it without using it. All keys can be changed under Options → Controls.
 
 ## Settings
 
