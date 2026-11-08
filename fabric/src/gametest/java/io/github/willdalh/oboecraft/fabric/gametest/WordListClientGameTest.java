@@ -11,8 +11,10 @@ import io.github.willdalh.oboecraft.fabric.client.ReviewKeys;
 import io.github.willdalh.oboecraft.fabric.client.WordListScreen;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -21,6 +23,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -44,6 +48,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
     private static final ItemId OAK_LOG = new ItemId("block.minecraft.oak_log");
     private static final ItemId STONE = new ItemId("block.minecraft.stone");
     private static final ItemId DIRT = new ItemId("block.minecraft.dirt");
+    private static final ItemId COBBLESTONE = new ItemId("block.minecraft.cobblestone");
     private static final int PRIMARY = 0;
     private static final int SECONDARY = 1;
     /** The button is right of the recipe book button, which is 20 wide, with a gap of 2. */
@@ -80,9 +85,9 @@ public class WordListClientGameTest implements FabricClientGameTest {
     }
 
     /**
-     * The word list opens on the Learning tab, where only the unlocked item has a reading clip button, since a locked
-     * one's clip would give the answer away. When the unlocked item locks while the list is open, its row loses the
-     * button, without any change to progress. The sort button switches between the orders, and the choice is kept when
+     * The word list opens on the Learning tab, where only the unlocked items have a reading clip button, since a locked
+     * one's clip would give the answer away, and the buttons line up in one column. When the unlocked items lock while
+     * the list is open, their rows lose the button, without any change to progress. The sort button switches between the orders, and the choice is kept when
      * the word list opens again.
      */
     private static void opensOnTheLearningTab(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
@@ -93,6 +98,8 @@ public class WordListClientGameTest implements FabricClientGameTest {
                     new SrsState.Leveled(2, Optional.of(now.minus(Duration.ofHours(1)))));
             OboecraftMod.serverProgress().update(player, DIRT,
                     new SrsState.Leveled(1, Optional.of(now.plus(Duration.ofHours(1)))));
+            OboecraftMod.serverProgress().update(player, COBBLESTONE,
+                    new SrsState.Leveled(2, Optional.of(now.plus(Duration.ofMinutes(30)))));
         });
         singleplayer.getConnection().waitForClientboundPackets();
         openInventory(context);
@@ -103,13 +110,17 @@ public class WordListClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             Screen screen = client.gui.screen();
             if (button(screen, "Learning").active) throw new AssertionError("The word list should open on Learning");
-            if (clipButtons(screen) != 1) {
-                throw new AssertionError("Only the unlocked item should have a reading clip button, not " + clipButtons(screen));
+            List<SpriteIconButton> clipButtons = clipButtons(screen);
+            if (clipButtons.size() != 2) {
+                throw new AssertionError("Only the unlocked items should have a reading clip button, not " + clipButtons.size());
+            }
+            if (clipButtons.get(0).getX() != clipButtons.get(1).getX()) {
+                throw new AssertionError("The reading clip buttons should line up in one column");
             }
         });
         context.runOnClient(client -> OboecraftClient.progress().updateServerTime(
                 client.getConnection(), OboecraftClient.progress().now().plus(Duration.ofHours(2))));
-        context.waitFor(client -> clipButtons(client.gui.screen()) == 0);
+        context.waitFor(client -> clipButtons(client.gui.screen()).isEmpty());
         context.runOnClient(client -> {
             OboecraftClient.progress().updateServerTime(client.getConnection(), OboecraftMod.serverProgress().now());
             Screen screen = client.gui.screen();
@@ -131,12 +142,19 @@ public class WordListClientGameTest implements FabricClientGameTest {
         singleplayer.getServer().runOnServer(server -> {
             OboecraftMod.serverProgress().update(player(server), STONE, SrsState.Leveled.NEW);
             OboecraftMod.serverProgress().update(player(server), DIRT, SrsState.Leveled.NEW);
+            OboecraftMod.serverProgress().update(player(server), COBBLESTONE, SrsState.Leveled.NEW);
         });
         singleplayer.getConnection().waitForClientboundPackets();
     }
 
-    private static long clipButtons(Screen screen) {
-        return screen.children().stream().filter(SpriteIconButton.class::isInstance).count();
+    /** The reading clip buttons in the rows of the word list, in the list's order. */
+    private static List<SpriteIconButton> clipButtons(Screen screen) {
+        return descendants(screen).filter(SpriteIconButton.class::isInstance).map(SpriteIconButton.class::cast).toList();
+    }
+
+    private static Stream<GuiEventListener> descendants(ContainerEventHandler parent) {
+        return parent.children().stream().flatMap(child -> Stream.concat(Stream.of(child),
+                child instanceof ContainerEventHandler container ? descendants(container) : Stream.empty()));
     }
 
     private static Button button(Screen screen, String message) {
