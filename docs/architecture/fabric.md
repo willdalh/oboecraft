@@ -31,6 +31,8 @@ Milestone 3b checked these methods against Minecraft 26.3, and the game tests ch
 
 A few items get their own key from a component too: a shield with a base color is named through `item.minecraft.shield.<color>`, and a lodestone compass through `item.minecraft.lodestone_compass`. These keys are name list data, see [Items](../design/items.md#translation-keys). If a method doesn't work for some items, only this class changes.
 
+`NamedStacks` makes one stack of each Minecraft item and the stacks whose name the game's code takes from their components: potions and tipped arrows by potion, shields by base color, the lodestone compass, the named player head and the ominous banner. The game test `everyStackTheGameNamesIsInTheNameList` checks that each of them is in the name list, and the word list takes its icons from them. Names that the game's data gives stacks, like the camp maps, have no stack there.
+
 ## The lock check entry point
 
 Everything in this section is in `fabric.lock`, in `src/main`, so both sides use the same code, unless it says otherwise.
@@ -232,7 +234,7 @@ When the player is in the world, client to server:
 
 Protocol 7 adds the configuration payloads for the player's progress. Protocol 6 adds the item id to the answer in `ReviewAnswered`, for the reading clip. Protocol 5 adds the server settings to `ProgressSync`. Protocol 3 adds tagged SRS states and the lesson result. Protocol 4 adds the demoted flag, wrong attempts and banned-until time to leveled states, the attempts left to `ReviewStarted`, the fail outcome, and the banned refusal. `ReviewAnswered` carries the item id, Japanese name and reading after a pass, a fail or a lesson reveal. Known and Ignore end the review with `ReviewCancelled` after the state update.
 
-`ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. It sends Revert requests and never edits progress locally.
+`ReviewKeys` registers Controls bindings. Answer hints are wrapped once during screen initialization and when the server changes the review level. Inventory right-click intercepts an empty-cursor pickup before vanilla splits the stack. `WordListScreen` reads the immutable client progress snapshot, filters into separate known, ignored and mastered tabs, and refreshes when the server changes that snapshot. The filtered, sorted entries are cached until the progress snapshot or selected tab changes; paging and selection only rebuild widgets. Each row's icon is the first of `NamedStacks` that maps to the item, looked up once when the screen opens. It sends Revert requests and never edits progress locally.
 
 A `StackLocation` is sent as its kind and its numbers. Decoding refuses a kind that doesn't exist, which disconnects the sender.
 

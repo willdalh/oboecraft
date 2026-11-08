@@ -6,19 +6,33 @@ import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsRules;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
+import io.github.willdalh.oboecraft.fabric.item.NamedStacks;
 import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
-/** Three separate lists. Revert is confirmed through a context action and waits for the server's update. */
+/**
+ * Three separate lists, each row with the item's icon, name and reading in a left-justified column under the tabs.
+ * Revert is confirmed through a context action and waits for the server's update.
+ */
 public final class WordListScreen extends Screen {
+    private static final int LIST_TOP = 56;
+    private static final int ROW_HEIGHT = 24;
+    private static final int COLUMN_WIDTH = 306;
+    private static final int ICON_SIZE = 16;
+    private static final int ICON_GAP = 4;
+
     private int group;
     private int cachedGroup = -1;
     private int page;
@@ -26,10 +40,12 @@ public final class WordListScreen extends Screen {
     private Progress snapshot = Progress.EMPTY;
     private List<NameListEntry> entries = List.of();
     private @Nullable ItemId selected;
+    private @Nullable Map<ItemId, ItemStack> icons;
 
     public WordListScreen() { super(Component.translatable("oboecraft.word_list.title")); }
 
     @Override protected void init() {
+        if (icons == null && minecraft.level != null) icons = iconsByItem();
         pageSize = Math.max(1, (height - 120) / 24);
         Progress current = OboecraftClient.progress().progress();
         if (snapshot != current || cachedGroup != group) {
@@ -44,7 +60,7 @@ public final class WordListScreen extends Screen {
             int chosen = tab;
             var button = addRenderableWidget(Button.builder(groupLabel(tab), ignored -> {
                 group = chosen; page = 0; selected = null; rebuildWidgets();
-            }).bounds(width / 2 - 153 + tab * 103, 28, 100, 20).build());
+            }).bounds(columnLeft() + tab * 103, 28, 100, 20).build());
             button.active = tab != group;
         }
         var previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
@@ -63,6 +79,18 @@ public final class WordListScreen extends Screen {
             }).bounds(width / 2 - 65, height - 45, 130, 20).build());
         }
     }
+
+    /** The first stack the game names as each item. Items only the game's data names, like the camp maps, have none. */
+    private Map<ItemId, ItemStack> iconsByItem() {
+        var mapping = OboecraftMod.itemMapping();
+        Map<ItemId, ItemStack> found = new HashMap<>();
+        for (ItemStack stack : NamedStacks.all(minecraft.level.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN))) {
+            mapping.entryOf(stack).ifPresent(entry -> found.putIfAbsent(entry.id(), stack));
+        }
+        return found;
+    }
+
+    private int columnLeft() { return width / 2 - COLUMN_WIDTH / 2; }
 
     private boolean inGroup(SrsState state) {
         return SrsRules.canRevert(state, OboecraftClient.progress().settings()) && switch (group) {
@@ -84,10 +112,10 @@ public final class WordListScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        int row = (int) (event.y() - 58) / 24;
+        int row = (int) Math.floor((event.y() - LIST_TOP) / ROW_HEIGHT);
         int index = page * pageSize + row;
-        if (event.button() == 1 && event.y() >= 58 && row >= 0 && row < pageSize
-                && index < entries.size() && Math.abs(event.x() - width / 2.0) <= Math.min(240, width / 2 - 10)) {
+        if (event.button() == 1 && row >= 0 && row < pageSize && index < entries.size()
+                && event.x() >= columnLeft() && event.x() < columnLeft() + COLUMN_WIDTH) {
             selected = entries.get(index).id();
             rebuildWidgets();
             return true;
@@ -103,8 +131,12 @@ public final class WordListScreen extends Screen {
         for (int row = 0; row < pageSize && page * pageSize + row < entries.size(); row++) {
             var entry = entries.get(page * pageSize + row);
             var name = entry.japaneseName();
-            graphics.centeredText(font, Component.literal(name.text() + " (" + name.reading() + ")"),
-                    width / 2, 60 + row * 24, entry.id().equals(selected) ? 0xFFFFFF55 : -1);
+            int y = LIST_TOP + row * ROW_HEIGHT;
+            ItemStack icon = icons == null ? null : icons.get(entry.id());
+            if (icon != null) graphics.item(icon, columnLeft(), y);
+            graphics.text(font, Component.literal(name.text() + " (" + name.reading() + ")"),
+                    columnLeft() + ICON_SIZE + ICON_GAP, y + (ICON_SIZE - font.lineHeight) / 2 + 1,
+                    entry.id().equals(selected) ? 0xFFFFFF55 : -1);
         }
         if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
         graphics.centeredText(font, Component.translatable("oboecraft.word_list.hint", page + 1,
