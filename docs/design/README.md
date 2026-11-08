@@ -37,4 +37,4 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | The reading clip after a pass | [#25](https://github.com/willdalh/oboecraft/issues/25) |
 | Progress kept on the player's computer and sent to every server | After the milestones |
 
-- [Word list](word-list.md): known, ignored and mastered items, and Revert.
+- [Word list](word-list.md): learning, known, ignored and mastered items, and Revert.

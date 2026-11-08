@@ -39,6 +39,15 @@ class WordListRulesTest {
                 LockCheck.check(SrsState.Leveled.NEW, Interaction.PICK_UP, NOW, true, SETTINGS));
     }
 
+    @Test void onlyLevelsFromOneUpToMasteredAreLearning() {
+        for (int level = 0; level <= SETTINGS.topLevel() + 1; level++) {
+            assertEquals(level >= 1 && level < SETTINGS.topLevel(),
+                    SrsRules.isLearning(new SrsState.Leveled(level, Optional.empty()), SETTINGS));
+        }
+        assertFalse(SrsRules.isLearning(new SrsState.Known(), SETTINGS));
+        assertFalse(SrsRules.isLearning(new SrsState.Ignored(), SETTINGS));
+    }
+
     @Test void onlyMasteredLevelsCanBeReverted() {
         for (int level = 0; level <= SETTINGS.topLevel() + 1; level++) {
             assertEquals(level >= SETTINGS.topLevel(),

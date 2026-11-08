@@ -33,7 +33,16 @@ public final class SrsRules {
         return state instanceof SrsState.Leveled leveled && leveled.isBannedAt(now);
     }
 
-    /** Only these states appear in the word list and can be reverted. */
+    /**
+     * Whether the item is being learned, so it is on the word list's Learning tab: leveled from level 1 up to, but not
+     * including, mastered. Since a fail never drops below level 1, an item joins on its first pass and stays until it
+     * is mastered, marked known or ignored, or reverted.
+     */
+    public static boolean isLearning(SrsState state, Settings settings) {
+        return state instanceof SrsState.Leveled leveled && leveled.level() >= 1 && leveled.level() < settings.topLevel();
+    }
+
+    /** Only these states appear in the word list's other tabs and can be reverted. */
     public static boolean canRevert(SrsState state, Settings settings) {
         return !(state instanceof SrsState.Leveled leveled) || leveled.level() >= settings.topLevel();
     }
