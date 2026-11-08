@@ -189,6 +189,11 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
                     .filter(icon -> icon.is(net.minecraft.world.item.Items.OAK_LOG)).isPresent())) {
                 throw new AssertionError("The word list must show the oak log's icon");
             }
+            if (!context.computeOnClient(client -> client.gui.screen().children().stream().anyMatch(child ->
+                    child instanceof net.minecraft.client.gui.components.SpriteIconButton button
+                            && button.getMessage().getString().equals("Play reading")))) {
+                throw new AssertionError("The word list must have a reading clip button on the oak log's row");
+            }
             context.runOnClient(client -> {
                 var screen = client.gui.screen();
                 screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(screen.width / 2.0, 62,
