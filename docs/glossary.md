@@ -136,6 +136,14 @@ _Avoid_: cooldown, time until locked again
 An item that has reached the top level. It stays unlocked forever.
 _Avoid_: finished, burned, learned
 
+**Learning**:
+An item from level 1 up to, but not including, mastered, which the word list's Learning tab lists. Not the same as a lesson, which is at level 0.
+_Avoid_: in progress, under review
+
+**Urgency**:
+The default order of the Learning tab: locked items first, longest locked first, then unlocked items, least time left first. The other order is by level.
+_Avoid_: priority, due order
+
 **Leveled**:
 The state of an item that has a level, from level 0 up to mastered. Every item starts leveled, and known and ignored items are not.
 _Avoid_: learning, active, in review
@@ -167,7 +175,7 @@ The state of an item the player chose to leave out. It can't be picked up, taken
 _Avoid_: blacklisted, hidden, excluded
 
 **Word list**:
-The screen that shows known, ignored and mastered items in separate lists, with Revert. See [Word list](design/word-list.md).
+The screen that shows learning, known, ignored and mastered items in separate tabs, with Revert for known, ignored and mastered items. See [Word list](design/word-list.md).
 _Avoid_: library, vocabulary, dictionary
 
 **Revert**:

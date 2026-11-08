@@ -185,6 +185,11 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.waitForScreen(net.minecraft.client.gui.screens.inventory.InventoryScreen.class);
             WordListButtons.click(context);
             context.waitForScreen(io.github.willdalh.oboecraft.fabric.client.WordListScreen.class);
+            context.runOnClient(client -> client.gui.screen().children().stream()
+                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button button
+                            && button.getMessage().getString().equals("Known"))
+                    .map(child -> (net.minecraft.client.gui.components.Button) child).findFirst().orElseThrow()
+                    .onPress(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
             context.takeScreenshot("word-list-known");
             if (!context.computeOnClient(client -> OboecraftClient.itemIcons()
                     .icon(client.level.registryAccess(), OAK_LOG)

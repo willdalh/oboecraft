@@ -9,6 +9,9 @@ import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.client.ReviewKeys;
 import io.github.willdalh.oboecraft.fabric.client.WordListScreen;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -17,9 +20,12 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,6 +42,8 @@ import net.minecraft.world.level.GameType;
  */
 public class WordListClientGameTest implements FabricClientGameTest {
     private static final ItemId OAK_LOG = new ItemId("block.minecraft.oak_log");
+    private static final ItemId STONE = new ItemId("block.minecraft.stone");
+    private static final ItemId DIRT = new ItemId("block.minecraft.dirt");
     private static final int PRIMARY = 0;
     private static final int SECONDARY = 1;
     /** The button is right of the recipe book button, which is 20 wide, with a gap of 2. */
@@ -50,6 +58,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
             singleplayer.getConnection().waitForChunksRender();
             context.waitFor(client -> OboecraftClient.progress().hasProgress(client.player));
             buttonFollowsTheRecipeBook(context);
+            opensOnTheLearningTab(context, singleplayer);
             craftingGridSurvivesTheWordList(context, singleplayer);
             inventoryKeyClosesBoth(context, singleplayer);
             inventoryKeyClosesBothWhenCloseSharesIt(context);
@@ -68,6 +77,57 @@ public class WordListClientGameTest implements FabricClientGameTest {
         clickRecipeBookButton(context, "at once after closing the recipe book");
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
+    }
+
+    /**
+     * The word list opens on the Learning tab, where only the unlocked item has a reading clip button, since a locked
+     * one's clip would give the answer away. The sort button switches between the orders, and the choice is kept when
+     * the word list opens again.
+     */
+    private static void opensOnTheLearningTab(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        singleplayer.getServer().runOnServer(server -> {
+            ServerPlayer player = player(server);
+            Instant now = OboecraftMod.serverProgress().now();
+            OboecraftMod.serverProgress().update(player, STONE,
+                    new SrsState.Leveled(2, Optional.of(now.minus(Duration.ofHours(1)))));
+            OboecraftMod.serverProgress().update(player, DIRT,
+                    new SrsState.Leveled(1, Optional.of(now.plus(Duration.ofHours(1)))));
+        });
+        singleplayer.getConnection().waitForClientboundPackets();
+        openInventory(context);
+        WordListButtons.click(context);
+        context.waitForScreen(WordListScreen.class);
+        context.waitTick();
+        context.takeScreenshot("word-list-learning");
+        context.runOnClient(client -> {
+            Screen screen = client.gui.screen();
+            if (button(screen, "Learning").active) throw new AssertionError("The word list should open on Learning");
+            long clipButtons = screen.children().stream().filter(SpriteIconButton.class::isInstance).count();
+            if (clipButtons != 1) {
+                throw new AssertionError("Only the unlocked item should have a reading clip button, not " + clipButtons);
+            }
+            button(screen, "Sort: Urgency").onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+            button(client.gui.screen(), "Sort: Level");
+        });
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(InventoryScreen.class);
+        WordListButtons.click(context);
+        context.waitForScreen(WordListScreen.class);
+        context.runOnClient(client -> {
+            button(client.gui.screen(), "Sort: Level").onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+            button(client.gui.screen(), "Sort: Urgency");
+        });
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(InventoryScreen.class);
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(null);
+    }
+
+    private static Button button(Screen screen, String message) {
+        return screen.children().stream()
+                .filter(child -> child instanceof Button button && button.getMessage().getString().equals(message))
+                .map(Button.class::cast).findFirst()
+                .orElseThrow(() -> new AssertionError("The word list should have the button " + message));
     }
 
     /**
