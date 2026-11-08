@@ -7,7 +7,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.client.display.ItemDisplay;
 import net.minecraft.client.DeltaTracker;
-import io.github.willdalh.oboecraft.fabric.client.AnswerScreen;
+import io.github.willdalh.oboecraft.fabric.client.OverMenuScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -21,10 +21,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Keeps an open menu's screen intact while the answer menu opens over it. Replacing a screen tells it that it is
- * removed, and a menu's screen then runs the menu's {@code removed} on the client, which empties its result slot. The
- * answer menu goes back to that screen when it closes, so it isn't removed. Captures display progress and time once
- * around the GUI's frame extraction, and draws the notification after a pass on top of the HUD and the screen.
+ * Keeps an open menu's screen intact while the answer menu or the word list opens over it. Replacing a screen tells it
+ * that it is removed, and a menu's screen then runs the menu's {@code removed} on the client, which empties its result
+ * slot. Those screens go back to the menu's screen when they close, so it isn't removed. Captures display progress and
+ * time once around the GUI's frame extraction, and draws the notification after a pass on top of the HUD and the
+ * screen.
  */
 @Mixin(Gui.class)
 abstract class GuiMixin {
@@ -39,8 +40,8 @@ abstract class GuiMixin {
 
     @WrapWithCondition(method = "setScreen", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/screens/Screen;removed()V"))
-    private boolean oboecraft$keepMenuScreenUnderAnswerMenu(Screen replaced, @Nullable Screen screen) {
-        return !(screen instanceof AnswerScreen answerMenu && answerMenu.menuScreen() == replaced);
+    private boolean oboecraft$keepMenuScreenUnderScreenOverIt(Screen replaced, @Nullable Screen screen) {
+        return !(screen instanceof OverMenuScreen over && over.menuScreen() == replaced);
     }
 
     /** After the screen, so a menu's screen doesn't dim it, and before the toasts and the debug overlay. */

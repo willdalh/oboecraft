@@ -1,7 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.input.KeyEvent;
@@ -20,7 +19,6 @@ public final class ReviewKeys {
     public static final Binding IGNORE = bind("ignore", InputConstants.KEY_F8);
     public static final Binding SHOW = bind("show", InputConstants.KEY_F9);
     public static final Binding DONT_KNOW = bind("dont_know", InputConstants.KEY_DELETE);
-    public static final Binding WORD_LIST = bind("word_list", InputConstants.KEY_J);
 
     private ReviewKeys() {}
 
@@ -39,15 +37,11 @@ public final class ReviewKeys {
         return new Binding(KeyMappingHelper.registerKeyMapping(new KeyMapping("key.oboecraft." + name, key, CATEGORY)));
     }
 
-    static void register() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (WORD_LIST.mapping().consumeClick()) {
-                if (client.player != null && client.gui.screen() == null && OboecraftClient.progress().hasProgress(client.player)) {
-                    client.gui.setScreen(new WordListScreen());
-                }
-            }
-        });
-    }
+    /**
+     * Registers the bindings, which happens when this class is loaded. It has to run during client initialization,
+     * since Fabric API only takes bindings before Minecraft reads the options.
+     */
+    static void register() {}
 
     static Component hint(boolean lesson) {
         MutableComponent result = Component.empty();
