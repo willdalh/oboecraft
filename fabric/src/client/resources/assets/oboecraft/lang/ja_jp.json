@@ -34,6 +34,7 @@
   "oboecraft.word_list.ignored": "無視",
   "oboecraft.word_list.mastered": "習得済み",
   "oboecraft.word_list.revert": "レベル0に戻す",
+  "oboecraft.word_list.play_reading": "読みを聞く",
   "oboecraft.word_list.empty": "単語はまだありません",
   "oboecraft.word_list.hint": "%s/%sページ · 右クリックで元に戻す",
   "oboecraft.settings.title": "Oboecraftの設定",

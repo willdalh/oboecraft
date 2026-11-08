@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
+import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.srs.Progress;
@@ -12,14 +13,17 @@ import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Three separate lists. Each row has the item's icon, name and reading, left-justified from the left edge of the tabs.
- * Revert is confirmed through a context action and waits for the server's update.
+ * Three separate lists. Each row has the item's icon, name and a button that plays its reading clip, left-justified
+ * from the left edge of the tabs. The reading itself isn't shown, so the player recalls it before listening. Revert is
+ * confirmed through a context action and waits for the server's update.
  */
 public final class WordListScreen extends Screen {
     private static final int TAB_WIDTH = 100;
@@ -33,6 +37,12 @@ public final class WordListScreen extends Screen {
     private static final int ICON_SIZE = 16;
     private static final int ICON_GAP = 4;
     private static final int RIGHT_MARGIN = 10;
+    private static final Identifier READING_CLIP_SPRITE =
+            Identifier.fromNamespaceAndPath(Oboecraft.MOD_ID, "icon/reading_clip");
+    private static final int READING_CLIP_SPRITE_WIDTH = 8;
+    private static final int READING_CLIP_SPRITE_HEIGHT = 12;
+    private static final int READING_CLIP_BUTTON_SIZE = 20;
+    private static final int READING_CLIP_BUTTON_GAP = 4;
 
     private int group;
     private int cachedGroup = -1;
@@ -70,6 +80,16 @@ public final class WordListScreen extends Screen {
             page++; selected = null; rebuildWidgets();
         }).bounds(width / 2 + 70, height - 45, 30, 20).build());
         next.active = (page + 1) * pageSize < entries.size();
+        for (int row = 0; row < rowsOnPage(); row++) {
+            var entry = entries.get(page * pageSize + row);
+            addRenderableWidget(SpriteIconButton.builder(Component.translatable("oboecraft.word_list.play_reading"),
+                            ignored -> OboecraftClient.readingClips().play(entry.id()), true)
+                    .size(READING_CLIP_BUTTON_SIZE, READING_CLIP_BUTTON_SIZE)
+                    .sprite(READING_CLIP_SPRITE, READING_CLIP_SPRITE_WIDTH, READING_CLIP_SPRITE_HEIGHT)
+                    .withTootip().build())
+                    .setPosition(textLeft() + font.width(rowText(entry)) + READING_CLIP_BUTTON_GAP,
+                            rowTop(row) + (ICON_SIZE - READING_CLIP_BUTTON_SIZE) / 2);
+        }
         if (selected != null) {
             ItemId item = selected;
             addRenderableWidget(Button.builder(Component.translatable("oboecraft.word_list.revert"), ignored -> {
@@ -83,6 +103,18 @@ public final class WordListScreen extends Screen {
     private int listLeft() { return width / 2 - TABS_WIDTH / 2; }
 
     private int listRight() { return width - RIGHT_MARGIN; }
+
+    private int textLeft() { return listLeft() + ICON_SIZE + ICON_GAP; }
+
+    private int rowTop(int row) { return LIST_TOP + row * ROW_HEIGHT; }
+
+    private int rowsOnPage() { return Math.min(pageSize, entries.size() - page * pageSize); }
+
+    /** The row's name, cut short so that the reading clip button after it still fits. */
+    private String rowText(NameListEntry entry) {
+        return fitted(entry.japaneseName().text(),
+                listRight() - textLeft() - READING_CLIP_BUTTON_GAP - READING_CLIP_BUTTON_SIZE);
+    }
 
     private boolean inGroup(SrsState state) {
         return SrsRules.canRevert(state, OboecraftClient.progress().settings()) && switch (group) {
@@ -119,18 +151,15 @@ public final class WordListScreen extends Screen {
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        int textLeft = listLeft() + ICON_SIZE + ICON_GAP;
         graphics.centeredText(font, title, width / 2, 10, -1);
-        for (int row = 0; row < pageSize && page * pageSize + row < entries.size(); row++) {
+        for (int row = 0; row < rowsOnPage(); row++) {
             var entry = entries.get(page * pageSize + row);
-            var name = entry.japaneseName();
-            int y = LIST_TOP + row * ROW_HEIGHT;
+            int y = rowTop(row);
             if (minecraft.level != null) {
                 OboecraftClient.itemIcons().icon(minecraft.level.registryAccess(), entry.id())
                         .ifPresent(icon -> graphics.item(icon, listLeft(), y));
             }
-            graphics.text(font, fitted(name.text() + " (" + name.reading() + ")", listRight() - textLeft),
-                    textLeft, y + (ICON_SIZE - font.lineHeight) / 2 + 1,
+            graphics.text(font, rowText(entry), textLeft(), y + (ICON_SIZE - font.lineHeight) / 2 + 1,
                     entry.id().equals(selected) ? 0xFFFFFF55 : -1);
         }
         if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
