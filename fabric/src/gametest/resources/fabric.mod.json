@@ -29,6 +29,8 @@
       "io.github.willdalh.oboecraft.fabric.gametest.MenuClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ItemDisplayClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.SettingsClientGameTest",
+      "io.github.willdalh.oboecraft.fabric.client.settings.ClientSettingsFileTest",
+      "io.github.willdalh.oboecraft.fabric.gametest.ReviewItemSizeClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ProgressStoreClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ReadingClipsClientGameTest"
     ]

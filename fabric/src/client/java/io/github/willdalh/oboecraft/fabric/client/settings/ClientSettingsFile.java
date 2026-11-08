@@ -18,13 +18,14 @@ import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
- * The client settings file, {@code config/oboecraft/client.json} in the game folder: {@code {"version": 1,
- * "clickableButtons": false}}.
+ * The client settings file, {@code config/oboecraft/client.json} in the game folder. Version 1 settings are read with
+ * the default review item size; saving writes version 2 with the size included.
  */
 public final class ClientSettingsFile {
     /** The format version this code reads and writes. */
-    static final int VERSION = 1;
-    private static final Set<String> FIELDS = Set.of("version", "clickableButtons");
+    static final int VERSION = 2;
+    private static final Set<String> LEGACY_FIELDS = Set.of("version", "clickableButtons");
+    private static final Set<String> FIELDS = Set.of("version", "clickableButtons", "reviewItemScalePercent");
 
     private ClientSettingsFile() {
     }
@@ -57,25 +58,42 @@ public final class ClientSettingsFile {
         JsonObject json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("clickableButtons", settings.clickableButtons());
+        json.addProperty("reviewItemScalePercent", settings.reviewItemScalePercent());
         AtomicFiles.write(file, new GsonBuilder().setPrettyPrinting().create().toJson(json) + "\n");
     }
 
     /**
-     * Parses client settings. Every field must be there, with no others.
+     * Parses client settings. Every field of its version must be there, with no others.
      *
      * @throws IllegalArgumentException if the file isn't valid client settings of this version
      */
     static ClientSettings parse(JsonElement json) {
-        if (!(json instanceof JsonObject object) || !object.keySet().equals(FIELDS)) {
-            throw new IllegalArgumentException("The client settings must have exactly the fields " + FIELDS);
+        if (!(json instanceof JsonObject object)) {
+            throw new IllegalArgumentException("The client settings must be an object");
         }
         if (!(object.get("version") instanceof JsonPrimitive version) || !version.isNumber()
-                || version.getAsDouble() != VERSION) {
-            throw new IllegalArgumentException("This version of Oboecraft reads client settings version " + VERSION);
+                || (version.getAsDouble() != 1 && version.getAsDouble() != VERSION)) {
+            throw new IllegalArgumentException("This version of Oboecraft reads client settings versions 1 and " + VERSION);
+        }
+        boolean legacy = version.getAsDouble() == 1;
+        Set<String> expectedFields = legacy ? LEGACY_FIELDS : FIELDS;
+        if (!object.keySet().equals(expectedFields)) {
+            throw new IllegalArgumentException("The client settings must have exactly the fields " + expectedFields);
         }
         if (!(object.get("clickableButtons") instanceof JsonPrimitive buttons) || !buttons.isBoolean()) {
             throw new IllegalArgumentException("clickableButtons must be true or false");
         }
-        return new ClientSettings(buttons.getAsBoolean());
+        int scale = ClientSettings.DEFAULT_REVIEW_ITEM_SCALE;
+        if (!legacy) {
+            if (!(object.get("reviewItemScalePercent") instanceof JsonPrimitive size) || !size.isNumber()) {
+                throw new IllegalArgumentException("reviewItemScalePercent must be a whole number");
+            }
+            try {
+                scale = size.getAsBigDecimal().intValueExact();
+            } catch (NumberFormatException | ArithmeticException e) {
+                throw new IllegalArgumentException("reviewItemScalePercent must be a whole number", e);
+            }
+        }
+        return new ClientSettings(buttons.getAsBoolean(), scale);
     }
 }
