@@ -7,17 +7,20 @@ import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
+import io.github.willdalh.oboecraft.fabric.client.ReviewKeys;
 import io.github.willdalh.oboecraft.fabric.client.WordListScreen;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -49,6 +52,8 @@ public class WordListClientGameTest implements FabricClientGameTest {
             buttonFollowsTheRecipeBook(context);
             craftingGridSurvivesTheWordList(context, singleplayer);
             inventoryKeyClosesBoth(context, singleplayer);
+            inventoryKeyClosesBothWhenCloseSharesIt(context);
+            inventoryKeyClosesBothAfterSwitchingToCreative(context, singleplayer);
             buttonNeedsProgress(context);
             noButtonOnTheCreativeInventory(context, singleplayer);
         }
@@ -58,15 +63,9 @@ public class WordListClientGameTest implements FabricClientGameTest {
         openInventory(context);
         context.takeScreenshot("word-list-button");
         assertNextToRecipeBook(context, "with the recipe book closed");
-        context.runOnClient(client -> recipeBookButton(client).onPress(new net.minecraft.client.input.KeyEvent(
-                InputConstants.KEY_RETURN, 0, 0)));
-        context.waitTick();
-        assertNextToRecipeBook(context, "with the recipe book open");
+        clickRecipeBookButton(context, "at once after opening the recipe book");
         context.takeScreenshot("word-list-button-recipe-book");
-        context.runOnClient(client -> recipeBookButton(client).onPress(new net.minecraft.client.input.KeyEvent(
-                InputConstants.KEY_RETURN, 0, 0)));
-        context.waitTick();
-        assertNextToRecipeBook(context, "after closing the recipe book");
+        clickRecipeBookButton(context, "at once after closing the recipe book");
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
     }
@@ -121,6 +120,49 @@ public class WordListClientGameTest implements FabricClientGameTest {
         singleplayer.getConnection().waitForClientboundPackets();
     }
 
+    /** With Close bound to the inventory key, that key still closes both. Esc still goes back. */
+    private static void inventoryKeyClosesBothWhenCloseSharesIt(ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            ReviewKeys.CLOSE.mapping().setKey(InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_E));
+            KeyMapping.resetMapping();
+        });
+        try {
+            openInventory(context);
+            WordListButtons.click(context);
+            context.waitForScreen(WordListScreen.class);
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitForScreen(InventoryScreen.class);
+            WordListButtons.click(context);
+            context.waitForScreen(WordListScreen.class);
+            context.getInput().pressKey(InputConstants.KEY_E);
+            context.waitForScreen(null);
+        } finally {
+            context.runOnClient(client -> {
+                ReviewKeys.CLOSE.mapping().setKey(ReviewKeys.CLOSE.mapping().getDefaultKey());
+                KeyMapping.resetMapping();
+            });
+        }
+    }
+
+    /**
+     * After a switch to creative with the word list open, the inventory key closes both, without the inventory screen
+     * opening the creative inventory in its place.
+     */
+    private static void inventoryKeyClosesBothAfterSwitchingToCreative(
+            ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        openInventory(context);
+        WordListButtons.click(context);
+        context.waitForScreen(WordListScreen.class);
+        singleplayer.getServer().runOnServer(server -> player(server).setGameMode(GameType.CREATIVE));
+        singleplayer.getConnection().waitForClientboundPackets();
+        context.waitFor(client -> client.player.hasInfiniteMaterials());
+        context.getInput().pressKey(InputConstants.KEY_E);
+        context.waitForScreen(null);
+        singleplayer.getServer().runOnServer(server -> player(server).setGameMode(GameType.SURVIVAL));
+        singleplayer.getConnection().waitForClientboundPackets();
+        context.waitFor(client -> !client.player.hasInfiniteMaterials());
+    }
+
     /**
      * Without progress, the inventory has no button. When progress arrives with the inventory open, the button
      * appears, and when progress goes away with the word list open, it goes back to the inventory without the button.
@@ -171,16 +213,36 @@ public class WordListClientGameTest implements FabricClientGameTest {
         context.waitForScreen(InventoryScreen.class);
     }
 
-    private static void assertNextToRecipeBook(ClientGameTestContext context, String when) {
+    /**
+     * Clicks the recipe book button with the real mouse and checks the button in the same client task, before any
+     * screen tick: the mouse click hook moves it, not the tick.
+     */
+    private static void clickRecipeBookButton(ClientGameTestContext context, String when) {
+        double scale = context.computeOnClient(client -> (double) client.getWindow().getGuiScale());
+        int x = context.computeOnClient(client -> recipeBookButton(client).getX() + 10);
+        int y = context.computeOnClient(client -> recipeBookButton(client).getY() + 9);
+        context.getInput().setCursorPos(x * scale, y * scale);
         context.runOnClient(client -> {
-            Button recipeBook = recipeBookButton(client);
-            Button wordList = WordListButtons.find(client.gui.screen())
-                    .orElseThrow(() -> new AssertionError("The inventory should have the button " + when));
-            if (wordList.getX() != recipeBook.getX() + RIGHT_OF_RECIPE_BOOK || wordList.getY() != recipeBook.getY()
-                    || wordList.getWidth() != 20 || wordList.getHeight() != 18) {
-                throw new AssertionError("The button should be right of the recipe book button " + when);
-            }
+            long window = client.getWindow().handle();
+            MouseButtonInfo left = new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0);
+            client.mouseHandler.onButton(window, left, InputConstants.PRESS);
+            client.mouseHandler.onButton(window, left, InputConstants.RELEASE);
+            assertNextToRecipeBook(client, when);
         });
+    }
+
+    private static void assertNextToRecipeBook(ClientGameTestContext context, String when) {
+        context.runOnClient(client -> assertNextToRecipeBook(client, when));
+    }
+
+    private static void assertNextToRecipeBook(Minecraft client, String when) {
+        Button recipeBook = recipeBookButton(client);
+        Button wordList = WordListButtons.find(client.gui.screen())
+                .orElseThrow(() -> new AssertionError("The inventory should have the button " + when));
+        if (wordList.getX() != recipeBook.getX() + RIGHT_OF_RECIPE_BOOK || wordList.getY() != recipeBook.getY()
+                || wordList.getWidth() != 20 || wordList.getHeight() != 18) {
+            throw new AssertionError("The button should be right of the recipe book button " + when);
+        }
     }
 
     private static void assertButton(ClientGameTestContext context, boolean shown, String when) {

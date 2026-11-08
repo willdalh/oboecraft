@@ -20,8 +20,12 @@ final class WordListButton {
     /** The size of the recipe book button. */
     private static final int WIDTH = 20;
     private static final int HEIGHT = 18;
-    /** From the inventory's left edge: right of the recipe book button, which is 104 from it and 20 wide. */
-    private static final int LEFT = 104 + WIDTH + 2;
+    /** Where vanilla puts the recipe book button, from the inventory's left edge, and its width. */
+    private static final int RECIPE_BOOK_BUTTON_LEFT = 104;
+    private static final int RECIPE_BOOK_BUTTON_WIDTH = 20;
+    private static final int GAP = 2;
+    /** From the inventory's left edge: right of the recipe book button. */
+    private static final int LEFT = RECIPE_BOOK_BUTTON_LEFT + RECIPE_BOOK_BUTTON_WIDTH + GAP;
     /** From the inventory's top edge: level with the recipe book button. */
     private static final int TOP = 61;
     private static final Component LABEL = Component.literal("あ");

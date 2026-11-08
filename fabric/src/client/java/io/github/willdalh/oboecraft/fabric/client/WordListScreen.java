@@ -161,17 +161,24 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     }
 
     @Override public boolean keyPressed(KeyEvent event) {
-        if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
         if (minecraft.options.keyInventory.matches(event)) { closeInventory(); return true; }
+        if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
         return super.keyPressed(event);
     }
 
     @Override public void onClose() { returnToMenuScreen(minecraft); }
 
-    /** Goes back to the inventory and closes it there, as the inventory key does, so the server is told it closed. */
+    /**
+     * Closes the inventory as its own inventory key does, so the server is told it closed, without showing it again. Its
+     * {@code removed} was skipped when the word list opened over it, so it runs here, as vanilla runs it on closing.
+     */
     private void closeInventory() {
-        returnToMenuScreen(minecraft);
-        if (minecraft.gui.screen() == inventory) inventory.onClose();
+        if (minecraft.player == null || inventory.getMenu() != minecraft.player.containerMenu) {
+            returnToMenuScreen(minecraft);
+            return;
+        }
+        inventory.onClose();
+        inventory.removed();
     }
 
     @Override public boolean isPauseScreen() { return false; }
