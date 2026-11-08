@@ -28,6 +28,12 @@ The code follows clean architecture, with a `core` module and a `fabric` adapter
 - Keep the core thin. It takes simple inputs, like item ids, counts and timestamps, and returns decisions. Minecraft concepts like inventories and slots stay in `fabric`.
 - The server decides everything that matters. Client code only displays and never has the final say.
 
+## Changing code
+
+- Keep changes to what was asked, and fit them in as if the code had been designed that way from the start. Change, replace or delete existing code instead of adding next to it: no parallel code paths, compatibility shims, or dead code kept just in case.
+- Read the surrounding code first. When the change needs it, update the code around it too, like callers, shared helpers or the function being extended.
+- Don't refactor or improve unrelated code, even while fixing a bug. Mention what you noticed in the PR description instead.
+
 ## Code quality, safety and performance
 
 Code quality, code safety and performance are all requirements for a PR. A PR that gives up one for another says so and explains why.
