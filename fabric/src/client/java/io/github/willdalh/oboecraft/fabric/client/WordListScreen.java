@@ -50,6 +50,8 @@ public final class WordListScreen extends Screen {
     private int pageSize;
     private Progress snapshot = Progress.EMPTY;
     private List<NameListEntry> entries = List.of();
+    /** The names of the rows on the current page, fitted to the screen once per layout. */
+    private List<String> rowTexts = List.of();
     private @Nullable ItemId selected;
 
     public WordListScreen() { super(Component.translatable("oboecraft.word_list.title")); }
@@ -80,14 +82,16 @@ public final class WordListScreen extends Screen {
             page++; selected = null; rebuildWidgets();
         }).bounds(width / 2 + 70, height - 45, 30, 20).build());
         next.active = (page + 1) * pageSize < entries.size();
-        for (int row = 0; row < rowsOnPage(); row++) {
+        rowTexts = entries.subList(page * pageSize, Math.min(entries.size(), (page + 1) * pageSize)).stream()
+                .map(this::rowText).toList();
+        for (int row = 0; row < rowTexts.size(); row++) {
             var entry = entries.get(page * pageSize + row);
             addRenderableWidget(SpriteIconButton.builder(Component.translatable("oboecraft.word_list.play_reading"),
                             ignored -> OboecraftClient.readingClips().play(entry.id()), true)
                     .size(READING_CLIP_BUTTON_SIZE, READING_CLIP_BUTTON_SIZE)
                     .sprite(READING_CLIP_SPRITE, READING_CLIP_SPRITE_WIDTH, READING_CLIP_SPRITE_HEIGHT)
                     .withTootip().build())
-                    .setPosition(textLeft() + font.width(rowText(entry)) + READING_CLIP_BUTTON_GAP,
+                    .setPosition(textLeft() + font.width(rowTexts.get(row)) + READING_CLIP_BUTTON_GAP,
                             rowTop(row) + (ICON_SIZE - READING_CLIP_BUTTON_SIZE) / 2);
         }
         if (selected != null) {
@@ -107,8 +111,6 @@ public final class WordListScreen extends Screen {
     private int textLeft() { return listLeft() + ICON_SIZE + ICON_GAP; }
 
     private int rowTop(int row) { return LIST_TOP + row * ROW_HEIGHT; }
-
-    private int rowsOnPage() { return Math.min(pageSize, entries.size() - page * pageSize); }
 
     /** The row's name, cut short so that the reading clip button after it still fits. */
     private String rowText(NameListEntry entry) {
@@ -152,14 +154,14 @@ public final class WordListScreen extends Screen {
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.centeredText(font, title, width / 2, 10, -1);
-        for (int row = 0; row < rowsOnPage(); row++) {
+        for (int row = 0; row < rowTexts.size(); row++) {
             var entry = entries.get(page * pageSize + row);
             int y = rowTop(row);
             if (minecraft.level != null) {
                 OboecraftClient.itemIcons().icon(minecraft.level.registryAccess(), entry.id())
                         .ifPresent(icon -> graphics.item(icon, listLeft(), y));
             }
-            graphics.text(font, rowText(entry), textLeft(), y + (ICON_SIZE - font.lineHeight) / 2 + 1,
+            graphics.text(font, rowTexts.get(row), textLeft(), y + (ICON_SIZE - font.lineHeight) / 2 + 1,
                     entry.id().equals(selected) ? 0xFFFFFF55 : -1);
         }
         if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);

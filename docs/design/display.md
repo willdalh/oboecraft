@@ -36,9 +36,9 @@ Only a pass shows it. After a fail, the answer menu shows the Japanese name and 
 
 With the notification, the item's reading clip plays: the reading of the Japanese name, said by a voice, so the player hears how the name is said. The clips are made ahead of time with VOICEVOX, in the voice 玄野武宏, from the reviewed readings in the name list, and ship with the mod as one sound file per item. So they work offline and sound the same for everyone. The [word list](word-list.md) plays them too, from a button on each row. See [Reading clip tool](../architecture/reading-clip-tool.md).
 
-The clip plays in Minecraft's Voice/Speech sound category, so the player sets its volume, or turns it off, under Options → Music & Sounds. It isn't placed in the world, so it sounds the same wherever the player looks, and it shows the subtitle "Japanese name is said" when subtitles are on. A new pass stops the clip that is playing and plays its own. Leaving the world or server stops it.
+The clip plays in Minecraft's Voice/Speech sound category, so the player sets its volume, or turns it off, under Options → Music & Sounds. It isn't placed in the world, so it sounds the same wherever the player looks, and it shows the subtitle "Japanese name is said" when subtitles are on. A new clip, from a pass or the word list, stops the clip that is playing. Leaving the world or server stops it.
 
-Like the notification, it plays after every pass, also when the answer menu was closed before the pass arrived, and only after a pass. An item without a clip, which only happens when the name list changed and the tool wasn't run again, passes without a sound.
+Like the notification, it plays after every pass, also when the answer menu was closed before the pass arrived. A fail plays no clip. An item without a clip, which only happens when the name list changed and the tool wasn't run again, passes without a sound.
 
 ## Later milestones
 
