@@ -119,7 +119,7 @@ All items with their Japanese names and readings.
 _Avoid_: word list, dictionary, vocabulary
 
 **Reading clip**:
-The sound file that says an item's reading, played after a pass. It is made ahead of time with VOICEVOX and ships with the mod.
+The sound file that says an item's reading, played after a pass and from the word list. It is made ahead of time with VOICEVOX and ships with the mod.
 _Avoid_: voice line, audio, TTS, pronunciation
 
 ### Spaced repetition

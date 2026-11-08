@@ -1,6 +1,6 @@
 # Word list
 
-Press J (rebindable in Controls) while playing to open the word list. It does not pause the game. Known, ignored and mastered items have separate tabs, ordered by Japanese name, with pages for long lists. Each row shows the item's icon, then the name and its reading, left-justified from the left edge of the tabs. A row too wide for the screen is cut short with an ellipsis. Items that only the game's data names, like the camp maps, have no icon.
+Press J (rebindable in Controls) while playing to open the word list. It does not pause the game. Known, ignored and mastered items have separate tabs, ordered by Japanese name, with pages for long lists. Each row shows the item's icon, then the name and a speaker button, left-justified from the left edge of the tabs. The reading isn't shown, so the player recalls it from the name; the speaker button plays the item's [reading clip](display.md#reading-clip), stopping any clip that is playing, and the clip finishes even if the word list is closed. A name too wide for the screen is cut short with an ellipsis, leaving room for the button. Items that only the game's data names, like the camp maps, have no icon.
 
 Right-click a row, then choose **Revert to level 0**. The server checks that the item is currently known, ignored or mastered for that player and that no review is going. Revert resets it to level 0, with no timer, and the row disappears when the server confirms the state. It never restores previously dropped stacks.
 
