@@ -9,6 +9,7 @@ import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.BlockPos;
@@ -72,6 +73,10 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.getInput().typeChars("オーク");
             context.getInput().pressKey(InputConstants.KEY_F9);
             assertShowsReading(context, true, "Show answer after the name must show the reading");
+            if (!context.computeOnClient(client -> client.gui.screen().children().stream()
+                    .anyMatch(child -> child instanceof EditBox box && box.getValue().equals("オーク")))) {
+                throw new AssertionError("Showing the reading must keep the typed text");
+            }
 
             // The typing bar holds a correct answer while the keyboard's kanji conversion still has text that isn't
             // confirmed. The keys belong to the conversion: Esc doesn't close the menu, and the Enter that confirms
@@ -154,7 +159,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> client.gui.screen().keyReleased(
                     new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
             assertShowsReading(context, false, "A fail must show only the name");
-            // Show answer shows the reading, and the menu stays open. Only the logs count below shows it isn't punished.
+            // Show answer shows the reading, and the menu stays open.
             context.getInput().pressKey(InputConstants.KEY_F9);
             assertShowsReading(context, true, "Show answer after a fail must show the reading");
             if (!context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail())) {

@@ -123,7 +123,7 @@ public final class AnswerScreen extends Screen {
         return failed;
     }
 
-    /** Whether the player has chosen to reveal the reading after seeing the Japanese name. */
+    /** Whether the menu shows the reading below the Japanese name. Client game tests read it. */
     public boolean showsReading() {
         return readingShown;
     }
@@ -229,8 +229,10 @@ public final class AnswerScreen extends Screen {
      * doesn't submit, an Esc that cancels it doesn't close the menu, and a Backspace doesn't delete confirmed text.
      *
      * <p>Don't know only acts while the typing bar is empty, so its default key, Delete, still deletes typed text and
-     * fixing a typo never fails the review. After a fail, only a new press of Answer or Close, not a held key's
-     * repeat, closes the menu, and not before the answer has been shown for {@link #FAIL_SHOWN_MILLIS}.
+     * fixing a typo never fails the review. Show answer only acts on a new press, so holding it shows the name but not
+     * the reading too, and only while there is more to show, so a key it shares with another action still does that.
+     * After a fail, only a new press of Answer or Close, not a held key's repeat, closes the menu, and not before the
+     * answer has been shown for {@link #FAIL_SHOWN_MILLIS}.
      */
     @Override
     public boolean keyPressed(KeyEvent event) {
@@ -239,7 +241,7 @@ public final class AnswerScreen extends Screen {
             return true;
         }
         if (failed) {
-            if (ReviewKeys.SHOW.matches(event)) {
+            if (showLabel() != null && ReviewKeys.SHOW.matches(event)) {
                 if (!repeat) revealAnswer();
             } else if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
                 onClose();
@@ -254,7 +256,7 @@ public final class AnswerScreen extends Screen {
             action(ReviewAction.Action.IGNORE);
             return true;
         }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
+        if (level == 0 && showLabel() != null && ReviewKeys.SHOW.matches(event)) {
             if (!repeat) revealAnswer();
             return true;
         }
@@ -292,7 +294,7 @@ public final class AnswerScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (composing) return true;
         if (failed) {
-            if (ReviewKeys.SHOW.matches(event)) {
+            if (showLabel() != null && ReviewKeys.SHOW.matches(event)) {
                 revealAnswer();
                 return true;
             }
@@ -303,7 +305,7 @@ public final class AnswerScreen extends Screen {
         }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
+        if (level == 0 && showLabel() != null && ReviewKeys.SHOW.matches(event)) {
             revealAnswer(); return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
@@ -311,7 +313,10 @@ public final class AnswerScreen extends Screen {
         }
         if (ReviewKeys.ANSWER.matches(event)) { submit(); return true; }
         if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
-        return super.mouseClicked(event, doubleClick);
+        boolean handled = super.mouseClicked(event, doubleClick);
+        // A clicked button takes the focus after it runs, so the typing bar gets it back here, and typing goes on.
+        setFocused(input);
+        return handled;
     }
 
     /** Tracks whether the keyboard's kanji conversion has text that isn't confirmed yet. */
@@ -381,7 +386,7 @@ public final class AnswerScreen extends Screen {
 
     /**
      * Puts the typing bar in the middle of the screen, or higher if the hint and messages below it would reach the
-     * buttons. Both lines of the answer are kept free once the name is shown, so showing the reading doesn't move it.
+     * buttons. Both lines of the answer are kept free once the name is shown, so the reading has room when shown.
      * The heights match what {@link #extractRenderState} draws below the typing bar.
      */
     private void placeInput() {
@@ -410,7 +415,6 @@ public final class AnswerScreen extends Screen {
         failedAtMillis = Util.getMillis();
         wrong = false;
         shownAnswer = answer;
-        readingShown = false;
         input.setValue("");
         input.setEditable(false);
         input.setVisible(false);

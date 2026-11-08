@@ -69,7 +69,7 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 
 All keys can be rebound in Minecraft's Controls screen, including mouse buttons. Already known, Ignore and Show answer default to F7, F8 and F9 so vanilla Controls shows no false conflicts with movement keys. Both Enter keys submit on the default Answer binding; rebinding Answer removes that fallback. The hint shows the current binding. Close remains available with Esc as on other Minecraft screens.
 
-The hint line lists Don't know at every level. Show answer is listed in lessons before the name is revealed. Once the name is shown, the same binding is labeled Show reading, including after a fail. Holding the key does not reveal both stages: showing the reading needs another press. The reading stays visible until the menu closes.
+The hint line lists Don't know at every level. Show answer is listed in lessons before the name is revealed. Once the name is shown, the same binding is labeled Show reading, including after a fail. Holding the key does not reveal both stages: showing the reading needs another press. Once the reading is shown, Show answer leaves the hint, and the reading stays visible until the menu closes.
 
 With the [clickable buttons](settings.md#client-settings) setting on, the answer menu also has a button for each of these actions, which does what its key does. Since milestone 12.
 
@@ -78,7 +78,7 @@ With the [clickable buttons](settings.md#client-settings) setting on, the answer
 A review of an item at level 0 is a lesson:
 
 - Show answer shows the Japanese name alone, with its normal kanji and kana. Pressing it again shows the hiragana reading on a separate line below. Revealing the reading preserves any text the player has typed.
-- A wrong answer, or Don't know, shows the Japanese name alone. The same Show answer binding can then reveal its reading. It isn't a fail: nothing is removed, the item isn't banned and wrong attempts aren't counted.
+- A wrong answer, or Don't know, shows the Japanese name, and the reading only if it was already revealed. The same Show answer binding can then reveal its reading. It isn't a fail: nothing is removed, the item isn't banned and wrong attempts aren't counted.
 - A pass puts the item at level 1.
 
 ## What the client is told
@@ -96,7 +96,7 @@ The Japanese name and reading are only sent to the client once the player has pa
 | Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes, the [notification](display.md#notification) shows the Japanese name at the top of the screen, and the [reading clip](display.md#reading-clip) says its reading. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
 | Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name alone. Show answer reveals its reading below it without another attempt or punishment. Answer or Close closes the menu; only a new press closes it, not a held key's repeat, and not in the first half second. The review is already over, so closing it changes nothing. |
-| Lesson answer shown | The Japanese name is shown alone, and the lesson goes on. Another Show answer press reveals the reading. |
+| Lesson answer shown | The Japanese name is shown, and the lesson goes on. Another Show answer press reveals the reading. |
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |
 

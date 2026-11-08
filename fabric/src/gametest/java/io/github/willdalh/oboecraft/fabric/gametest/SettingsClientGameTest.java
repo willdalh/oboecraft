@@ -97,7 +97,8 @@ public class SettingsClientGameTest implements FabricClientGameTest {
 
     /**
      * A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. Show answer
-     * shows the name, then becomes Show reading, which shows the reading and is then disabled.
+     * shows the name, then becomes Show reading, which shows the reading and is then disabled. After a click, the
+     * typing bar keeps what was typed and still takes the typing.
      */
     private static void clickingTheAnswerMenusButtons(
             ClientGameTestContext context, TestSingleplayerContext singleplayer) {
@@ -118,11 +119,17 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         context.takeScreenshot("answer-menu-buttons");
         context.runOnClient(client -> pressButton(client, "key.oboecraft.show"));
         context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
+        check(!context.computeOnClient(client -> ((AnswerScreen) client.gui.screen()).showsReading()),
+                "Show answer should show only the name");
+        context.getInput().typeChars("オーク");
+        clickButton(context, "oboecraft.answer_menu.show_reading");
+        context.getInput().typeChars("の原木");
         context.runOnClient(client -> {
-            check(!((AnswerScreen) client.gui.screen()).showsReading(), "Show answer should show only the name");
-            pressButton(client, "oboecraft.answer_menu.show_reading");
             check(((AnswerScreen) client.gui.screen()).showsReading(), "Show reading should show the reading");
             check(!button(client, "oboecraft.answer_menu.show_reading").active, "Show reading should then be disabled");
+            check(fields(client).getFirst().getValue().equals("オークの原木"),
+                    "the typing bar should keep its text and take the typing after a click, not "
+                            + fields(client).getFirst().getValue());
             pressButton(client, "key.oboecraft.close");
         });
         context.waitForScreen(null);
@@ -135,6 +142,19 @@ public class SettingsClientGameTest implements FabricClientGameTest {
 
     private static void pressButton(Minecraft client, String translationKey) {
         button(client, translationKey).onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+    }
+
+    /** Clicks the button with the mouse, which, unlike {@link #pressButton}, goes through the screen's click handling. */
+    private static void clickButton(ClientGameTestContext context, String translationKey) {
+        // TestInput uses window coordinates; buttons use scaled GUI units.
+        double[] position = context.computeOnClient(client -> {
+            Button button = button(client, translationKey);
+            double scale = (double) client.getWindow().getScreenWidth() / client.getWindow().getGuiScaledWidth();
+            return new double[] {(button.getX() + button.getWidth() / 2.0) * scale,
+                    (button.getY() + button.getHeight() / 2.0) * scale};
+        });
+        context.getInput().setCursorPos(position[0], position[1]);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
     }
 
     private static Button button(Minecraft client, String translationKey) {
