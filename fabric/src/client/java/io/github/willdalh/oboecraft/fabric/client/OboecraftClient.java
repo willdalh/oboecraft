@@ -90,6 +90,11 @@ public final class OboecraftClient implements ClientModInitializer {
         return itemIcons;
     }
 
+    /** Plays the reading clips, after a pass and from the word list. Only used on the client thread. */
+    public static ReadingClips readingClips() {
+        return readingClips;
+    }
+
     /** The client's side of reviews, which the client's interaction hooks call. */
     public static ClientReviews reviews() {
         return reviews;

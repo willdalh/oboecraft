@@ -34,6 +34,7 @@
   "oboecraft.word_list.ignored": "Ignored",
   "oboecraft.word_list.mastered": "Mastered",
   "oboecraft.word_list.revert": "Revert to level 0",
+  "oboecraft.word_list.play_reading": "Play reading",
   "oboecraft.word_list.empty": "No words here yet",
   "oboecraft.word_list.hint": "Page %s/%s · Right-click a word to revert",
   "oboecraft.settings.title": "Oboecraft settings",
