@@ -170,16 +170,32 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         }
     }
 
-    /** A button labeled with the action's name, which does what its key does, and gives the typing bar focus back. */
+    /**
+     * A button labeled with the action's name, which does what its key does. Clicking it leaves the typing bar
+     * focused, and pressing it after reaching it with Tab gives the typing bar focus back, so the player can go on
+     * typing.
+     */
     private Button actionButton(ReviewKeys.Binding binding, Runnable press) {
-        return Button.builder(Component.translatable(binding.mapping().getName()), button -> {
+        return new ActionButton(Component.translatable(binding.mapping().getName()), button -> {
             if (!composing) {
                 press.run();
             }
             if (input != null && input.isVisible()) {
                 setFocused(input);
             }
-        }).build();
+        });
+    }
+
+    /** A button that doesn't take focus when clicked, as the screen otherwise moves focus to it after the press. */
+    private static final class ActionButton extends Button.Plain {
+        ActionButton(Component message, OnPress onPress) {
+            super(0, 0, 0, 0, message, onPress, DEFAULT_NARRATION);
+        }
+
+        @Override
+        public boolean shouldTakeFocusAfterInteraction() {
+            return false;
+        }
     }
 
     @Override
