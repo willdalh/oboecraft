@@ -219,6 +219,15 @@ Decided in [willdalh/oboecraft#43](https://github.com/willdalh/oboecraft/issues/
 - It is added only through Fabric API's screen hooks, so mods that change the inventory screen keep working. No setting hides or moves it, since hiding it would leave the word list unreachable.
 - It changes how players reach a feature, so the release with it is a `minor` bump. The network protocol doesn't change.
 
+### Learning tab
+
+Decided in [willdalh/oboecraft#36](https://github.com/willdalh/oboecraft/issues/36), see [Word list](design/word-list.md#learning-tab). This is the display part of the issue; reviewing from the list, the wider Revert and its confirmation box come later:
+
+- The word list opens on a new Learning tab (学習中), before Known, Ignored and Mastered, which lists the items from level 1 up to mastered.
+- Locked rows show `???`, with no reading clip button, the level, and the ban time left. Unlocked rows show the name, the reading clip button, the level and the live lock timer.
+- A button switches between the Urgency and Level orders, kept until the game closes.
+- Clicking a row on the tab does nothing yet. The network protocol doesn't change.
+
 ### Game modes and renaming
 
 Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items](design/items.md#renaming):
