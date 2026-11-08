@@ -16,6 +16,7 @@ import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
 import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -108,26 +109,15 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     @Override public AbstractContainerScreen<?> menuScreen() { return inventory; }
 
     /**
-     * Lays out the tab's rows from the current progress and time, sorted again since the Learning tab's order depends
-     * on which items are locked. The list keeps where it was scrolled to unless the tab or order changed.
+     * Lays out the tabs, the list and the buttons below it. The list keeps where it was scrolled to unless the tab or
+     * order changed.
      */
     @Override protected void init() {
         snapshot = OboecraftClient.progress().progress();
         layoutSettings = settings();
-        Instant now = OboecraftClient.progress().now();
-        List<NameListEntry> entries = OboecraftMod.itemMapping().nameList().entries().stream()
-                .filter(entry -> inGroup(snapshot.state(entry.id())))
-                .sorted(entryOrder(now)).toList();
-        empty = entries.isEmpty();
-        nextLock = group != LEARNING ? null : entries.stream()
-                .map(entry -> ((SrsState.Leveled) snapshot.state(entry.id())).locksAt())
-                .flatMap(Optional::stream)
-                .filter(now::isBefore)
-                .min(Comparator.naturalOrder()).orElse(null);
-
-        int listWidth = Math.min(MAX_LIST_WIDTH, width - 2 * SIDE_MARGIN);
+        int tabWidth = (Math.min(MAX_LIST_WIDTH, width - 2 * SIDE_MARGIN) - (TAB_COUNT - 1) * TAB_GAP) / TAB_COUNT;
+        int listWidth = TAB_COUNT * tabWidth + (TAB_COUNT - 1) * TAB_GAP;
         int listLeft = (width - listWidth) / 2;
-        int tabWidth = (listWidth - (TAB_COUNT - 1) * TAB_GAP) / TAB_COUNT;
         for (int tab = 0; tab < TAB_COUNT; tab++) {
             int chosen = tab;
             var button = addRenderableWidget(Button.builder(groupLabel(tab), ignored -> {
@@ -139,9 +129,7 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
         double scroll = list == null || scrollToTop ? 0 : list.scrollAmount();
         scrollToTop = false;
         list = addRenderableWidget(new WordList(listLeft, listWidth, height - LIST_TOP - LIST_BOTTOM_MARGIN));
-        WordList.Columns columns = list.columns();
-        for (NameListEntry entry : entries) list.add(new Row(entry, group == LEARNING
-                && SrsRules.isLocked(snapshot.state(entry.id()), now, layoutSettings), columns));
+        fillList(list);
         list.setScrollAmount(scroll);
 
         if (group == LEARNING) {
@@ -156,6 +144,26 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
             }).bounds(width / 2 - 65, height - 45, 130, 20).build());
             revert.visible = selected != null;
         }
+    }
+
+    /**
+     * Fills the list with the tab's rows from the current progress and time, sorted again since the Learning tab's order
+     * depends on which items are locked, and remembers when the next Learning row locks.
+     */
+    private void fillList(WordList list) {
+        Instant now = OboecraftClient.progress().now();
+        List<NameListEntry> entries = OboecraftMod.itemMapping().nameList().entries().stream()
+                .filter(entry -> inGroup(snapshot.state(entry.id())))
+                .sorted(entryOrder(now)).toList();
+        empty = entries.isEmpty();
+        nextLock = group != LEARNING ? null : entries.stream()
+                .map(entry -> ((SrsState.Leveled) snapshot.state(entry.id())).locksAt())
+                .flatMap(Optional::stream)
+                .filter(now::isBefore)
+                .min(Comparator.naturalOrder()).orElse(null);
+        WordList.Columns columns = list.columns();
+        list.replaceEntries(entries.stream().map(entry -> new Row(entry, group == LEARNING
+                && SrsRules.isLocked(snapshot.state(entry.id()), now, layoutSettings), columns)).toList());
     }
 
     /** Selects the row whose Revert button shows, or none. Only the name's color and the button change. */
@@ -202,16 +210,17 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     }
 
     /**
-     * Without progress there is no word list, so it goes back to the inventory, which then has no button. The rows are
-     * laid out again when progress or the settings change, and when a Learning row locks, since it then shows
-     * {@code ???}, loses its button and moves among the locked rows.
+     * Without progress there is no word list, so it goes back to the inventory, which then has no button. The screen is
+     * laid out again when progress or the settings change. When a Learning row locks, only the list's rows are made
+     * again, since the row then shows {@code ???}, loses its button and moves among the locked rows, and the list
+     * itself, with its scroll position and a drag of its scrollbar, stays.
      */
     @Override public void tick() {
         if (minecraft.player == null || !OboecraftClient.progress().hasProgress(minecraft.player)) { onClose(); return; }
         if (snapshot != OboecraftClient.progress().progress() || layoutSettings != settings()) {
             selected = null; rebuildWidgets();
-        } else if (nextLock != null && !OboecraftClient.progress().now().isBefore(nextLock)) {
-            rebuildWidgets();
+        } else if (list != null && nextLock != null && !OboecraftClient.progress().now().isBefore(nextLock)) {
+            fillList(list);
         }
     }
 
@@ -264,7 +273,15 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
             setX(left);
         }
 
-        void add(Row row) { addEntry(row); }
+        /**
+         * Replaces the rows, keeping the scroll position. A focused row's reading clip button goes with it, so a locked
+         * row's clip can't be played from the keyboard.
+         */
+        @Override public void replaceEntries(Collection<Row> rows) {
+            setFocused(null);
+            super.replaceEntries(rows);
+            refreshScrollAmount();
+        }
 
         @Override public int getRowLeft() { return getX(); }
 

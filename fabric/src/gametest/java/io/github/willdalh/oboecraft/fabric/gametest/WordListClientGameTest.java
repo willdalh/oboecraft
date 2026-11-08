@@ -50,6 +50,8 @@ public class WordListClientGameTest implements FabricClientGameTest {
     private static final int SECONDARY = 1;
     /** The button is right of the recipe book button, which is 20 wide, with a gap of 2. */
     private static final int RIGHT_OF_RECIPE_BOOK = 22;
+    /** The reading clip buttons are after the icons, which are 16 wide, with a gap of 4, from the list's left edge. */
+    private static final int READING_CLIP_COLUMN = 20;
 
     @Override
     public void runTest(ClientGameTestContext context) {
@@ -84,8 +86,8 @@ public class WordListClientGameTest implements FabricClientGameTest {
     /**
      * The word list opens on the Learning tab, where only the unlocked items have a reading clip button, since a locked
      * one's clip would give the answer away, and the buttons line up in one column. When the unlocked items lock while
-     * the list is open, their rows lose the button, without any change to progress. The sort button switches between the orders, and the choice is kept when
-     * the word list opens again.
+     * the list is open, their rows lose the button, without any change to progress. The sort button switches between
+     * the orders, and the choice is kept when the word list opens again.
      */
     private static void opensOnTheLearningTab(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
         singleplayer.getServer().runOnServer(server -> {
@@ -109,10 +111,12 @@ public class WordListClientGameTest implements FabricClientGameTest {
             if (button(screen, "Learning").active) throw new AssertionError("The word list should open on Learning");
             List<SpriteIconButton> clipButtons = WordListReadingClipButtons.find(screen);
             if (clipButtons.size() != 2) {
-                throw new AssertionError("Only the unlocked items should have a reading clip button, not " + clipButtons.size());
+                throw new AssertionError(
+                        "Only the unlocked items should have a reading clip button, not " + clipButtons.size());
             }
-            if (clipButtons.get(0).getX() != clipButtons.get(1).getX()) {
-                throw new AssertionError("The reading clip buttons should line up in one column");
+            int column = button(screen, "Learning").getX() + READING_CLIP_COLUMN;
+            if (clipButtons.stream().anyMatch(clipButton -> clipButton.getX() != column)) {
+                throw new AssertionError("The reading clip buttons should line up in one column after the icons");
             }
         });
         context.runOnClient(client -> OboecraftClient.progress().updateServerTime(

@@ -26,7 +26,8 @@ class LearningOrderTest {
         var unlockedLatest = leveled(1, Duration.ofDays(1));
         var expected = List.of(unlockedSoonest, unlockedLatest, noLocksAt, lockedLongest, banned, lockedRecently);
 
-        assertEquals(expected, expected.reversed().stream().sorted(LearningOrder.URGENCY.comparator(NOW, SETTINGS)).toList());
+        assertEquals(expected,
+                expected.reversed().stream().sorted(LearningOrder.URGENCY.comparator(NOW, SETTINGS)).toList());
     }
 
     @Test void levelPutsLowestLevelFirstWithUrgencyBreakingTies() {
@@ -36,7 +37,8 @@ class LearningOrderTest {
         var levelTwoUnlocked = leveled(2, Duration.ofHours(3));
         var expected = List.of(levelOneUnlocked, levelOneLocked, levelTwoUnlocked, levelTwoLocked);
 
-        assertEquals(expected, expected.reversed().stream().sorted(LearningOrder.LEVEL.comparator(NOW, SETTINGS)).toList());
+        assertEquals(expected,
+                expected.reversed().stream().sorted(LearningOrder.LEVEL.comparator(NOW, SETTINGS)).toList());
     }
 
     @Test void anItemMovesToTheLockedItemsWhenItLocks() {
