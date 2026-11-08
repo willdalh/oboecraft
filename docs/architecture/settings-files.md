@@ -41,12 +41,15 @@ A file with another version is refused like an invalid one. Version 1 is the fir
 
 ```json
 {
-  "version": 1,
-  "clickableButtons": false
+  "version": 2,
+  "clickableButtons": false,
+  "reviewItemScalePercent": 100
 }
 ```
 
-The fields must be exactly these. A missing file means the defaults, and an invalid file is logged and left as it is, and the defaults are used. The client reads it once when the game starts, and the settings screen writes it.
+Version 2 has exactly these fields. `reviewItemScalePercent` is a whole number from 50 to 400. The default 100 preserves the original 16-pixel image in GUI coordinates. The answer menu scales only this item's drawing and keeps it centered above the answer field, limited to the available space.
+
+Version 1, with exactly `version` and `clickableButtons`, is also accepted: its clickable buttons value is kept and the review item size defaults to 100%. Reading does not rewrite the file; the next save writes version 2. Unknown fields, unsupported versions and invalid values are rejected. A missing file means the defaults, and an invalid file is logged and left as it is, and the defaults are used. The client reads it once when the game starts, and the settings screen writes it.
 
 ## Settings in the game
 
