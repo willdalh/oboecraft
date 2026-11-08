@@ -181,7 +181,9 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
                     InputConstants.KEY_F7, 0, 0)));
             context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Known
                     && !(client.gui.screen() instanceof AnswerScreen));
-            context.getInput().pressKey(InputConstants.KEY_J);
+            context.getInput().pressKey(InputConstants.KEY_E);
+            context.waitForScreen(net.minecraft.client.gui.screens.inventory.InventoryScreen.class);
+            WordListButtons.click(context);
             context.waitForScreen(io.github.willdalh.oboecraft.fabric.client.WordListScreen.class);
             context.takeScreenshot("word-list-known");
             if (!context.computeOnClient(client -> OboecraftClient.itemIcons()
@@ -206,6 +208,9 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             });
             context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG).equals(SrsState.Leveled.NEW));
             context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitForScreen(net.minecraft.client.gui.screens.inventory.InventoryScreen.class);
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitForScreen(null);
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             context.waitForScreen(AnswerScreen.class);
             singleplayer.getConnection().waitForServerboundPackets();

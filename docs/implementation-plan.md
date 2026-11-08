@@ -210,6 +210,15 @@ Decided in [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/
 - The server sends the item id with the answer after a pass, so the client knows which clip to play. That raised the network protocol to 6.
 - VOICEVOX is given the name with its kanji when it says it as the reviewed reading, for the pitch accent of the words. Otherwise it is given the name with the kanji replaced by their readings, or the whole reading, whichever it says as the reading, since VOICEVOX reads some kanji and kana wrongly for the name.
 
+### Word list button
+
+Decided in [willdalh/oboecraft#43](https://github.com/willdalh/oboecraft/issues/43), after the milestones, see [Word list](design/word-list.md):
+
+- A あ button right of the recipe book button in the survival and adventure inventory opens the word list, in place of the J key, whose binding is removed. It is only there while the player has progress, and the creative inventory has none.
+- Close goes back to the inventory, which stays open behind the word list, and the inventory key closes both.
+- It is added only through Fabric API's screen hooks, so mods that change the inventory screen keep working. No setting hides or moves it, since hiding it would leave the word list unreachable.
+- It changes how players reach a feature, so the release with it is a `minor` bump. The network protocol doesn't change.
+
 ### Game modes and renaming
 
 Decided in milestone 11, see [Reviews](design/reviews.md#game-modes) and [Items](design/items.md#renaming):
@@ -348,7 +357,7 @@ What later milestones should know: `ItemDisplay` uses the shared `Locks` service
 
 Built: lesson answer reveal and unlimited unpunished attempts at level 0; Already known and Ignore; dropping ignored loose inventory stacks and blocking their interactions and pickups; inventory right-click reviews; Controls bindings; and a paginated word list with separate known, ignored and mastered tabs and server-validated Revert.
 
-Differences: Don't know is available in lessons now, with higher-level fails left to milestone 9. The word list defaults to J (O is Minecraft's Friends key). Already known, Ignore and Show answer default to F7, F8 and F9 instead of Ctrl shortcuts, because vanilla stores single-key bindings and reports Ctrl+S as conflicting with walking backwards. Worn armor and container contents stay in use when ignoring an item.
+Differences: Don't know is available in lessons now, with higher-level fails left to milestone 9. The word list defaults to J (O is Minecraft's Friends key). After the milestones, [willdalh/oboecraft#43](https://github.com/willdalh/oboecraft/issues/43) replaced the J key with a button in the inventory, see [Word list](design/word-list.md). Already known, Ignore and Show answer default to F7, F8 and F9 instead of Ctrl shortcuts, because vanilla stores single-key bindings and reports Ctrl+S as conflicting with walking backwards. Worn armor and container contents stay in use when ignoring an item.
 
 Later milestones: protocol 3 carries tagged states and lesson results. Progress format 2 reads format 1 unchanged, but prevents older mods from treating known/ignored states as corrupt and overwriting progress. Settings still use defaults until milestone 12. See [Word list](design/word-list.md).
 
