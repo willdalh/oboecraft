@@ -23,6 +23,8 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.Blocks;
@@ -95,7 +97,10 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         check(ClientSettingsFile.read(ClientSettingsFile.path()).clickableButtons(), "the saved client settings file");
     }
 
-    /** A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. */
+    /**
+     * A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. Clicking
+     * a button leaves the typing bar focused, so the player can go on typing.
+     */
     private static void clickingTheAnswerMenusButtons(
             ClientGameTestContext context, TestSingleplayerContext singleplayer) {
         BlockPos target = singleplayer.getServer().computeOnServer(server -> {
@@ -113,8 +118,13 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         context.waitForScreen(AnswerScreen.class);
         singleplayer.getConnection().waitForServerboundPackets();
         context.takeScreenshot("answer-menu-buttons");
-        context.runOnClient(client -> pressButton(client, "key.oboecraft.show"));
+        context.runOnClient(client -> clickButton(client, "key.oboecraft.show"));
         context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
+        context.runOnClient(client -> {
+            EditBox input = fields(client).getFirst();
+            check(input.isFocused() && client.gui.screen().getFocused() == input,
+                    "the typing bar should stay focused after a button is clicked");
+        });
         context.runOnClient(client -> pressButton(client, "key.oboecraft.close"));
         context.waitForScreen(null);
     }
@@ -125,12 +135,24 @@ public class SettingsClientGameTest implements FabricClientGameTest {
     }
 
     private static void pressButton(Minecraft client, String translationKey) {
+        button(client, translationKey).onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+    }
+
+    private static Button button(Minecraft client, String translationKey) {
         String label = Component.translatable(translationKey).getString();
-        client.gui.screen().children().stream()
+        return client.gui.screen().children().stream()
                 .filter(child -> child instanceof Button button && button.getMessage().getString().equals(label))
                 .map(Button.class::cast).findFirst()
-                .orElseThrow(() -> new AssertionError("No button " + label))
-                .onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+                .orElseThrow(() -> new AssertionError("No button " + label));
+    }
+
+    /** Clicks the button with the left mouse button, through the screen as a real click goes. */
+    private static void clickButton(Minecraft client, String translationKey) {
+        Button button = button(client, translationKey);
+        MouseButtonEvent click = new MouseButtonEvent(button.getX() + button.getWidth() / 2.0,
+                button.getY() + button.getHeight() / 2.0, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
+        client.gui.screen().mouseClicked(click, false);
+        client.gui.screen().mouseReleased(click);
     }
 
     private static void check(boolean condition, String what) {
