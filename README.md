@@ -31,7 +31,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
   </tr>
   <tr>
     <td><img src="docs/images/inventory.jpg" alt="The inventory, with the tooltip of サクラの板材 showing 49分57秒 until it locks"></td>
-    <td><img src="docs/images/word-list.jpg" alt="The word list with known items and their readings"></td>
+    <td><img src="docs/images/word-list.jpg" alt="The word list with known items, their icons and their readings"></td>
   </tr>
   <tr>
     <td>Unlocked items show when they lock again. The amber corner means soon.</td>

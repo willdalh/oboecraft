@@ -38,6 +38,7 @@ public final class OboecraftClient implements ClientModInitializer {
     private static PassNotification notification;
     private static ReadingClips readingClips;
     private static ClientSettings clientSettings;
+    private static ItemIcons itemIcons;
 
     @Override
     public void onInitializeClient() {
@@ -47,6 +48,7 @@ public final class OboecraftClient implements ClientModInitializer {
         clientSettings = ClientSettingsFile.read(ClientSettingsFile.path());
         notification = new PassNotification();
         readingClips = new ReadingClips();
+        itemIcons = new ItemIcons(OboecraftMod.itemMapping());
         reviews = new ClientReviews(
                 OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification, readingClips);
         registerReceivers();
@@ -58,6 +60,7 @@ public final class OboecraftClient implements ClientModInitializer {
             progress.clear();
             notification.clear();
             readingClips.stop();
+            itemIcons.clear();
         });
         OboecraftMod.LOGGER.info("Oboecraft client initialized");
     }
@@ -80,6 +83,11 @@ public final class OboecraftClient implements ClientModInitializer {
     /** The notification after a pass, which the GUI draws and client game tests read. */
     public static PassNotification notification() {
         return notification;
+    }
+
+    /** The icons of the items, which the word list draws and client game tests read. */
+    public static ItemIcons itemIcons() {
+        return itemIcons;
     }
 
     /** The client's side of reviews, which the client's interaction hooks call. */

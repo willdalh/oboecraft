@@ -10,25 +10,18 @@ import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.item.NamePart;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.NamedStacks;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
-import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.entity.raid.Raid;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.component.LodestoneTracker;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.storage.loot.LootTable;
 
@@ -63,31 +56,8 @@ public class NameListGameTest {
      */
     @GameTest
     public void everyStackTheGameNamesIsInTheNameList(GameTestHelper helper) {
-        List<ItemStack> stacks = new ArrayList<>();
-        for (Item item : BuiltInRegistries.ITEM) {
-            if (item != Items.AIR) {
-                stacks.add(new ItemStack(item));
-            }
-        }
-        for (Holder<Potion> potion : BuiltInRegistries.POTION.listElements().toList()) {
-            for (Item item : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION, Items.TIPPED_ARROW)) {
-                stacks.add(PotionContents.createItemStack(item, potion));
-            }
-        }
-        for (DyeColor color : DyeColor.values()) {
-            ItemStack shield = new ItemStack(Items.SHIELD);
-            shield.set(DataComponents.BASE_COLOR, color);
-            stacks.add(shield);
-        }
-        ItemStack lodestoneCompass = new ItemStack(Items.COMPASS);
-        lodestoneCompass.set(DataComponents.LODESTONE_TRACKER, new LodestoneTracker(Optional.empty(), true));
-        stacks.add(lodestoneCompass);
-        ItemStack namedHead = new ItemStack(Items.PLAYER_HEAD);
-        namedHead.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved("Steve"));
-        stacks.add(namedHead);
-        stacks.add(Raid.getOminousBannerInstance(
-                helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)));
-
+        List<ItemStack> stacks = NamedStacks.all(
+                helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN));
         ItemMapping mapping = OboecraftMod.itemMapping();
         List<String> missing = stacks.stream()
                 .filter(stack -> mapping.entryOf(stack).isEmpty())

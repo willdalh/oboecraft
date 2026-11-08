@@ -184,6 +184,11 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.getInput().pressKey(InputConstants.KEY_J);
             context.waitForScreen(io.github.willdalh.oboecraft.fabric.client.WordListScreen.class);
             context.takeScreenshot("word-list-known");
+            if (!context.computeOnClient(client -> OboecraftClient.itemIcons()
+                    .icon(client.level.registryAccess(), OAK_LOG)
+                    .filter(icon -> icon.is(net.minecraft.world.item.Items.OAK_LOG)).isPresent())) {
+                throw new AssertionError("The word list must show the oak log's icon");
+            }
             context.runOnClient(client -> {
                 var screen = client.gui.screen();
                 screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(screen.width / 2.0, 62,

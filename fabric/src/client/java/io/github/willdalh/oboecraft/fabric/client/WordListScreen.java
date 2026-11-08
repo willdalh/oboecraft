@@ -17,8 +17,23 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
-/** Three separate lists. Revert is confirmed through a context action and waits for the server's update. */
+/**
+ * Three separate lists. Each row has the item's icon, name and reading, left-justified from the left edge of the tabs.
+ * Revert is confirmed through a context action and waits for the server's update.
+ */
 public final class WordListScreen extends Screen {
+    private static final int TAB_WIDTH = 100;
+    private static final int TAB_GAP = 3;
+    private static final int TAB_COUNT = 3;
+    private static final int TABS_WIDTH = TAB_COUNT * TAB_WIDTH + (TAB_COUNT - 1) * TAB_GAP;
+    private static final int LIST_TOP = 56;
+    /** The space below the list, for the page buttons and the hint. */
+    private static final int LIST_BOTTOM_MARGIN = 64;
+    private static final int ROW_HEIGHT = 24;
+    private static final int ICON_SIZE = 16;
+    private static final int ICON_GAP = 4;
+    private static final int RIGHT_MARGIN = 10;
+
     private int group;
     private int cachedGroup = -1;
     private int page;
@@ -30,7 +45,7 @@ public final class WordListScreen extends Screen {
     public WordListScreen() { super(Component.translatable("oboecraft.word_list.title")); }
 
     @Override protected void init() {
-        pageSize = Math.max(1, (height - 120) / 24);
+        pageSize = Math.max(1, (height - LIST_TOP - LIST_BOTTOM_MARGIN) / ROW_HEIGHT);
         Progress current = OboecraftClient.progress().progress();
         if (snapshot != current || cachedGroup != group) {
             snapshot = current;
@@ -40,11 +55,11 @@ public final class WordListScreen extends Screen {
                     .sorted(Comparator.comparing(entry -> entry.japaneseName().text())).toList();
         }
         page = Math.min(page, Math.max(0, (entries.size() - 1) / pageSize));
-        for (int tab = 0; tab < 3; tab++) {
+        for (int tab = 0; tab < TAB_COUNT; tab++) {
             int chosen = tab;
             var button = addRenderableWidget(Button.builder(groupLabel(tab), ignored -> {
                 group = chosen; page = 0; selected = null; rebuildWidgets();
-            }).bounds(width / 2 - 153 + tab * 103, 28, 100, 20).build());
+            }).bounds(listLeft() + tab * (TAB_WIDTH + TAB_GAP), 28, TAB_WIDTH, 20).build());
             button.active = tab != group;
         }
         var previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
@@ -63,6 +78,11 @@ public final class WordListScreen extends Screen {
             }).bounds(width / 2 - 65, height - 45, 130, 20).build());
         }
     }
+
+    /** Rows start at the left edge of the tabs and reach the right margin of the screen. */
+    private int listLeft() { return width / 2 - TABS_WIDTH / 2; }
+
+    private int listRight() { return width - RIGHT_MARGIN; }
 
     private boolean inGroup(SrsState state) {
         return SrsRules.canRevert(state, OboecraftClient.progress().settings()) && switch (group) {
@@ -84,10 +104,10 @@ public final class WordListScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        int row = (int) (event.y() - 58) / 24;
+        int row = (int) Math.floor((event.y() - LIST_TOP) / ROW_HEIGHT);
         int index = page * pageSize + row;
-        if (event.button() == 1 && event.y() >= 58 && row >= 0 && row < pageSize
-                && index < entries.size() && Math.abs(event.x() - width / 2.0) <= Math.min(240, width / 2 - 10)) {
+        if (event.button() == 1 && row >= 0 && row < pageSize && index < entries.size()
+                && event.x() >= listLeft() && event.x() < listRight()) {
             selected = entries.get(index).id();
             rebuildWidgets();
             return true;
@@ -99,15 +119,29 @@ public final class WordListScreen extends Screen {
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+        int textLeft = listLeft() + ICON_SIZE + ICON_GAP;
         graphics.centeredText(font, title, width / 2, 10, -1);
         for (int row = 0; row < pageSize && page * pageSize + row < entries.size(); row++) {
             var entry = entries.get(page * pageSize + row);
             var name = entry.japaneseName();
-            graphics.centeredText(font, Component.literal(name.text() + " (" + name.reading() + ")"),
-                    width / 2, 60 + row * 24, entry.id().equals(selected) ? 0xFFFFFF55 : -1);
+            int y = LIST_TOP + row * ROW_HEIGHT;
+            if (minecraft.level != null) {
+                OboecraftClient.itemIcons().icon(minecraft.level.registryAccess(), entry.id())
+                        .ifPresent(icon -> graphics.item(icon, listLeft(), y));
+            }
+            graphics.text(font, fitted(name.text() + " (" + name.reading() + ")", listRight() - textLeft),
+                    textLeft, y + (ICON_SIZE - font.lineHeight) / 2 + 1,
+                    entry.id().equals(selected) ? 0xFFFFFF55 : -1);
         }
         if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
         graphics.centeredText(font, Component.translatable("oboecraft.word_list.hint", page + 1,
                 Math.max(1, (entries.size() + pageSize - 1) / pageSize)), width / 2, height - 16, 0xFFA0A0A0);
+    }
+
+    /** The text, cut short with an ellipsis if it is wider than the space it has. */
+    private String fitted(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) return text;
+        String ellipsis = "…";
+        return font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width(ellipsis))) + ellipsis;
     }
 }
