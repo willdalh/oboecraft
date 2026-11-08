@@ -14,7 +14,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -23,8 +22,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.SpriteIconButton;
-import net.minecraft.client.gui.components.events.ContainerEventHandler;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -110,7 +107,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             Screen screen = client.gui.screen();
             if (button(screen, "Learning").active) throw new AssertionError("The word list should open on Learning");
-            List<SpriteIconButton> clipButtons = clipButtons(screen);
+            List<SpriteIconButton> clipButtons = WordListReadingClipButtons.find(screen);
             if (clipButtons.size() != 2) {
                 throw new AssertionError("Only the unlocked items should have a reading clip button, not " + clipButtons.size());
             }
@@ -120,7 +117,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
         });
         context.runOnClient(client -> OboecraftClient.progress().updateServerTime(
                 client.getConnection(), OboecraftClient.progress().now().plus(Duration.ofHours(2))));
-        context.waitFor(client -> clipButtons(client.gui.screen()).isEmpty());
+        context.waitFor(client -> WordListReadingClipButtons.find(client.gui.screen()).isEmpty());
         context.runOnClient(client -> {
             OboecraftClient.progress().updateServerTime(client.getConnection(), OboecraftMod.serverProgress().now());
             Screen screen = client.gui.screen();
@@ -145,16 +142,6 @@ public class WordListClientGameTest implements FabricClientGameTest {
             OboecraftMod.serverProgress().update(player(server), COBBLESTONE, SrsState.Leveled.NEW);
         });
         singleplayer.getConnection().waitForClientboundPackets();
-    }
-
-    /** The reading clip buttons in the rows of the word list, in the list's order. */
-    private static List<SpriteIconButton> clipButtons(Screen screen) {
-        return descendants(screen).filter(SpriteIconButton.class::isInstance).map(SpriteIconButton.class::cast).toList();
-    }
-
-    private static Stream<GuiEventListener> descendants(ContainerEventHandler parent) {
-        return parent.children().stream().flatMap(child -> Stream.concat(Stream.of(child),
-                child instanceof ContainerEventHandler container ? descendants(container) : Stream.empty()));
     }
 
     private static Button button(Screen screen, String message) {
