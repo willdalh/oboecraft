@@ -38,6 +38,8 @@
   "oboecraft.word_list.hint": "Page %s/%s · Right-click a word to revert",
   "oboecraft.settings.title": "Oboecraft settings",
   "oboecraft.settings.clickable_buttons": "Clickable buttons in the answer menu",
+  "oboecraft.settings.review_item_scale": "Review item size: %s%%",
+  "oboecraft.settings.review_item_scale_hint": "Changes the item image above the answer field for all items. Other item images keep their normal size.",
   "oboecraft.settings.server": "Settings for singleplayer and worlds opened to LAN",
   "oboecraft.settings.server_remote": "This server's settings, which only its owner can change",
   "oboecraft.settings.intervals": "Intervals of the levels, like 10m, 1h, 1d",

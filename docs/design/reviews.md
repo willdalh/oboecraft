@@ -85,6 +85,8 @@ A review of an item at level 0 is a lesson:
 
 The answer menu shows the item's level, and "one attempt left" when a wrong attempt is saved. When a review starts, the server sends the level, which says whether it is a lesson, and how many attempts are left.
 
+The item's image is centered above the answer field without showing its name. Each player can adjust its size for all items with the [review item size setting](settings.md#client-settings).
+
 The Japanese name and reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client only shows the name and plays the item's [reading clip](display.md#reading-clip), so the server sends the item's id with them.
 
 ## Outcomes
