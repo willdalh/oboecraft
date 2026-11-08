@@ -39,8 +39,8 @@ public final class WordListScreen extends Screen {
     private static final int RIGHT_MARGIN = 10;
     private static final Identifier READING_CLIP_SPRITE =
             Identifier.fromNamespaceAndPath(Oboecraft.MOD_ID, "icon/reading_clip");
-    private static final int READING_CLIP_SPRITE_WIDTH = 8;
-    private static final int READING_CLIP_SPRITE_HEIGHT = 12;
+    private static final int READING_CLIP_SPRITE_WIDTH = 10;
+    private static final int READING_CLIP_SPRITE_HEIGHT = 14;
     private static final int READING_CLIP_BUTTON_SIZE = 20;
     private static final int READING_CLIP_BUTTON_GAP = 4;
 
