@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Over an open menu, like a chest, the answer menu replaces the menu's screen without closing the menu, and goes
  * back to that screen when it closes. See {@code GuiMixin}.
  */
-public final class AnswerScreen extends Screen {
+public final class AnswerScreen extends Screen implements OverMenuScreen {
     private static final Component TITLE = Component.translatable("oboecraft.answer_menu.title");
     private static final Component INPUT_LABEL = Component.translatable("oboecraft.answer_menu.input");
     private static final Component WRONG = Component.translatable("oboecraft.answer_menu.wrong")
@@ -90,7 +90,7 @@ public final class AnswerScreen extends Screen {
         this.menuScreen = menuScreen;
     }
 
-    /** The screen of the open menu that the answer menu opened over, or null if it opened over the game. */
+    @Override
     public @Nullable AbstractContainerScreen<?> menuScreen() {
         return menuScreen;
     }
@@ -350,15 +350,9 @@ public final class AnswerScreen extends Screen {
         onClose();
     }
 
-    /**
-     * Goes back to the open menu's screen, if the answer menu opened over one and that menu is still open. If the
-     * menu has closed meanwhile, its screen is gone too.
-     */
     @Override
     public void onClose() {
-        boolean menuStillOpen = menuScreen != null && minecraft.player != null
-                && menuScreen.getMenu() == minecraft.player.containerMenu;
-        minecraft.gui.setScreen(menuStillOpen ? menuScreen : null);
+        returnToMenuScreen(minecraft);
     }
 
     /** Closing the menu in any other way than the server ending the review cancels the review. */

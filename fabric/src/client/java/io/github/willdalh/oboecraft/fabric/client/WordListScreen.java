@@ -15,6 +15,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -25,7 +28,7 @@ import org.jspecify.annotations.Nullable;
  * from the left edge of the tabs. The reading itself isn't shown, so the player recalls it before listening. Revert is
  * confirmed through a context action and waits for the server's update.
  */
-public final class WordListScreen extends Screen {
+public final class WordListScreen extends Screen implements OverMenuScreen {
     private static final int TAB_WIDTH = 100;
     private static final int TAB_GAP = 3;
     private static final int TAB_COUNT = 3;
@@ -44,6 +47,7 @@ public final class WordListScreen extends Screen {
     private static final int READING_CLIP_BUTTON_SIZE = 20;
     private static final int READING_CLIP_BUTTON_GAP = 4;
 
+    private final InventoryScreen inventory;
     private int group;
     private int cachedGroup = -1;
     private int page;
@@ -54,7 +58,13 @@ public final class WordListScreen extends Screen {
     private List<String> rowTexts = List.of();
     private @Nullable ItemId selected;
 
-    public WordListScreen() { super(Component.translatable("oboecraft.word_list.title")); }
+    /** Opens over the inventory, which stays open. Close goes back to it, and the inventory key closes both. */
+    public WordListScreen(InventoryScreen inventory) {
+        super(Component.translatable("oboecraft.word_list.title"));
+        this.inventory = inventory;
+    }
+
+    @Override public AbstractContainerScreen<?> menuScreen() { return inventory; }
 
     @Override protected void init() {
         pageSize = Math.max(1, (height - LIST_TOP - LIST_BOTTOM_MARGIN) / ROW_HEIGHT);
@@ -132,6 +142,7 @@ public final class WordListScreen extends Screen {
         });
     }
 
+    /** Without progress there is no word list, so it goes back to the inventory, which then has no button. */
     @Override public void tick() {
         if (minecraft.player == null || !OboecraftClient.progress().hasProgress(minecraft.player)) { onClose(); return; }
         if (snapshot != OboecraftClient.progress().progress()) { selected = null; rebuildWidgets(); }
@@ -147,6 +158,27 @@ public final class WordListScreen extends Screen {
             return true;
         }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override public boolean keyPressed(KeyEvent event) {
+        if (minecraft.options.keyInventory.matches(event)) { closeInventory(); return true; }
+        if (ReviewKeys.CLOSE.matches(event)) { onClose(); return true; }
+        return super.keyPressed(event);
+    }
+
+    @Override public void onClose() { returnToMenuScreen(minecraft); }
+
+    /**
+     * Closes the inventory as its own inventory key does, so the server is told it closed, without showing it again. Its
+     * {@code removed} was skipped when the word list opened over it, so it runs here, as vanilla runs it on closing.
+     */
+    private void closeInventory() {
+        if (minecraft.player == null || inventory.getMenu() != minecraft.player.containerMenu) {
+            returnToMenuScreen(minecraft);
+            return;
+        }
+        inventory.onClose();
+        inventory.removed();
     }
 
     @Override public boolean isPauseScreen() { return false; }
