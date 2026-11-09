@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -47,7 +49,7 @@ public final class Tsukumogami extends PathfinderMob {
     /** How long it fades out before it is gone, in ticks. */
     public static final int FADE_TICKS = 40;
     /** The time between the end of one attack and the start of the next, in ticks. */
-    private static final int ATTACK_COOLDOWN_TICKS = 30;
+    public static final int ATTACK_COOLDOWN_TICKS = 30;
     /** How often it looks for a new path to its owner, in ticks. */
     private static final int PATH_INTERVAL_TICKS = 10;
     /** How long it may make no progress towards its owner before it counts as stuck, in ticks. */
@@ -58,6 +60,8 @@ public final class Tsukumogami extends PathfinderMob {
     private static final double KEEP_UP_DISTANCE = 32;
     /** How long it waits before it looks again for a place behind its owner, after it found none, in ticks. */
     private static final int KEEP_UP_RETRY_TICKS = 20;
+    /** How loud the bell is when it arrives, loud enough for its owner to hear from where it arrives. */
+    private static final float ARRIVAL_BELL_VOLUME = 4.0F;
 
     private static final EntityDataAccessor<List<ItemId>> DATA_ORBITING_ITEMS =
             SynchedEntityData.defineId(Tsukumogami.class, TsukumogamiType.ORBITING_ITEMS);
@@ -157,6 +161,19 @@ public final class Tsukumogami extends PathfinderMob {
         return entityData.get(DATA_STANDS_STILL);
     }
 
+    /**
+     * Rings the temple bell where it arrived, for its owner only, since it follows nobody else. The bell comes from its
+     * direction, so the owner can tell where it is.
+     */
+    void ringArrivalBell() {
+        if (owner == null) {
+            return;
+        }
+        owner.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(
+                TsukumogamiSounds.ARRIVE), getSoundSource(), getX(), getY(), getZ(), ARRIVAL_BELL_VOLUME, 1.0F,
+                random.nextLong()));
+    }
+
     /** Whether it is fading out, on both sides. */
     public boolean isFading() {
         return entityData.get(DATA_FADING);
@@ -212,6 +229,7 @@ public final class Tsukumogami extends PathfinderMob {
         if (windUpTicks > 0) {
             getNavigation().stop();
             if (--windUpTicks == 0) {
+                playSound(TsukumogamiSounds.HIT, 1.5F, 1.0F);
                 if (isWithinMeleeAttackRange(owner)) {
                     doHurtTarget(level, owner);
                 }
@@ -392,6 +410,6 @@ public final class Tsukumogami extends PathfinderMob {
 
     @Override
     protected void playStepSound(BlockPos pos, BlockState blockState) {
-        playSound(TsukumogamiSounds.STEP, 0.6F, 1.0F);
+        playSound(TsukumogamiSounds.STEP, 0.6F, 0.9F + random.nextFloat() * 0.2F);
     }
 }

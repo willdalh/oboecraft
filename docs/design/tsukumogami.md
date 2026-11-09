@@ -1,6 +1,6 @@
 # Tsukumogami
 
-When a player lets their reviews pile up, a 付喪神 (tsukumogami) follows them at night. In folklore, tsukumogami are objects that come alive after years of neglect. Here, the player's own neglected items are its halo. It grows stronger the more items are overdue, stands still while its owner reviews, and leaves once enough reviews are done, so the backlog is felt in the game and the only real way out is to review. The proposal is [RFC-20261109](../rfcs/20261109-tsukumogami.md), and it was built in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51). Its own sounds come in [#52](https://github.com/willdalh/oboecraft/issues/52), and until then it plays fitting vanilla sounds.
+When a player lets their reviews pile up, a 付喪神 (tsukumogami) follows them at night. In folklore, tsukumogami are objects that come alive after years of neglect. Here, the player's own neglected items are its halo. It grows stronger the more items are overdue, stands still while its owner reviews, and leaves once enough reviews are done, so the backlog is felt in the game and the only real way out is to review. The proposal is [RFC-20261109](../rfcs/20261109-tsukumogami.md), and it was built in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), with its sounds from [#52](https://github.com/willdalh/oboecraft/issues/52).
 
 The server decides everything about it. The client only draws it.
 
@@ -21,7 +21,7 @@ A player's tsukumogami appears when all of these hold:
 - The player is alive in the Overworld, in survival or adventure mode, and the difficulty isn't Peaceful.
 - It wasn't killed this night, and it isn't waiting (see below).
 
-It arrives 16 to 24 blocks from its owner, on solid ground, out of the owner's sight if there is such a place, so it arrives instead of popping into view. A temple bell rings, and its owner sees above the hotbar: "A tsukumogami is following you. Review your overdue items to drive it away."
+It arrives 16 to 24 blocks from its owner, on solid ground, out of the owner's sight if there is such a place, so it arrives instead of popping into view. A deep temple bell rings where it arrived, which only its owner hears, and its owner sees above the hotbar: "A tsukumogami is following you. Review your overdue items to drive it away."
 
 Each player has at most one. A higher overdue count makes it stronger, not more numerous.
 
@@ -74,17 +74,21 @@ It is made with Minecraft's own entity models and keyframe animations, with a gl
 
 ## Sounds
 
-| Sound | Until #52, it plays |
-|---|---|
-| Arriving | A temple bell, lower |
-| Ambient | The creaking's ambient sound, lower |
-| Steps | Bamboo wood steps, like geta |
-| The attack's wind-up | The creaking's attack |
-| Hurt and death | The creaking's sway and death |
-| A hit with no effect | A shield blocking, lower |
-| Fading out | An amethyst chime, like a wind chime |
+| When | Sound | Heard by |
+|---|---|---|
+| It arrives | A single deep temple bell (梵鐘), from where it arrived | Its owner only |
+| It walks | Slow, heavy geta steps and the drag of its kimono, so it is heard before it is seen | Everyone nearby |
+| It is idle | Creaking wood and a low breath through the mask | Everyone nearby |
+| Its attack winds up | The mask's jaw creaking open and clacking | Everyone nearby |
+| It strikes | A heavy thud, at the end of the wind-up, whether it hits or not | Everyone nearby |
+| It is hurt | A knock on lacquered wood and the rustle of its kimono | Everyone nearby |
+| Anyone but its owner hits it | A dull knock with no effect | Everyone nearby |
+| It is killed | The mask cracking apart, its pieces clattering down and the kimono collapsing | Everyone nearby |
+| It fades out after reviews | A soft wind chime (風鈴), as a relief | Everyone nearby |
 
-It never speaks, and never says the names of the overdue items, since that would give the answers away.
+The bell is only for its owner, since it follows nobody else. Steps, idle sounds and hurt sounds come in a few versions, so they don't repeat. Each sound has a subtitle.
+
+It never speaks, and never says the names of the overdue items, since that would give the answers away. Where each sound comes from is in [`CREDITS.md`](../../CREDITS.md).
 
 ## Settings
 

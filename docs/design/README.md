@@ -37,6 +37,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Settings files, sync and screens | 12 |
 | The reading clip after a pass | [#25](https://github.com/willdalh/oboecraft/issues/25) |
 | Progress kept on the player's computer and sent to every server | After the milestones |
-| The tsukumogami, with vanilla sounds | [#51](https://github.com/willdalh/oboecraft/issues/51) |
+| The tsukumogami | [#51](https://github.com/willdalh/oboecraft/issues/51) |
+| The tsukumogami's own sounds | [#52](https://github.com/willdalh/oboecraft/issues/52) |
 
 - [Word list](word-list.md): learning, known, ignored and mastered items, and Revert.

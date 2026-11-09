@@ -64,11 +64,12 @@
   "oboecraft.tsukumogami.arrived": "A tsukumogami is following you. Review your overdue items to drive it away.",
   "oboecraft.tsukumogami.no_sleep": "You can't sleep while a tsukumogami follows you",
   "subtitles.oboecraft.entity.tsukumogami.arrive": "A temple bell tolls",
-  "subtitles.oboecraft.entity.tsukumogami.ambient": "Tsukumogami creaks",
+  "subtitles.oboecraft.entity.tsukumogami.ambient": "Tsukumogami creaks and breathes",
   "subtitles.oboecraft.entity.tsukumogami.step": "Geta clack",
-  "subtitles.oboecraft.entity.tsukumogami.attack": "Tsukumogami winds up",
+  "subtitles.oboecraft.entity.tsukumogami.attack": "Mask jaw clacks",
+  "subtitles.oboecraft.entity.tsukumogami.hit": "Tsukumogami strikes",
   "subtitles.oboecraft.entity.tsukumogami.hurt": "Tsukumogami hurts",
-  "subtitles.oboecraft.entity.tsukumogami.death": "Tsukumogami dies",
+  "subtitles.oboecraft.entity.tsukumogami.death": "Tsukumogami breaks apart",
   "subtitles.oboecraft.entity.tsukumogami.no_effect": "Hit has no effect",
   "subtitles.oboecraft.entity.tsukumogami.fade": "Wind chime rings"
 }
