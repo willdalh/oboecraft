@@ -10,6 +10,7 @@ import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.ServerTsukumogami;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.Tsukumogami;
+import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiSounds;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiType;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,8 +22,10 @@ import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -306,6 +309,78 @@ public class TsukumogamiGameTest {
                 TestPlayers.leave(friend);
             }
         });
+    }
+
+    @GameTest
+    public void onlyItsOwnerHearsTheBellWhereItArrives(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            ServerPlayer friend = TestPlayers.join(helper, UUID.randomUUID());
+            try {
+                friend.snapTo(player.position());
+                TestPlayers.takeSentPackets(player);
+                TestPlayers.takeSentPackets(friend);
+                carryOverdue(player, 5);
+                tsukumogami().checkPlayers(server);
+                Tsukumogami tsukumogami = existing(helper, player);
+
+                List<ClientboundSoundPacket> ownerBells = soundsSentTo(player, TsukumogamiSounds.ARRIVE);
+                helper.assertValueEqual(ownerBells.size(), 1, "bells its owner hears");
+                // Compared as the packet sends positions, which far from the world's center are whole blocks.
+                ClientboundSoundPacket bell = ownerBells.getFirst();
+                ClientboundSoundPacket atItsPosition = new ClientboundSoundPacket(bell.getSound(), bell.getSource(),
+                        tsukumogami.getX(), tsukumogami.getY(), tsukumogami.getZ(), 1.0F, 1.0F, 0);
+                helper.assertValueEqual(List.of(bell.getX(), bell.getY(), bell.getZ()),
+                        List.of(atItsPosition.getX(), atItsPosition.getY(), atItsPosition.getZ()),
+                        "where the bell rings");
+                helper.assertValueEqual(soundsSentTo(friend, TsukumogamiSounds.ARRIVE), List.of(),
+                        "bells another player nearby hears");
+            } finally {
+                TestPlayers.leave(friend);
+            }
+        });
+    }
+
+    @GameTest
+    public void itsStrikeThudsAtTheEndOfTheWindUpUnlessAReviewStopsIt(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami tsukumogami = existing(helper, player);
+            tsukumogami.snapTo(player.getX(), player.getY(), player.getZ() + 1, 180, 0);
+            TestPlayers.takeSentPackets(player);
+
+            tsukumogami.tick();
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.ATTACK).size(), 1, "wind-ups started");
+            ticks(tsukumogami, Tsukumogami.WIND_UP_TICKS - 1);
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.HIT), List.of(),
+                    "strikes before the wind-up ends");
+            tsukumogami.tick();
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.HIT).size(), 1,
+                    "strikes when the wind-up ends");
+
+            // The next wind-up starts after the cooldown, and a review that starts during it stops the strike.
+            ticks(tsukumogami, Tsukumogami.ATTACK_COOLDOWN_TICKS);
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.ATTACK).size(), 1,
+                    "wind-ups started after the cooldown");
+            OboecraftMod.serverReviews().start(player, 1, FIRST_SLOT);
+            ticks(tsukumogami, Tsukumogami.WIND_UP_TICKS + 5);
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.HIT), List.of(),
+                    "strikes after a review stopped the wind-up");
+        });
+    }
+
+    private static void ticks(Tsukumogami tsukumogami, int count) {
+        for (int i = 0; i < count; i++) {
+            tsukumogami.tick();
+        }
+    }
+
+    /** The sounds of the event the server sent the player since they were last asked about. */
+    private static List<ClientboundSoundPacket> soundsSentTo(ServerPlayer player, SoundEvent event) {
+        return TestPlayers.takeSentPackets(player).stream()
+                .filter(packet -> packet instanceof ClientboundSoundPacket sound && sound.getSound().value() == event)
+                .map(ClientboundSoundPacket.class::cast)
+                .toList();
     }
 
     @GameTest
