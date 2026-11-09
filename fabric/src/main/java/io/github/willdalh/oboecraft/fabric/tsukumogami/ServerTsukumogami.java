@@ -166,7 +166,7 @@ public final class ServerTsukumogami implements ReviewListener {
             return;
         }
         existing.put(player.getUUID(), tsukumogami);
-        tsukumogami.ringArrivalBell(player);
+        tsukumogami.ringArrivalBell();
         // An owner who got into bed before it arrived is woken, so sleeping never skips the night it came for.
         if (player.isSleeping()) {
             player.stopSleepInBed(true, true);

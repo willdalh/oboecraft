@@ -230,7 +230,7 @@ Decided in [willdalh/oboecraft#36](https://github.com/willdalh/oboecraft/issues/
 
 ### Tsukumogami
 
-Decided in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), from [RFC-20261109](rfcs/20261109-tsukumogami.md), see [Tsukumogami](design/tsukumogami.md) and [ADR: The tsukumogami is never saved with the world](decisions/20261109-tsukumogami-never-saved.md). Its own sounds come in [#52](https://github.com/willdalh/oboecraft/issues/52) and a better model in [#53](https://github.com/willdalh/oboecraft/issues/53):
+Decided in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), from [RFC-20261109](rfcs/20261109-tsukumogami.md), see [Tsukumogami](design/tsukumogami.md) and [ADR: The tsukumogami is never saved with the world](decisions/20261109-tsukumogami-never-saved.md). Its own sounds came in [#52](https://github.com/willdalh/oboecraft/issues/52), and a better model comes in [#53](https://github.com/willdalh/oboecraft/issues/53):
 
 - Night is when a player can sleep in clear weather, ticks 12,542 to 23,459 of the Overworld's day. Weather doesn't make it night early.
 - It comes back 30 seconds after it was reviewed away the same night, and waits 10 seconds after its owner joins, respawns, returns to the Overworld or to survival or adventure mode. These are fixed rules, like its health and damage.

@@ -49,7 +49,7 @@ public final class Tsukumogami extends PathfinderMob {
     /** How long it fades out before it is gone, in ticks. */
     public static final int FADE_TICKS = 40;
     /** The time between the end of one attack and the start of the next, in ticks. */
-    private static final int ATTACK_COOLDOWN_TICKS = 30;
+    public static final int ATTACK_COOLDOWN_TICKS = 30;
     /** How often it looks for a new path to its owner, in ticks. */
     private static final int PATH_INTERVAL_TICKS = 10;
     /** How long it may make no progress towards its owner before it counts as stuck, in ticks. */
@@ -165,7 +165,10 @@ public final class Tsukumogami extends PathfinderMob {
      * Rings the temple bell where it arrived, for its owner only, since it follows nobody else. The bell comes from its
      * direction, so the owner can tell where it is.
      */
-    void ringArrivalBell(ServerPlayer owner) {
+    void ringArrivalBell() {
+        if (owner == null) {
+            return;
+        }
         owner.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(
                 TsukumogamiSounds.ARRIVE), getSoundSource(), getX(), getY(), getZ(), ARRIVAL_BELL_VOLUME, 1.0F,
                 random.nextLong()));

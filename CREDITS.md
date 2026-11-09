@@ -25,7 +25,7 @@ VOICEVOX itself doesn't ship with the mod. Only the reading clip tool, which is 
 
 ## Tsukumogami sounds
 
-The tsukumogami's sounds (`assets/oboecraft/sounds/tsukumogami/` in the mod jar) were made for the mod from the recordings below, which were cut, layered, slowed down and filtered, and converted to Ogg Vorbis. The sounds are not under the MIT license or CC BY-SA 4.0.
+The tsukumogami's sounds (`assets/oboecraft/sounds/tsukumogami/` in the mod jar) were made for the mod from the recordings below, which were cut, layered, slowed down and filtered, and converted to Ogg Vorbis. `arrive.ogg` is under CC BY 2.1 JP, see below, and the other sounds are under the MIT license, like the code.
 
 The temple bell (`arrive.ogg`) is the bell of Chōmei-ji (長命寺) in Ōmihachiman, Shiga, recorded in 2006 by Jnn, from [Bonsyou5599.ogg](https://commons.wikimedia.org/wiki/File:Bonsyou5599.ogg) on Wikimedia Commons, under the [Creative Commons Attribution 2.1 Japan license](https://creativecommons.org/licenses/by/2.1/jp/) (CC BY 2.1 JP). It was trimmed, lowered by 10%, faded out and converted, and a synthesized strike was added in front of it. `arrive.ogg` is under the same license.
 
@@ -34,6 +34,8 @@ The wind chime (`fade.ogg`) is synthesized and has no other source.
 The other sounds were made from these recordings, all under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) on OpenGameArt, which needs no credit. They are credited here anyway:
 
 - Steps (`step1.ogg` to `step4.ogg`): [Different steps on wood, stone, leaves, gravel and mud](https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud) by TinyWorlds and [Footsteps Leather, Cloth, Armor](https://opengameart.org/content/footsteps-leather-cloth-armor) by HaelDB.
-- Idle (`ambient1.ogg` to `ambient3.ogg`): [Tree Creaking](https://opengameart.org/content/tree-creaking) by AntumDeluge and [Ghost breath](https://opengameart.org/content/ghost-breath) by qubodup.
-- The wind-up, hurt, death and a hit with no effect (`attack.ogg`, `hurt1.ogg`, `hurt2.ogg`, `death.ogg`, `no_effect.ogg`): [100 CC0 metal and wood SFX](https://opengameart.org/content/100-cc0-metal-and-wood-sfx) by rubberduck, with [75 CC0 breaking / falling / hit sfx](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck and the cloth steps by HaelDB.
-- The strike (`hit.ogg`): [Thwack Sounds](https://opengameart.org/content/thwack-sounds) by AntumDeluge and 75 CC0 breaking / falling / hit sfx by rubberduck.
+- Idle (`ambient1.ogg` to `ambient3.ogg`): the squeaking wood of [100 CC0 metal and wood SFX](https://opengameart.org/content/100-cc0-metal-and-wood-sfx) by rubberduck and [Ghost breath](https://opengameart.org/content/ghost-breath) by qubodup.
+- The wind-up and a hit with no effect (`attack.ogg`, `no_effect.ogg`): 100 CC0 metal and wood SFX by rubberduck.
+- The strike (`hit.ogg`): [Thwack Sounds](https://opengameart.org/content/thwack-sounds) by AntumDeluge and [75 CC0 breaking / falling / hit sfx](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck.
+- Hurt (`hurt1.ogg`, `hurt2.ogg`): 100 CC0 metal and wood SFX by rubberduck and the cloth steps by HaelDB.
+- Death (`death.ogg`): 100 CC0 metal and wood SFX and 75 CC0 breaking / falling / hit sfx by rubberduck, and the cloth steps by HaelDB.
