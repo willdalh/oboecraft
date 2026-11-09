@@ -19,6 +19,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer.
 - **Hear every word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
+- **Don't let your reviews pile up.** At night, if you carry five or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry. It leaves at dawn, and killing it only gets rid of it for the night.
 
 <table>
   <tr>
@@ -62,7 +63,7 @@ The あ button in your inventory, right of the recipe book, opens the word list.
 
 ## Settings
 
-The levels, their intervals, the ban length and how much a fail removes can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. Each player can also choose clickable buttons and the size of the item image above the answer field (50–400%) in Mod Menu or `config/oboecraft/client.json`. The image size applies to all reviews and leaves other item displays unchanged.
+The levels, their intervals, the ban length, how much a fail removes, and when the tsukumogami appears, if at all, and how long it stands still while you answer can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. Each player can also choose clickable buttons and the size of the item image above the answer field (50–400%) in Mod Menu or `config/oboecraft/client.json`. The image size applies to all reviews and leaves other item displays unchanged.
 
 ## License
 

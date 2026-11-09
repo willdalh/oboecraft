@@ -93,4 +93,30 @@ class SettingsTest {
         assertEquals(100, Settings.DEFAULTS.withPercentageFactor(100).percentageFactor());
         assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withPercentageFactor(101));
     }
+
+    @Test
+    void theTsukumogamiAppearsAtFiveAndStandsStillForAMinuteByDefault() {
+        assertEquals(5, Settings.DEFAULTS.tsukumogamiThreshold());
+        assertEquals(Duration.ofSeconds(60), Settings.DEFAULTS.tsukumogamiReviewFreeze());
+    }
+
+    @Test
+    void theTsukumogamiThresholdIsFromZeroToOneThousand() {
+        assertEquals(0, Settings.DEFAULTS.withTsukumogamiThreshold(0).tsukumogamiThreshold());
+        assertEquals(1_000, Settings.DEFAULTS.withTsukumogamiThreshold(1_000).tsukumogamiThreshold());
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThreshold(-1));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThreshold(1_001));
+    }
+
+    @Test
+    void theTsukumogamiReviewFreezeIsFromZeroToAnHour() {
+        assertEquals(Duration.ZERO,
+                Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO).tsukumogamiReviewFreeze());
+        assertEquals(Duration.ofHours(1),
+                Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ofHours(1)).tsukumogamiReviewFreeze());
+        assertThrows(IllegalArgumentException.class,
+                () -> Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class,
+                () -> Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ofHours(1).plusMillis(1)));
+    }
 }
