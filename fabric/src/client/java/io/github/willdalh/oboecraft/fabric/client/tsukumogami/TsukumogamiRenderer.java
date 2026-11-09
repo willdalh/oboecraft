@@ -87,8 +87,8 @@ public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, Tsukumog
                 : 0;
         OrbitingItems ring = rings.computeIfAbsent(entity, tsukumogami -> new OrbitingItems());
         ring.update(entity.orbitingItems(), state.fading, state.ageInTicks);
-        ring.place(state.orbit, entity, state.ageInTicks, state.bodyRot,
-                item -> OboecraftClient.itemIcons().icon(entity.level().registryAccess(), item), itemModelResolver);
+        state.orbit = ring.place(entity, state.ageInTicks, state.bodyRot, OboecraftClient.itemIcons(),
+                itemModelResolver);
     }
 
     @Override
@@ -96,6 +96,9 @@ public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, Tsukumog
             CameraRenderState camera) {
         super.submit(state, poseStack, submitNodeCollector, camera);
         OrbitingItems.Placed orbit = state.orbit;
+        if (orbit == null) {
+            return;
+        }
         for (int i = 0; i < orbit.count; i++) {
             poseStack.pushPose();
             poseStack.translate(orbit.x[i], orbit.y[i], orbit.z[i]);

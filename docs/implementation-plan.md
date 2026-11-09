@@ -234,7 +234,7 @@ Decided in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/
 
 - Night is when a player can sleep in clear weather, ticks 12,542 to 23,459 of the Overworld's day. Weather doesn't make it night early.
 - It comes back 30 seconds after it was reviewed away the same night, and waits 10 seconds after its owner joins, respawns, returns to the Overworld or to survival or adventure mode. These are fixed rules, like its health and damage.
-- Only damage with its owner as the attacker counts, so the owner's pets and burning after a fire hit don't. It only stops its owner from sleeping, and doesn't count as a monster nearby for anyone else.
+- Only damage with its owner as the attacker counts, so the owner's pets and burning after a fire hit don't. It only stops its owner from sleeping, and doesn't count as a monster nearby for anyone else. Its owner can't sleep either while it should exist but waits or has no place to arrive, and is woken when it arrives, so getting into bed first never skips its night.
 - At most 12 items orbit it. Only their item ids are sent to the players who see it.
 - One without an owner, like one made with `/summon`, removes itself, and there is no spawn egg.
 - Its settings are a threshold from 0 to 1,000, where 0 turns it off, and a review freeze from 0 to 1 hour. The server settings file went to version 2, which still reads version 1 with their defaults. The network protocol went to 8, so the release with it is a `minor` bump.

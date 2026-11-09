@@ -35,7 +35,7 @@ abstract class ServerPlayerMixin {
     private void oboecraft$cancelReviewWithoutLocks(CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ()) {
             OboecraftMod.serverReviews().gameModeChanged((ServerPlayer) (Object) this);
-            OboecraftMod.serverTsukumogami().arrived((ServerPlayer) (Object) this);
+            OboecraftMod.serverTsukumogami().gameModeChanged((ServerPlayer) (Object) this);
         }
     }
 }

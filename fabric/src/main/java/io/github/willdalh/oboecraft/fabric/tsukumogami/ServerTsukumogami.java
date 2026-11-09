@@ -25,6 +25,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -43,12 +44,12 @@ public final class ServerTsukumogami implements ReviewListener {
 
     private final ItemMapping itemMapping;
     private final ServerProgress progress;
-    private final Map<UUID, Follower> followers = new HashMap<>();
+    private final Map<UUID, OwnerState> owners = new HashMap<>();
     /** The tsukumogami that exist, by owner, so the day's check only looks at these. */
     private final Map<UUID, Tsukumogami> existing = new HashMap<>();
 
-    /** What is known about one player for their tsukumogami. */
-    private static final class Follower {
+    /** What is known about one player, as the owner of their tsukumogami. */
+    private static final class OwnerState {
         /** When it may appear, after it was reviewed away or the player arrived. */
         private Instant waitsUntil = Instant.MIN;
         private OptionalLong killedOnNight = OptionalLong.empty();
@@ -97,18 +98,18 @@ public final class ServerTsukumogami implements ReviewListener {
         }
         Settings settings = progress.settings();
         Instant now = progress.now();
-        Follower follower = follower(player);
+        OwnerState owner = owner(player);
         List<ItemId> overdue = overdueItems(player, now, settings);
-        boolean shouldExist = TsukumogamiRules.shouldExist(
-                overdue.size(), dayTime, follower.killedOnNight, now, follower.waitsUntil, settings);
         if (tsukumogami.isPresent()) {
-            if (shouldExist) {
+            // A wait only holds back one that doesn't exist yet.
+            if (TsukumogamiRules.shouldExist(overdue.size(), dayTime, owner.killedOnNight, now, Instant.MIN, settings)) {
                 tsukumogami.get().showOverdue(overdue, TsukumogamiRules.maxHealth(overdue.size(), settings));
             } else {
                 fadeOut(tsukumogami.get());
-                follower.waitsUntil = now.plus(TsukumogamiRules.RETURN_DELAY);
+                owner.waitsUntil = now.plus(TsukumogamiRules.RETURN_DELAY);
             }
-        } else if (shouldExist) {
+        } else if (TsukumogamiRules.shouldExist(
+                overdue.size(), dayTime, owner.killedOnNight, now, owner.waitsUntil, settings)) {
             appear(player, overdue, TsukumogamiRules.maxHealth(overdue.size(), settings));
         }
     }
@@ -166,6 +167,10 @@ public final class ServerTsukumogami implements ReviewListener {
         }
         existing.put(player.getUUID(), tsukumogami);
         tsukumogami.playSound(TsukumogamiSounds.ARRIVE, 4.0F, 1.0F);
+        // An owner who got into bed before it arrived is woken, so sleeping never skips the night it came for.
+        if (player.isSleeping()) {
+            player.stopSleepInBed(true, true);
+        }
         player.sendOverlayMessage(Component.translatableWithFallback("oboecraft.tsukumogami.arrived",
                 "A tsukumogami is following you. Review your overdue items to drive it away."));
     }
@@ -192,30 +197,29 @@ public final class ServerTsukumogami implements ReviewListener {
 
     /** Whether the player's tsukumogami stands still for a review, see {@link TsukumogamiRules#standsStill}. */
     public boolean standsStill(ServerPlayer player) {
-        Follower follower = follower(player);
+        OwnerState owner = owner(player);
         return TsukumogamiRules.standsStill(
-                follower.reviewStartedAt, follower.reviewEndedAt, progress.now(), progress.settings());
+                owner.reviewStartedAt, owner.reviewEndedAt, progress.now(), progress.settings());
     }
 
     /** The player killed their tsukumogami, so it is gone for the rest of this night. */
     void killed(ServerPlayer player) {
         existing.remove(player.getUUID());
-        follower(player).killedOnNight =
+        owner(player).killedOnNight =
                 OptionalLong.of(Night.nightOf(player.level().getServer().overworld().getOverworldClockTime()));
     }
 
     @Override
     public void reviewStarted(ServerPlayer player) {
-        Follower follower = follower(player);
-        follower.reviewStartedAt = Optional.of(progress.now());
+        owner(player).reviewStartedAt = Optional.of(progress.now());
     }
 
     /** Checks the player at once, so a pass that drops the count below the threshold makes it fade out. */
     @Override
     public void reviewEnded(ServerPlayer player) {
-        Follower follower = follower(player);
-        follower.reviewStartedAt = Optional.empty();
-        follower.reviewEndedAt = Optional.of(progress.now());
+        OwnerState owner = owner(player);
+        owner.reviewStartedAt = Optional.empty();
+        owner.reviewEndedAt = Optional.of(progress.now());
         long dayTime = player.level().getServer().overworld().getOverworldClockTime();
         if (TsukumogamiRules.isOn(progress.settings()) && Night.isNight(dayTime)) {
             check(player, dayTime);
@@ -223,38 +227,71 @@ public final class ServerTsukumogami implements ReviewListener {
     }
 
     /**
-     * The player joined, respawned, changed dimension or changed game mode. A tsukumogami that can't follow them now
-     * is removed, and a new one waits {@link TsukumogamiRules#ARRIVAL_DELAY}, so it never appears on top of a player
-     * who just arrived.
+     * The player joined, respawned or changed dimension. A tsukumogami that can't follow them now is removed. One that
+     * doesn't exist then waits at least {@link TsukumogamiRules#ARRIVAL_DELAY}, so it never appears on top of a
+     * player who just arrived, and a longer wait, after it was reviewed away, is kept.
      */
     public void arrived(ServerPlayer player) {
-        existingOf(player).filter(tsukumogami -> !canBeFollowed(player)).ifPresent(this::discard);
-        follower(player).waitsUntil = progress.now().plus(TsukumogamiRules.ARRIVAL_DELAY);
+        Optional<Tsukumogami> tsukumogami = existingOf(player);
+        if (tsukumogami.isPresent() && canBeFollowed(player)) {
+            return;
+        }
+        tsukumogami.ifPresent(this::discard);
+        OwnerState owner = owner(player);
+        Instant arrivalWait = progress.now().plus(TsukumogamiRules.ARRIVAL_DELAY);
+        if (arrivalWait.isAfter(owner.waitsUntil)) {
+            owner.waitsUntil = arrivalWait;
+        }
     }
 
     /**
-     * The player left or died, so their tsukumogami is removed. Whether it was killed tonight is kept, so leaving and
-     * joining again never brings it back early.
+     * The player's game mode changed. Changing between survival and adventure mode changes nothing, and any other
+     * change is like arriving: creative and spectator mode remove it, and returning from them makes it wait.
+     */
+    public void gameModeChanged(ServerPlayer player) {
+        GameType previous = player.gameMode.getPreviousGameModeForPlayer();
+        if (previous == null || !previous.isSurvival() || !player.gameMode().isSurvival()) {
+            arrived(player);
+        }
+    }
+
+    /**
+     * The player left or died, so their tsukumogami is removed. Whether it was killed tonight, and a wait after it was
+     * reviewed away, are kept, so leaving and joining again never brings it back early or sooner. A player with
+     * neither is forgotten.
      */
     public void left(ServerPlayer player) {
         existingOf(player).ifPresent(this::discard);
-        Follower follower = follower(player);
-        follower.reviewStartedAt = Optional.empty();
-        follower.reviewEndedAt = Optional.empty();
+        OwnerState owner = owner(player);
+        owner.reviewStartedAt = Optional.empty();
+        owner.reviewEndedAt = Optional.empty();
+        if (owner.killedOnNight.isEmpty() && !owner.waitsUntil.isAfter(progress.now())) {
+            owners.remove(player.getUUID());
+        }
     }
 
-    /** Whether the player may sleep: not while their tsukumogami exists, wherever it is. */
+    /**
+     * Whether the player may not sleep: while their tsukumogami exists, wherever it is, and while it should exist but
+     * waits or has found no place to arrive yet, so sleeping never skips the night it is coming for.
+     */
     public boolean preventsSleep(ServerPlayer player) {
-        return existingOf(player).isPresent();
+        if (existingOf(player).isPresent()) {
+            return true;
+        }
+        long dayTime = player.level().getServer().overworld().getOverworldClockTime();
+        Settings settings = progress.settings();
+        Instant now = progress.now();
+        return canBeFollowed(player) && TsukumogamiRules.shouldExist(overdueItems(player, now, settings).size(),
+                dayTime, owner(player).killedOnNight, now, Instant.MIN, settings);
     }
 
     /** Forgets everything when the server stops, so another world in the same game starts afresh. */
     public void clear() {
         existing.clear();
-        followers.clear();
+        owners.clear();
     }
 
-    private Follower follower(ServerPlayer player) {
-        return followers.computeIfAbsent(player.getUUID(), id -> new Follower());
+    private OwnerState owner(ServerPlayer player) {
+        return owners.computeIfAbsent(player.getUUID(), id -> new OwnerState());
     }
 }
