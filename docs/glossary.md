@@ -141,7 +141,7 @@ An item from level 1 up to, but not including, mastered, which the word list's L
 _Avoid_: in progress, under review
 
 **Urgency**:
-The default order of the Learning tab: locked items first, longest locked first, then unlocked items, least time left first. The other order is by level.
+The default order of the Learning tab: unlocked items first, least time left first, then locked items, longest locked first. The other order is by level.
 _Avoid_: priority, due order
 
 **Leveled**:
