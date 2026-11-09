@@ -16,13 +16,18 @@ import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
 import io.github.willdalh.oboecraft.fabric.network.RevertItem;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.Optional;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractScrollArea;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -33,63 +38,67 @@ import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Four separate lists, opening on the Learning tab. Each row has the item's icon, name and a button that plays its
- * reading clip, left-justified from the left edge of the tabs. The reading itself isn't shown, so the player recalls it
- * before listening. On the Learning tab, a locked item's name is {@code ???} and it has no button, and each row also
- * shows the level and either the lock timer or the ban time left, which update live. Revert, on the other tabs, is
- * confirmed through a context action and waits for the server's update.
+ * Four separate lists, opening on the Learning tab, each in one scrolling list as wide as the tabs above it. Each row
+ * has the item's icon, a button that plays its reading clip and its name, in columns, so the buttons and names line up.
+ * The reading itself isn't shown, so the player recalls it before listening. On the Learning tab, a locked item's name
+ * is {@code ???} and it has no button, and each row also shows either the lock timer or the ban time left, which update
+ * live, and the level at the right end. Revert, on the other tabs, is confirmed through a context action and waits for
+ * the server's update.
  */
 public final class WordListScreen extends Screen implements OverMenuScreen {
     private static final int LEARNING = 0;
     private static final int KNOWN = 1;
     private static final int IGNORED = 2;
-    private static final int TAB_WIDTH = 75;
-    private static final int TAB_GAP = 3;
     private static final int TAB_COUNT = 4;
-    private static final int TABS_WIDTH = TAB_COUNT * TAB_WIDTH + (TAB_COUNT - 1) * TAB_GAP;
-    private static final int LIST_TOP = 56;
-    /** The space below the list, for the page buttons and the hint. */
-    private static final int LIST_BOTTOM_MARGIN = 64;
+    private static final int TAB_GAP = 3;
+    private static final int TABS_TOP = 28;
+    /** The widest the tabs and the list get, so the timer and level stay close to the names on a wide screen. */
+    private static final int MAX_LIST_WIDTH = 400;
+    private static final int SIDE_MARGIN = 10;
+    private static final int LIST_TOP = 52;
+    /** The space below the list, for the sort or revert button and the hint. */
+    private static final int LIST_BOTTOM_MARGIN = 52;
     private static final int ROW_HEIGHT = 24;
     private static final int ICON_SIZE = 16;
     private static final int ICON_GAP = 4;
-    private static final int RIGHT_MARGIN = 10;
     private static final Identifier READING_CLIP_SPRITE =
             Identifier.fromNamespaceAndPath(Oboecraft.MOD_ID, "icon/reading_clip");
     private static final int READING_CLIP_SPRITE_WIDTH = 10;
     private static final int READING_CLIP_SPRITE_HEIGHT = 14;
     private static final int READING_CLIP_BUTTON_SIZE = 20;
     private static final int READING_CLIP_BUTTON_GAP = 4;
+    /** The space between the rows and the scrollbar at the right of the list. */
+    private static final int SCROLLBAR_GAP = 4;
     /**
-     * The width of the lock timer column at the right of a Learning row. It fits the labels of the default intervals in
-     * both languages; a label for an interval of many days may run into the right margin.
+     * The width of the lock timer column, left of the level on a Learning row. It fits the labels of the default
+     * intervals in both languages; a label for an interval of many days may run into the level.
      */
     private static final int TIMER_WIDTH = 110;
-    private static final int LEVEL_GAP = 8;
+    private static final int COLUMN_GAP = 8;
+    private static final int SELECTED_COLOR = 0xFFFFFF55;
     private static final int LOCKED_NAME_COLOR = 0xFFA0A0A0;
     private static final int LEVEL_COLOR = 0xFFAAAAAA;
     private static final int BANNED_COLOR = 0xFFFF5555;
+    private static final int HINT_COLOR = 0xFFA0A0A0;
 
     /** The Learning tab's order, kept until the game closes. Only the client thread uses it. */
     private static LearningOrder learningOrder = LearningOrder.URGENCY;
 
     private final InventoryScreen inventory;
     private int group = LEARNING;
-    private int cachedGroup = -1;
-    private @Nullable LearningOrder cachedOrder;
-    private int page;
-    private int pageSize;
     private Progress snapshot = Progress.EMPTY;
-    private List<NameListEntry> entries = List.of();
-    /** The names of the rows on the current page, fitted to the screen once per layout. */
-    private List<String> rowTexts = List.of();
-    /** Whether each row on the current page was locked when it was laid out, since a locked row looks different. */
-    private List<Boolean> rowsLocked = List.of();
-    /** The level labels of the rows on the current page of the Learning tab, made once per layout. */
-    private List<Component> rowLevels = List.of();
+    private Settings layoutSettings = Settings.DEFAULTS;
+    /**
+     * The first time after the layout when a row on the Learning tab locks, which moves it among the locked rows, or
+     * null if none will.
+     */
+    private @Nullable Instant nextLock;
+    private @Nullable WordList list;
+    /** Whether the next layout starts the list at the top, after a change of tab or order, instead of where it was. */
+    private boolean scrollToTop;
     private @Nullable ItemId selected;
-    /** Where the Learning tab's level column starts, wide enough for the top level, set once per layout. */
-    private int levelLeft;
+    private @Nullable Button revert;
+    private boolean empty;
 
     /** Opens over the inventory, which stays open. Close goes back to it, and the inventory key closes both. */
     public WordListScreen(InventoryScreen inventory) {
@@ -99,116 +108,85 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
 
     @Override public AbstractContainerScreen<?> menuScreen() { return inventory; }
 
+    /**
+     * Lays out the tabs, the list and the buttons below it. The list keeps where it was scrolled to unless the tab or
+     * order changed.
+     */
     @Override protected void init() {
-        pageSize = Math.max(1, (height - LIST_TOP - LIST_BOTTOM_MARGIN) / ROW_HEIGHT);
-        Progress current = OboecraftClient.progress().progress();
-        if (snapshot != current || cachedGroup != group || cachedOrder != learningOrder) {
-            snapshot = current;
-            cachedGroup = group;
-            cachedOrder = learningOrder;
-            entries = OboecraftMod.itemMapping().nameList().entries().stream()
-                    .filter(entry -> inGroup(snapshot.state(entry.id())))
-                    .sorted(entryOrder()).toList();
-        }
-        page = Math.min(page, Math.max(0, (entries.size() - 1) / pageSize));
+        snapshot = OboecraftClient.progress().progress();
+        layoutSettings = settings();
+        int tabWidth = (Math.min(MAX_LIST_WIDTH, width - 2 * SIDE_MARGIN) - (TAB_COUNT - 1) * TAB_GAP) / TAB_COUNT;
+        int listWidth = TAB_COUNT * tabWidth + (TAB_COUNT - 1) * TAB_GAP;
+        int listLeft = (width - listWidth) / 2;
         for (int tab = 0; tab < TAB_COUNT; tab++) {
             int chosen = tab;
             var button = addRenderableWidget(Button.builder(groupLabel(tab), ignored -> {
-                group = chosen; page = 0; selected = null; rebuildWidgets();
-            }).bounds(listLeft() + tab * (TAB_WIDTH + TAB_GAP), 28, TAB_WIDTH, 20).build());
+                group = chosen; selected = null; scrollToTop = true; rebuildWidgets();
+            }).bounds(listLeft + tab * (tabWidth + TAB_GAP), TABS_TOP, tabWidth, 20).build());
             button.active = tab != group;
         }
-        var previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
-            page--; selected = null; rebuildWidgets();
-        }).bounds(width / 2 - 100, height - 45, 30, 20).build());
-        previous.active = page > 0;
-        var next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> {
-            page++; selected = null; rebuildWidgets();
-        }).bounds(width / 2 + 70, height - 45, 30, 20).build());
-        next.active = (page + 1) * pageSize < entries.size();
-        levelLeft = timerLeft() - LEVEL_GAP - font.width(levelText(settings().topLevel()));
-        List<NameListEntry> pageEntries = pageEntries();
-        rowsLocked = pageRowsLocked();
-        rowLevels = group != LEARNING ? List.of() : pageEntries.stream()
-                .map(entry -> levelText(((SrsState.Leveled) snapshot.state(entry.id())).level())).toList();
-        rowTexts = IntStream.range(0, pageEntries.size())
-                .mapToObj(row -> rowText(pageEntries.get(row), rowsLocked.get(row))).toList();
-        for (int row = 0; row < rowTexts.size(); row++) {
-            if (rowsLocked.get(row)) continue;
-            var entry = pageEntries.get(row);
-            addRenderableWidget(SpriteIconButton.builder(Component.translatable("oboecraft.word_list.play_reading"),
-                            ignored -> OboecraftClient.readingClips().play(entry.id()), true)
-                    .size(READING_CLIP_BUTTON_SIZE, READING_CLIP_BUTTON_SIZE)
-                    .sprite(READING_CLIP_SPRITE, READING_CLIP_SPRITE_WIDTH, READING_CLIP_SPRITE_HEIGHT)
-                    .withTootip().build())
-                    .setPosition(textLeft() + font.width(rowTexts.get(row)) + READING_CLIP_BUTTON_GAP,
-                            rowTop(row) + (ICON_SIZE - READING_CLIP_BUTTON_SIZE) / 2);
-        }
+
+        double scroll = list == null || scrollToTop ? 0 : list.scrollAmount();
+        scrollToTop = false;
+        list = addRenderableWidget(new WordList(listLeft, listWidth, height - LIST_TOP - LIST_BOTTOM_MARGIN));
+        fillList(list);
+        list.setScrollAmount(scroll);
+
         if (group == LEARNING) {
+            revert = null;
             addRenderableWidget(Button.builder(sortLabel(), ignored -> {
-                learningOrder = learningOrder.next(); page = 0; rebuildWidgets();
+                learningOrder = learningOrder.next(); scrollToTop = true; rebuildWidgets();
             }).bounds(width / 2 - 65, height - 45, 130, 20).build());
-        } else if (selected != null) {
-            ItemId item = selected;
-            addRenderableWidget(Button.builder(Component.translatable("oboecraft.word_list.revert"), ignored -> {
-                ClientPlayNetworking.send(new RevertItem(item));
-                selected = null; rebuildWidgets();
+        } else {
+            revert = addRenderableWidget(Button.builder(Component.translatable("oboecraft.word_list.revert"), ignored -> {
+                if (selected != null) ClientPlayNetworking.send(new RevertItem(selected));
+                select(null);
             }).bounds(width / 2 - 65, height - 45, 130, 20).build());
+            revert.visible = selected != null;
         }
     }
-
-    /** Rows start at the left edge of the tabs and reach the right margin of the screen. */
-    private int listLeft() { return width / 2 - TABS_WIDTH / 2; }
-
-    private int listRight() { return width - RIGHT_MARGIN; }
-
-    private int textLeft() { return listLeft() + ICON_SIZE + ICON_GAP; }
-
-    private int rowTop(int row) { return LIST_TOP + row * ROW_HEIGHT; }
-
-    /** On the Learning tab, the level and the lock timer or ban are right of the name. */
-    private int nameRight() {
-        return group == LEARNING ? levelLeft - LEVEL_GAP : listRight();
-    }
-
-    private int timerLeft() { return listRight() - TIMER_WIDTH; }
 
     /**
-     * The row's name, cut short so that the reading clip button after it still fits. A locked item's name is
-     * {@code ???}, with no button.
+     * Fills the list with the tab's rows from the current progress and time, sorted again since the Learning tab's order
+     * depends on which items are locked, and remembers when the next Learning row locks.
      */
-    private String rowText(NameListEntry entry, boolean locked) {
-        if (locked) return fitted("???", nameRight() - textLeft());
-        return fitted(entry.japaneseName().text(),
-                nameRight() - textLeft() - READING_CLIP_BUTTON_GAP - READING_CLIP_BUTTON_SIZE);
-    }
-
-    private List<NameListEntry> pageEntries() {
-        return entries.subList(page * pageSize, Math.min(entries.size(), (page + 1) * pageSize));
-    }
-
-    /** Whether each row on the current page is locked now. Only Learning rows can be locked. */
-    private List<Boolean> pageRowsLocked() {
+    private void fillList(WordList list) {
         Instant now = OboecraftClient.progress().now();
-        return pageEntries().stream().map(entry -> group == LEARNING && SrsRules.isLocked(snapshot.state(entry.id()), now, settings()))
-                .toList();
+        List<NameListEntry> entries = OboecraftMod.itemMapping().nameList().entries().stream()
+                .filter(entry -> inGroup(snapshot.state(entry.id())))
+                .sorted(entryOrder(now)).toList();
+        empty = entries.isEmpty();
+        nextLock = group != LEARNING ? null : entries.stream()
+                .map(entry -> ((SrsState.Leveled) snapshot.state(entry.id())).locksAt())
+                .flatMap(Optional::stream)
+                .filter(now::isBefore)
+                .min(Comparator.naturalOrder()).orElse(null);
+        WordList.Columns columns = list.columns();
+        list.replaceEntries(entries.stream().map(entry -> new Row(entry, group == LEARNING
+                && SrsRules.isLocked(snapshot.state(entry.id()), now, layoutSettings), columns)).toList());
+    }
+
+    /** Selects the row whose Revert button shows, or none. Only the name's color and the button change. */
+    private void select(@Nullable ItemId item) {
+        selected = item;
+        if (revert != null) revert.visible = item != null;
     }
 
     private boolean inGroup(SrsState state) {
         return switch (group) {
-            case LEARNING -> SrsRules.isLearning(state, settings());
+            case LEARNING -> SrsRules.isLearning(state, layoutSettings);
             case KNOWN -> state instanceof SrsState.Known;
             case IGNORED -> state instanceof SrsState.Ignored;
-            default -> state instanceof SrsState.Leveled && SrsRules.canRevert(state, settings());
+            default -> state instanceof SrsState.Leveled && SrsRules.canRevert(state, layoutSettings);
         };
     }
 
-    /** The Learning tab in its chosen order, and the other tabs by Japanese name. */
-    private Comparator<NameListEntry> entryOrder() {
+    /** The Learning tab in its chosen order at {@code now}, and the other tabs by Japanese name. */
+    private Comparator<NameListEntry> entryOrder(Instant now) {
         Comparator<NameListEntry> byName = Comparator.comparing(entry -> entry.japaneseName().text());
         if (group != LEARNING) return byName;
         Comparator<NameListEntry> byState = Comparator.comparing(
-                entry -> (SrsState.Leveled) snapshot.state(entry.id()), learningOrder.comparator());
+                entry -> (SrsState.Leveled) snapshot.state(entry.id()), learningOrder.comparator(now, layoutSettings));
         return byState.thenComparing(byName);
     }
 
@@ -231,23 +209,19 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
         return Component.translatable("oboecraft.word_list.level", level);
     }
 
-    /** Without progress there is no word list, so it goes back to the inventory, which then has no button. */
+    /**
+     * Without progress there is no word list, so it goes back to the inventory, which then has no button. The screen is
+     * laid out again when progress or the settings change. When a Learning row locks, only the list's rows are made
+     * again, since the row then shows {@code ???}, loses its button and moves among the locked rows, and the list
+     * itself, with its scroll position and a drag of its scrollbar, stays.
+     */
     @Override public void tick() {
         if (minecraft.player == null || !OboecraftClient.progress().hasProgress(minecraft.player)) { onClose(); return; }
-        if (snapshot != OboecraftClient.progress().progress()) { selected = null; rebuildWidgets(); return; }
-        if (!rowsLocked.equals(pageRowsLocked())) rebuildWidgets();
-    }
-
-    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        int row = (int) Math.floor((event.y() - LIST_TOP) / ROW_HEIGHT);
-        int index = page * pageSize + row;
-        if (event.button() == 1 && group != LEARNING && row >= 0 && row < pageSize && index < entries.size()
-                && event.x() >= listLeft() && event.x() < listRight()) {
-            selected = entries.get(index).id();
-            rebuildWidgets();
-            return true;
+        if (snapshot != OboecraftClient.progress().progress() || layoutSettings != settings()) {
+            selected = null; rebuildWidgets();
+        } else if (list != null && nextLock != null && !OboecraftClient.progress().now().isBefore(nextLock)) {
+            fillList(list);
         }
-        return super.mouseClicked(event, doubleClick);
     }
 
     @Override public boolean keyPressed(KeyEvent event) {
@@ -276,42 +250,9 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.centeredText(font, title, width / 2, 10, -1);
-        Instant now = OboecraftClient.progress().now();
-        for (int row = 0; row < rowTexts.size(); row++) {
-            var entry = entries.get(page * pageSize + row);
-            int y = rowTop(row);
-            int textY = y + (ICON_SIZE - font.lineHeight) / 2 + 1;
-            if (minecraft.level != null) {
-                OboecraftClient.itemIcons().icon(minecraft.level.registryAccess(), entry.id())
-                        .ifPresent(icon -> graphics.item(icon, listLeft(), y));
-            }
-            graphics.text(font, rowTexts.get(row), textLeft(), textY,
-                    rowsLocked.get(row) ? LOCKED_NAME_COLOR : entry.id().equals(selected) ? 0xFFFFFF55 : -1);
-            if (group == LEARNING) {
-                graphics.text(font, rowLevels.get(row), levelLeft, textY, LEVEL_COLOR);
-                extractLockState((SrsState.Leveled) snapshot.state(entry.id()), now, y, textY, graphics);
-            }
-        }
-        if (entries.isEmpty()) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
-        int pages = Math.max(1, (entries.size() + pageSize - 1) / pageSize);
-        graphics.centeredText(font, Component.translatable(
-                group == LEARNING ? "oboecraft.word_list.page" : "oboecraft.word_list.hint", page + 1, pages),
-                width / 2, height - 16, 0xFFA0A0A0);
-    }
-
-    /**
-     * The lock timer's label and draining bar as in the item tooltip, or the ban time left. When an item locks, its timer
-     * goes at once, and its name is replaced by {@code ???} at the next tick's layout.
-     */
-    private void extractLockState(SrsState.Leveled state, Instant now, int y, int textY, GuiGraphicsExtractor graphics) {
-        if (DisplayRules.of(state, now, settings()) instanceof DisplayState.Timed timed) {
-            var timer = new ClientLockTimerTooltip(timed.timer());
-            timer.extractText(graphics, font, timerLeft(), y);
-            timer.extractImage(font, timerLeft(), y, timer.getWidth(font), timer.getHeight(font), graphics);
-        } else if (SrsRules.isBanned(state, now)) {
-            Duration left = Duration.between(now, state.bannedUntil().orElseThrow());
-            graphics.text(font, Component.translatable("oboecraft.word_list.banned", TimerText.format(left)),
-                    timerLeft(), textY, BANNED_COLOR);
+        if (empty) graphics.centeredText(font, Component.translatable("oboecraft.word_list.empty"), width / 2, 65, -1);
+        if (group != LEARNING) {
+            graphics.centeredText(font, Component.translatable("oboecraft.word_list.hint"), width / 2, height - 16, HINT_COLOR);
         }
     }
 
@@ -320,5 +261,133 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
         if (font.width(text) <= maxWidth) return text;
         String ellipsis = "…";
         return font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width(ellipsis))) + ellipsis;
+    }
+
+    /**
+     * The scrolling list of the tab's rows, drawn over the world without vanilla's list background and separators, with
+     * the scrollbar at its right edge.
+     */
+    private final class WordList extends ContainerObjectSelectionList<Row> {
+        WordList(int left, int listWidth, int listHeight) {
+            super(WordListScreen.this.minecraft, listWidth, listHeight, LIST_TOP, ROW_HEIGHT);
+            setX(left);
+        }
+
+        /**
+         * Replaces the rows, keeping the scroll position. A focused row's reading clip button goes with it, so a locked
+         * row's clip can't be played from the keyboard.
+         */
+        @Override public void replaceEntries(Collection<Row> rows) {
+            setFocused(null);
+            super.replaceEntries(rows);
+            refreshScrollAmount();
+        }
+
+        @Override public int getRowLeft() { return getX(); }
+
+        @Override public int getRowWidth() { return getWidth() - AbstractScrollArea.SCROLLBAR_WIDTH - SCROLLBAR_GAP; }
+
+        @Override protected int scrollBarX() { return getRight() - scrollbarWidth(); }
+
+        @Override protected void extractListBackground(GuiGraphicsExtractor graphics) { }
+
+        @Override protected void extractListSeparators(GuiGraphicsExtractor graphics) { }
+
+        /**
+         * Where each column starts, as offsets from the left of a row. The button and the name follow the icon, and on
+         * the Learning tab the level is at the right end, wide enough for the top level, with the timer left of it.
+         */
+        Columns columns() {
+            int button = ICON_SIZE + ICON_GAP;
+            int name = button + READING_CLIP_BUTTON_SIZE + READING_CLIP_BUTTON_GAP;
+            if (group != LEARNING) return new Columns(button, name, getRowWidth(), 0, 0);
+            int level = getRowWidth() - font.width(levelText(layoutSettings.topLevel()));
+            int timer = level - COLUMN_GAP - TIMER_WIDTH;
+            return new Columns(button, name, timer - COLUMN_GAP, timer, level);
+        }
+
+        record Columns(int button, int name, int nameEnd, int timer, int level) { }
+    }
+
+    /**
+     * A row of the list. Its name and level are made once, when the list is laid out, and its timer or ban each frame.
+     * A locked row has {@code ???} for its name and no reading clip button.
+     */
+    private final class Row extends ContainerObjectSelectionList.Entry<Row> {
+        private final ItemId item;
+        private final boolean locked;
+        private final WordList.Columns columns;
+        private final String name;
+        private final @Nullable Component level;
+        private final @Nullable SpriteIconButton readingClip;
+
+        Row(NameListEntry entry, boolean locked, WordList.Columns columns) {
+            item = entry.id();
+            this.locked = locked;
+            this.columns = columns;
+            name = fitted(locked ? "???" : entry.japaneseName().text(), columns.nameEnd() - columns.name());
+            level = group == LEARNING ? levelText(((SrsState.Leveled) snapshot.state(item)).level()) : null;
+            readingClip = locked ? null : SpriteIconButton.builder(
+                            Component.translatable("oboecraft.word_list.play_reading"),
+                            ignored -> OboecraftClient.readingClips().play(item), true)
+                    .size(READING_CLIP_BUTTON_SIZE, READING_CLIP_BUTTON_SIZE)
+                    .sprite(READING_CLIP_SPRITE, READING_CLIP_SPRITE_WIDTH, READING_CLIP_SPRITE_HEIGHT)
+                    .withTootip().build();
+        }
+
+        @Override public List<? extends GuiEventListener> children() {
+            return readingClip == null ? List.of() : List.of(readingClip);
+        }
+
+        @Override public List<? extends NarratableEntry> narratables() {
+            return readingClip == null ? List.of() : List.of(readingClip);
+        }
+
+        /** A right-click on another tab than Learning selects the row, so its Revert button shows. */
+        @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() == 1 && group != LEARNING) {
+                select(item);
+                return true;
+            }
+            return super.mouseClicked(event, doubleClick);
+        }
+
+        @Override public void extractContent(
+                GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float delta) {
+            int left = getX();
+            int iconTop = getY() + (ROW_HEIGHT - ICON_SIZE) / 2;
+            int textY = iconTop + (ICON_SIZE - font.lineHeight) / 2 + 1;
+            if (minecraft.level != null) {
+                OboecraftClient.itemIcons().icon(minecraft.level.registryAccess(), item)
+                        .ifPresent(icon -> graphics.item(icon, left, iconTop));
+            }
+            if (readingClip != null) {
+                readingClip.setPosition(left + columns.button(), getY() + (ROW_HEIGHT - READING_CLIP_BUTTON_SIZE) / 2);
+                readingClip.extractRenderState(graphics, mouseX, mouseY, delta);
+            }
+            graphics.text(font, name, left + columns.name(), textY,
+                    locked ? LOCKED_NAME_COLOR : item.equals(selected) ? SELECTED_COLOR : -1);
+            if (level != null) {
+                extractLockState((SrsState.Leveled) snapshot.state(item), left + columns.timer(), iconTop, textY, graphics);
+                graphics.text(font, level, left + columns.level(), textY, LEVEL_COLOR);
+            }
+        }
+
+        /**
+         * The lock timer's label and draining bar as in the item tooltip, or the ban time left. When an item locks, its
+         * timer goes at once, and the row is laid out again at the next tick.
+         */
+        private void extractLockState(SrsState.Leveled state, int x, int y, int textY, GuiGraphicsExtractor graphics) {
+            Instant now = OboecraftClient.progress().now();
+            if (DisplayRules.of(state, now, settings()) instanceof DisplayState.Timed timed) {
+                var timer = new ClientLockTimerTooltip(timed.timer());
+                timer.extractText(graphics, font, x, y);
+                timer.extractImage(font, x, y, timer.getWidth(font), timer.getHeight(font), graphics);
+            } else if (SrsRules.isBanned(state, now)) {
+                Duration left = Duration.between(now, state.bannedUntil().orElseThrow());
+                graphics.text(font, Component.translatable("oboecraft.word_list.banned", TimerText.format(left)),
+                        x, textY, BANNED_COLOR);
+            }
+        }
     }
 }
