@@ -1,7 +1,5 @@
 package io.github.willdalh.oboecraft.tools.readingclips;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
@@ -93,9 +91,7 @@ public final class ReadingClipTool {
         List<ReadingClipList.Clip> inOrder = entries.stream().map(entry -> clips.get(entry.id())).toList();
         String listedVersion = made.isEmpty() && old.isPresent() ? old.get().engineVersion() : engineVersion;
 
-        Path soundsJson = assets.resolve("sounds.json");
-        writeReplacing(soundsJson, SoundsJson.format(entries.stream().map(NameListEntry::id).toList(),
-                readSoundsJson(soundsJson)));
+        writeReplacing(assets.resolve("sounds.json"), SoundsJson.format(entries.stream().map(NameListEntry::id).toList()));
         writeReplacing(clipListFile, new ReadingClipList(VOICE, OggEncoder.FORMAT, listedVersion, inOrder).fileText());
         for (ItemId item : plan.toDelete()) {
             Files.delete(clipFolder.resolve(item.value() + CLIP_EXTENSION));
@@ -140,20 +136,6 @@ public final class ReadingClipTool {
         }
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             return Optional.of(ReadingClipList.parse(JsonParser.parseReader(reader)));
-        }
-    }
-
-    /** The mod's sound events as they are, or none if there is no file yet. */
-    private static JsonObject readSoundsJson(Path file) throws IOException {
-        if (!Files.exists(file)) {
-            return new JsonObject();
-        }
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            JsonElement json = JsonParser.parseReader(reader);
-            if (!json.isJsonObject()) {
-                throw new IOException(file + " isn't a JSON object");
-            }
-            return json.getAsJsonObject();
         }
     }
 

@@ -13,7 +13,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
@@ -28,11 +27,8 @@ import org.jspecify.annotations.Nullable;
 public final class SettingsScreen extends Screen {
     private static final int FIELD_WIDTH = 260;
     private static final int GAP = 4;
-    private static final int CLIENT_TOP = 20;
-    /** The server settings' header, which an error after a failed save replaces, so it is next to the fields. */
-    private static final int SERVER_TOP = 64;
-    /** The space left of and right of an error, which can be wider than the fields. */
-    private static final int ERROR_MARGIN = 8;
+    private static final int CLIENT_TOP = 22;
+    private static final int SERVER_TOP = 70;
     /** A label and its field. */
     private static final int ROW_HEIGHT = 30;
     private static final int LABEL_COLOR = 0xFFA0A0A0;
@@ -47,8 +43,6 @@ public final class SettingsScreen extends Screen {
     private @Nullable EditBox demotions;
     private @Nullable EditBox banLength;
     private @Nullable EditBox percentageFactor;
-    private @Nullable EditBox tsukumogamiThreshold;
-    private @Nullable EditBox tsukumogamiReviewFreeze;
     private @Nullable CycleButton<Boolean> dropCountsAsInteraction;
     private Component error = Component.empty();
 
@@ -70,7 +64,7 @@ public final class SettingsScreen extends Screen {
         clickableButtons = addRenderableWidget(CycleButton.onOffBuilder(clientSettings.clickableButtons())
                 .create(x, CLIENT_TOP, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.clickable_buttons")));
         int scale = reviewItemScale == null ? clientSettings.reviewItemScalePercent() : reviewItemScale.scalePercent();
-        reviewItemScale = addRenderableWidget(new ReviewItemScaleSlider(x, CLIENT_TOP + 22, FIELD_WIDTH, scale));
+        reviewItemScale = addRenderableWidget(new ReviewItemScaleSlider(x, CLIENT_TOP + 24, FIELD_WIDTH, scale));
         int y = SERVER_TOP + 10;
         intervals = field(x, y, FIELD_WIDTH, LevelsText.intervals(serverSettings.levels()),
                 "oboecraft.settings.intervals");
@@ -82,16 +76,6 @@ public final class SettingsScreen extends Screen {
                 "oboecraft.settings.ban_length");
         percentageFactor = field(x + halfWidth + GAP, y, halfWidth, Integer.toString(serverSettings.percentageFactor()),
                 "oboecraft.settings.percentage_factor");
-        y += ROW_HEIGHT;
-        tsukumogamiThreshold = field(x, y, halfWidth, Integer.toString(serverSettings.tsukumogamiThreshold()),
-                "oboecraft.settings.tsukumogami_threshold");
-        tsukumogamiThreshold.setTooltip(
-                Tooltip.create(Component.translatable("oboecraft.settings.tsukumogami_threshold.tooltip")));
-        tsukumogamiReviewFreeze = field(x + halfWidth + GAP, y, halfWidth,
-                DurationText.format(serverSettings.tsukumogamiReviewFreeze()),
-                "oboecraft.settings.tsukumogami_review_freeze");
-        tsukumogamiReviewFreeze.setTooltip(
-                Tooltip.create(Component.translatable("oboecraft.settings.tsukumogami_review_freeze.tooltip")));
         y += ROW_HEIGHT;
         dropCountsAsInteraction = addRenderableWidget(CycleButton.onOffBuilder(serverSettings.dropCountsAsInteraction())
                 .create(x, y, FIELD_WIDTH, 20, Component.translatable("oboecraft.settings.drop")));
@@ -121,11 +105,8 @@ public final class SettingsScreen extends Screen {
         if (serverEditable) {
             try {
                 newServerSettings = new Settings(LevelsText.parse(intervals.getValue(), demotions.getValue()),
-                        DurationText.parse(banLength.getValue()),
-                        parseWholeNumber(percentageFactor.getValue(), "percentage points"),
-                        dropCountsAsInteraction.getValue(),
-                        parseWholeNumber(tsukumogamiThreshold.getValue(), "overdue items"),
-                        DurationText.parse(tsukumogamiReviewFreeze.getValue()));
+                        DurationText.parse(banLength.getValue()), parsePercentageFactor(percentageFactor.getValue()),
+                        dropCountsAsInteraction.getValue());
             } catch (IllegalArgumentException e) {
                 error = Component.literal(e.getMessage()).withStyle(ChatFormatting.RED);
                 return;
@@ -151,12 +132,11 @@ public final class SettingsScreen extends Screen {
         onClose();
     }
 
-    /** A whole number typed in a field, where {@code unit} says what it counts for the error message. */
-    private static int parseWholeNumber(String text, String unit) {
+    private static int parsePercentageFactor(String text) {
         try {
             return Integer.parseInt(text.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("\"" + text.trim() + "\" isn't a whole number of " + unit, e);
+            throw new IllegalArgumentException("\"" + text.trim() + "\" isn't a whole number of percentage points", e);
         }
     }
 
@@ -170,19 +150,15 @@ public final class SettingsScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, a);
         int x = (width - FIELD_WIDTH) / 2;
         graphics.centeredText(font, title, width / 2, 8, -1);
-        if (error.getString().isEmpty()) {
-            graphics.text(font, Component.translatable(serverEditable
-                    ? "oboecraft.settings.server" : "oboecraft.settings.server_remote"), x, SERVER_TOP, -1);
-        } else {
-            int errorY = SERVER_TOP;
-            for (var line : font.split(error, width - 2 * ERROR_MARGIN)) {
-                graphics.centeredText(font, line, width / 2, errorY, -1);
-                errorY += 10;
-            }
-        }
-        for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze)) {
+        graphics.text(font, Component.translatable(serverEditable
+                ? "oboecraft.settings.server" : "oboecraft.settings.server_remote"), x, SERVER_TOP, -1);
+        for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor)) {
             graphics.text(font, box.getMessage(), box.getX(), box.getY() - 10, LABEL_COLOR);
+        }
+        int errorY = dropCountsAsInteraction.getY() + 24;
+        for (var line : font.split(error, FIELD_WIDTH)) {
+            graphics.text(font, line, x, errorY, -1);
+            errorY += 10;
         }
     }
 

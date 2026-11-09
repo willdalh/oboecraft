@@ -47,7 +47,6 @@ public final class ServerReviews {
     private final ItemMapping itemMapping;
     private final Locks locks;
     private final ServerProgress progress;
-    private final ReviewListener listener;
     private final Map<UUID, ActiveReview> active = new HashMap<>();
 
     /**
@@ -60,11 +59,10 @@ public final class ServerReviews {
     public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
-    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress, ReviewListener listener) {
+    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress) {
         this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
-        this.listener = Objects.requireNonNull(listener, "listener");
     }
 
     /** Whether the player has a review going. */
@@ -85,7 +83,7 @@ public final class ServerReviews {
      * is one the client has left: the new one replaces it.
      */
     public void start(ServerPlayer player, int reviewId, StackLocation location) {
-        end(player);
+        active.remove(player.getUUID());
         if (!progress.hasSession(player)) {
             refuse(player, reviewId, ReviewRefused.Reason.NO_PROGRESS);
             return;
@@ -105,7 +103,6 @@ public final class ServerReviews {
             case ReviewStart.Started started -> {
                 Trigger trigger = Trigger.of(player, location, itemMapping);
                 active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
-                listener.reviewStarted(player);
                 ServerPlayNetworking.send(player, new ReviewStarted(
                         progress.now(), reviewId, item, started.level(), started.attemptsLeft()));
             }
@@ -168,7 +165,7 @@ public final class ServerReviews {
             case KNOWN, IGNORE -> {
                 progress.update(player, item, action == ReviewAction.Action.KNOWN
                         ? new SrsState.Known() : new SrsState.Ignored());
-                end(player);
+                active.remove(player.getUUID());
                 if (action == ReviewAction.Action.IGNORE) IgnoredItems.drop(player, item);
                 ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), reviewId));
             }
@@ -185,13 +182,11 @@ public final class ServerReviews {
             case PASS -> {
                 active.remove(player.getUUID());
                 progress.update(player, item, result.newState());
-                listener.reviewEnded(player);
             }
             case FAIL -> {
                 active.remove(player.getUUID());
                 punish(player, review, result.levelBefore());
                 progress.update(player, item, result.newState());
-                listener.reviewEnded(player);
             }
             case WRONG -> progress.update(player, item, result.newState());
             case LESSON -> {
@@ -242,7 +237,7 @@ public final class ServerReviews {
     public void close(ServerPlayer player, int reviewId) {
         ActiveReview review = active.get(player.getUUID());
         if (review != null && review.reviewId() == reviewId) {
-            end(player);
+            active.remove(player.getUUID());
         }
     }
 
@@ -270,18 +265,13 @@ public final class ServerReviews {
 
     /** Cancels the player's review on the server's side, for example when they die, and tells the client. */
     public void cancel(ServerPlayer player) {
-        end(player).ifPresent(review ->
-                ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), review.reviewId())));
+        ActiveReview review = active.remove(player.getUUID());
+        if (review != null) {
+            ServerPlayNetworking.send(player, new ReviewCancelled(progress.now(), review.reviewId()));
+        }
     }
 
-    /** Ends the player's review without a result, if one is going, and tells the listener. */
-    private Optional<ActiveReview> end(ServerPlayer player) {
-        Optional<ActiveReview> review = Optional.ofNullable(active.remove(player.getUUID()));
-        review.ifPresent(ended -> listener.reviewEnded(player));
-        return review;
-    }
-
-    /** Forgets the player's review when they leave. The listener isn't told, since the player is gone. */
+    /** Forgets the player's review when they leave. */
     public void forget(UUID player) {
         active.remove(player);
     }

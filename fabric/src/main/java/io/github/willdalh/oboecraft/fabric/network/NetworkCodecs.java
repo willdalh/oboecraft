@@ -16,11 +16,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 /** Stream codecs for the core values that payloads carry, and payload ids. */
-public final class NetworkCodecs {
+final class NetworkCodecs {
     static final StreamCodec<ByteBuf, Instant> INSTANT =
             ByteBufCodecs.LONG.map(Instant::ofEpochMilli, Instant::toEpochMilli);
 
-    public static final StreamCodec<ByteBuf, ItemId> ITEM_ID =
+    static final StreamCodec<ByteBuf, ItemId> ITEM_ID =
             ByteBufCodecs.stringUtf8(ItemId.MAX_LENGTH).map(ItemId::new, ItemId::value);
 
     private static final StreamCodec<ByteBuf, SrsState.Leveled> LEVELED = StreamCodec.composite(
@@ -62,8 +62,6 @@ public final class NetworkCodecs {
             DURATION, Settings::banLength,
             ByteBufCodecs.VAR_INT, Settings::percentageFactor,
             ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
-            ByteBufCodecs.VAR_INT, Settings::tsukumogamiThreshold,
-            DURATION, Settings::tsukumogamiReviewFreeze,
             Settings::new);
 
     /** Far more than the name list has, which leaves room for saved items that left the name list. */

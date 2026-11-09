@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Checks dropping the selected stack with the drop key, cancels a review whose menu closes on the server or whose
- * player changes to a game mode without locks, and tells the tsukumogami about game mode changes.
+ * Checks dropping the selected stack with the drop key, and cancels a review whose menu closes on the server or whose
+ * player changes to a game mode without locks.
  */
 @Mixin(ServerPlayer.class)
 abstract class ServerPlayerMixin {
@@ -35,7 +35,6 @@ abstract class ServerPlayerMixin {
     private void oboecraft$cancelReviewWithoutLocks(CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ()) {
             OboecraftMod.serverReviews().gameModeChanged((ServerPlayer) (Object) this);
-            OboecraftMod.serverTsukumogami().gameModeChanged((ServerPlayer) (Object) this);
         }
     }
 }

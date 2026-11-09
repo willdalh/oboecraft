@@ -3,19 +3,17 @@ package io.github.willdalh.oboecraft.tools.readingclips;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * The mod's {@code sounds.json}, which tells Minecraft about the reading clips: one sound event per item,
  * {@code oboecraft:reading.<item id>}, playing the clip {@code sounds/reading/<item id>.ogg}. The mod plays an item's
- * clip by that name. The file's other sound events, like the tsukumogami's, are written by hand and kept as they are.
+ * clip by that name.
  */
 final class SoundsJson {
     /** The folder of the clips, under {@code assets/oboecraft/sounds/}, and the start of each sound event's name. */
@@ -30,27 +28,14 @@ final class SoundsJson {
     }
 
     /**
-     * The file's text, with one sound event per line: the sound events of {@code existing} that aren't reading clips,
-     * in their order, then a reading clip for each of {@code items}, in their order.
+     * The file's text, with one sound event per line, in the order of {@code items}.
      *
-     * @param existing the file as it is, or an empty object if there is none
      * @throws IllegalArgumentException if an item id can't be a file name in Minecraft's resources
      */
-    static String format(List<ItemId> items, JsonObject existing) {
-        Stream<String> kept = existing.entrySet().stream()
-                .filter(event -> !isReadingClip(event.getKey()))
-                .map(event -> line(event.getKey(), event.getValue()));
-        Stream<String> clips = items.stream().map(item -> line(FOLDER + "." + checkedFileName(item), event(item)));
-        return Stream.concat(kept, clips).collect(Collectors.joining(",\n", "{\n", "\n}\n"));
-    }
-
-    /** Whether a sound event of the file is a reading clip, which this tool writes. */
-    private static boolean isReadingClip(String eventName) {
-        return eventName.startsWith(FOLDER + ".");
-    }
-
-    private static String line(String eventName, JsonElement event) {
-        return "  " + GSON.toJson(eventName) + ": " + GSON.toJson(event);
+    static String format(List<ItemId> items) {
+        return items.stream()
+                .map(item -> "  " + GSON.toJson(FOLDER + "." + checkedFileName(item)) + ": " + GSON.toJson(event(item)))
+                .collect(Collectors.joining(",\n", "{\n", "\n}\n"));
     }
 
     /**

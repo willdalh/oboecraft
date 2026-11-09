@@ -16,7 +16,7 @@ It reads the name list `fabric/src/main/resources/oboecraft/name_list.json` and 
 | File | Contents |
 |---|---|
 | `fabric/src/client/resources/assets/oboecraft/sounds/reading/<item id>.ogg` | The clips |
-| `fabric/src/client/resources/assets/oboecraft/sounds.json` | One sound event per entry, `oboecraft:reading.<item id>`, which plays its clip. The file's other sound events, like the tsukumogami's, are written by hand, and the tool keeps them as they are, ahead of the clips |
+| `fabric/src/client/resources/assets/oboecraft/sounds.json` | One sound event per entry, `oboecraft:reading.<item id>`, which plays its clip |
 | `tools/reading-clips.json` | The clip list: what each clip was made from |
 | `tools/build/reading-clips/review.md` | The review list of the clips it made |
 

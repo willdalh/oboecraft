@@ -12,49 +12,37 @@ import io.github.willdalh.oboecraft.core.settings.Settings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * The server settings file format, see {@code docs/architecture/settings-files.md}. Durations are written as
- * {@link DurationText}, like {@code "10m"} or {@code "1d 12h"}. Version 1, from before the tsukumogami, is still read,
- * with the default tsukumogami settings.
+ * {@link DurationText}, like {@code "10m"} or {@code "1d 12h"}.
  */
 public final class SettingsJson {
     /** The format version this code reads and writes. */
-    public static final int VERSION = 2;
-    /** The version before the tsukumogami settings, which is still read. */
-    private static final int VERSION_WITHOUT_TSUKUMOGAMI = 1;
+    public static final int VERSION = 1;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    private static final Set<String> FIELDS_WITHOUT_TSUKUMOGAMI =
+    private static final Set<String> FIELDS =
             Set.of("version", "levels", "banLength", "percentageFactor", "dropCountsAsInteraction");
-    private static final Set<String> FIELDS = Stream.concat(FIELDS_WITHOUT_TSUKUMOGAMI.stream(),
-            Stream.of("tsukumogamiThreshold", "tsukumogamiReviewFreeze")).collect(Collectors.toUnmodifiableSet());
     private static final Set<String> LEVEL_FIELDS = Set.of("interval", "demotion");
 
     private SettingsJson() {
     }
 
     /**
-     * Parses a settings file. Every field of its version must be there, with no others, and the values must pass the
-     * checks of {@link Settings}. A version 1 file has no tsukumogami settings, so it gets their defaults.
+     * Parses a settings file. Every field must be there, with no others, and the values must pass the checks of
+     * {@link Settings}.
      *
-     * @throws IllegalArgumentException if the file isn't valid settings of a version this code reads, saying what is
-     *                                  wrong
+     * @throws IllegalArgumentException if the file isn't valid settings of this version, saying what is wrong
      */
     public static Settings parse(JsonElement json) {
         JsonObject object = requireObject(json, "The settings");
-        if (!object.has("version")) {
-            throw new IllegalArgumentException("The settings have no version");
-        }
+        requireFields(object, FIELDS, "The settings");
         int version = requireInt(object.get("version"), "version");
-        if (version != VERSION && version != VERSION_WITHOUT_TSUKUMOGAMI) {
+        if (version != VERSION) {
             throw new IllegalArgumentException("The settings are version " + version + ", but this version of "
-                    + "Oboecraft reads versions " + VERSION_WITHOUT_TSUKUMOGAMI + " and " + VERSION);
+                    + "Oboecraft reads version " + VERSION);
         }
-        boolean hasTsukumogami = version == VERSION;
-        requireFields(object, hasTsukumogami ? FIELDS : FIELDS_WITHOUT_TSUKUMOGAMI, "The settings");
         JsonElement levelsJson = object.get("levels");
         if (!levelsJson.isJsonArray()) {
             throw new IllegalArgumentException("levels must be an array");
@@ -78,13 +66,7 @@ public final class SettingsJson {
         }
         return new Settings(levels, requireDuration(object.get("banLength"), "banLength"),
                 requireInt(object.get("percentageFactor"), "percentageFactor"),
-                requireBoolean(object.get("dropCountsAsInteraction"), "dropCountsAsInteraction"),
-                hasTsukumogami
-                        ? requireInt(object.get("tsukumogamiThreshold"), "tsukumogamiThreshold")
-                        : Settings.DEFAULTS.tsukumogamiThreshold(),
-                hasTsukumogami
-                        ? requireDuration(object.get("tsukumogamiReviewFreeze"), "tsukumogamiReviewFreeze")
-                        : Settings.DEFAULTS.tsukumogamiReviewFreeze());
+                requireBoolean(object.get("dropCountsAsInteraction"), "dropCountsAsInteraction"));
     }
 
     /** The file's text, with every field and the current version. */
@@ -102,8 +84,6 @@ public final class SettingsJson {
         json.addProperty("banLength", DurationText.format(settings.banLength()));
         json.addProperty("percentageFactor", settings.percentageFactor());
         json.addProperty("dropCountsAsInteraction", settings.dropCountsAsInteraction());
-        json.addProperty("tsukumogamiThreshold", settings.tsukumogamiThreshold());
-        json.addProperty("tsukumogamiReviewFreeze", DurationText.format(settings.tsukumogamiReviewFreeze()));
         return GSON.toJson(json) + "\n";
     }
 

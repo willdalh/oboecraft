@@ -22,8 +22,7 @@
       "io.github.willdalh.oboecraft.fabric.gametest.LessonsGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.GameModeGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.AnvilGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.SettingsGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.TsukumogamiGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.SettingsGameTest"
     ],
     "fabric-client-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.AnswerMenuClientGameTest",
@@ -34,8 +33,7 @@
       "io.github.willdalh.oboecraft.fabric.gametest.ReviewItemSizeClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ProgressStoreClientGameTest",
       "io.github.willdalh.oboecraft.fabric.gametest.ReadingClipsClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.WordListClientGameTest",
-      "io.github.willdalh.oboecraft.fabric.gametest.TsukumogamiClientGameTest"
+      "io.github.willdalh.oboecraft.fabric.gametest.WordListClientGameTest"
     ]
   },
   "depends": {

@@ -14,24 +14,10 @@ import org.junit.jupiter.api.Test;
 class SettingsJsonTest {
     private static final String CUSTOM = """
             {
-              "version": 2,
+              "version": 1,
               "levels": [
                 {"interval": "1h 30m", "demotion": 1},
                 {"interval": "2d", "demotion": 0}
-              ],
-              "banLength": "30s",
-              "percentageFactor": 10,
-              "dropCountsAsInteraction": true,
-              "tsukumogamiThreshold": 8,
-              "tsukumogamiReviewFreeze": "1m 30s"
-            }
-            """;
-    /** A file from before the tsukumogami. */
-    private static final String VERSION_1 = """
-            {
-              "version": 1,
-              "levels": [
-                {"interval": "1h 30m", "demotion": 1}
               ],
               "banLength": "30s",
               "percentageFactor": 10,
@@ -52,27 +38,6 @@ class SettingsJsonTest {
         assertEquals(Duration.ofSeconds(30), settings.banLength());
         assertEquals(10, settings.percentageFactor());
         assertTrue(settings.dropCountsAsInteraction());
-        assertEquals(8, settings.tsukumogamiThreshold());
-        assertEquals(Duration.ofSeconds(90), settings.tsukumogamiReviewFreeze());
-    }
-
-    @Test
-    void readsAVersion1FileWithTheDefaultTsukumogamiSettings() {
-        Settings settings = parse(VERSION_1);
-
-        assertEquals(List.of(new LevelSettings(Duration.ofMinutes(90), 1)), settings.levels());
-        assertTrue(settings.dropCountsAsInteraction());
-        assertEquals(Settings.DEFAULTS.tsukumogamiThreshold(), settings.tsukumogamiThreshold());
-        assertEquals(Settings.DEFAULTS.tsukumogamiReviewFreeze(), settings.tsukumogamiReviewFreeze());
-    }
-
-    @Test
-    void writesVersion2() {
-        String text = SettingsJson.format(Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO));
-
-        assertTrue(text.contains("\"version\": 2"), text);
-        assertTrue(text.contains("\"tsukumogamiThreshold\": 5"), text);
-        assertTrue(text.contains("\"tsukumogamiReviewFreeze\": \"0s\""), text);
     }
 
     @Test
@@ -90,15 +55,7 @@ class SettingsJsonTest {
     void rejectsAFileThatIsntValidSettings() {
         String[] invalid = {
                 "[]",
-                CUSTOM.replace("\"version\": 2", "\"version\": 3"),
-                CUSTOM.replace("\"version\": 2", "\"version\": 1"),
-                VERSION_1.replace("\"version\": 1", "\"version\": 2"),
-                CUSTOM.replace("\"version\": 2,", ""),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8,", ""),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": -1"),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": 1001"),
-                CUSTOM.replace("\"1m 30s\"", "\"2h\""),
-                CUSTOM.replace("\"1m 30s\"", "90"),
+                CUSTOM.replace("\"version\": 1", "\"version\": 2"),
                 CUSTOM.replace("\"banLength\": \"30s\",", ""),
                 CUSTOM.replace("\"banLength\"", "\"banLenght\""),
                 CUSTOM.replace("\"percentageFactor\": 10", "\"percentageFactor\": 10.5"),

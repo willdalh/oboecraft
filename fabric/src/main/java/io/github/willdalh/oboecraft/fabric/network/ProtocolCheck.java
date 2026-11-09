@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  */
 public record ProtocolCheck() implements CustomPacketPayload {
     /** Goes up when a payload or the meaning of one changes, so old and new versions never talk. */
-    public static final int PROTOCOL_VERSION = 8;
+    public static final int PROTOCOL_VERSION = 7;
 
     public static final ProtocolCheck INSTANCE = new ProtocolCheck();
     public static final Type<ProtocolCheck> TYPE = NetworkCodecs.type("protocol/" + PROTOCOL_VERSION);

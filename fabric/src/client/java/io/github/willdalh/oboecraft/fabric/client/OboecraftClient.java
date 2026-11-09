@@ -6,7 +6,6 @@ import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.mixin.ClientCommonPacketListenerImplAccessor;
 import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettings;
 import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettingsFile;
-import io.github.willdalh.oboecraft.fabric.client.tsukumogami.TsukumogamiRenderer;
 import io.github.willdalh.oboecraft.fabric.network.ProgressSync;
 import io.github.willdalh.oboecraft.fabric.progress.ProgressStore;
 import io.github.willdalh.oboecraft.fabric.network.ProtocolCheck;
@@ -55,7 +54,6 @@ public final class OboecraftClient implements ClientModInitializer {
         registerReceivers();
         ReviewKeys.register();
         WordListButton.register();
-        TsukumogamiRenderer.register();
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
         registerProgressStoreEvents();
