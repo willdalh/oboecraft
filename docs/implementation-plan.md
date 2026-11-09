@@ -224,7 +224,7 @@ Decided in [willdalh/oboecraft#43](https://github.com/willdalh/oboecraft/issues/
 Decided in [willdalh/oboecraft#36](https://github.com/willdalh/oboecraft/issues/36), see [Word list](design/word-list.md#learning-tab). This is the display part of the issue; reviewing from the list, the wider Revert and its confirmation box come later:
 
 - The word list opens on a new Learning tab (学習中), before Known, Ignored and Mastered, which lists the items from level 1 up to mastered.
-- Locked rows show `???`, with no reading clip button, the level, and the ban time left. Unlocked rows show the name, the reading clip button, the level and the live lock timer.
+- Locked rows show `???`, with no reading clip button, the level, and the ban time left. Unlocked rows show the reading clip button, the name, the live lock timer and the level.
 - A button switches between the Urgency and Level orders, kept until the game closes.
 - Clicking a row on the tab does nothing yet. The network protocol doesn't change.
 

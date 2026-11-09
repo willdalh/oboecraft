@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.core.srs;
 
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
@@ -10,24 +11,26 @@ import java.util.Optional;
  */
 public enum LearningOrder {
     /**
-     * Locked items first, longest locked first, with banned items among them, then unlocked items, least time left
-     * first. Both are the order of the locks-at time, so the order never changes as time passes. An item with no
-     * locks-at time is locked and comes first.
+     * Unlocked items first, least time left first, then locked items, longest locked first, with banned items among
+     * them. An item with no locks-at time is locked and comes first among the locked items. Since an item moves from
+     * the unlocked to the locked items when it locks, the order depends on the time.
      */
-    URGENCY(Comparator.comparing(SrsState.Leveled::locksAt,
-            Comparator.comparing((Optional<Instant> locksAt) -> locksAt.orElse(Instant.MIN)))),
+    URGENCY,
     /** Lowest level first, with the urgency order breaking ties. */
-    LEVEL(Comparator.comparingInt(SrsState.Leveled::level).thenComparing(URGENCY.comparator));
+    LEVEL;
 
-    private final Comparator<SrsState.Leveled> comparator;
+    private static final Comparator<SrsState.Leveled> BY_LOCKS_AT = Comparator.comparing(SrsState.Leveled::locksAt,
+            Comparator.comparing((Optional<Instant> locksAt) -> locksAt.orElse(Instant.MIN)));
 
-    LearningOrder(Comparator<SrsState.Leveled> comparator) {
-        this.comparator = comparator;
-    }
-
-    /** Compares the states of two items on the Learning tab. */
-    public Comparator<SrsState.Leveled> comparator() {
-        return comparator;
+    /** Compares the states of two items on the Learning tab at {@code now}. */
+    public Comparator<SrsState.Leveled> comparator(Instant now, Settings settings) {
+        Comparator<SrsState.Leveled> urgency = Comparator
+                .comparing((SrsState.Leveled state) -> SrsRules.isLocked(state, now, settings))
+                .thenComparing(BY_LOCKS_AT);
+        return switch (this) {
+            case URGENCY -> urgency;
+            case LEVEL -> Comparator.comparingInt(SrsState.Leveled::level).thenComparing(urgency);
+        };
     }
 
     /** The order the sort button switches to next. */
