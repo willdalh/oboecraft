@@ -12,7 +12,7 @@ More detail on each part:
 - [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
 - [Reading clip tool](reading-clip-tool.md): the tool that makes the reading clips with VOICEVOX.
 
-The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool, and progress on the player's computer the client's progress files, see [ADR: Progress kept on the player's computer](../decisions/20261107-progress-on-the-players-computer.md).
+The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool, progress on the player's computer the client's progress files, see [ADR: Progress kept on the player's computer](../decisions/20261107-progress-on-the-players-computer.md), and [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51) the tsukumogami, a mob made with Minecraft's own models and animations.
 
 ## Core and adapters
 
@@ -55,8 +55,9 @@ fabric/
   src/main/resources        fabric.mod.json, the mixin config, the mod's icon in assets/oboecraft/icon.png, and the
                             name list in oboecraft/name_list.json
   src/client/java           Code that only runs on the client
-  src/client/resources      The client mixin config, the language files in assets/oboecraft/lang, and the reading
-                            clips in assets/oboecraft/sounds/reading with their sounds.json
+  src/client/resources      The client mixin config, the language files in assets/oboecraft/lang, the reading clips in
+                            assets/oboecraft/sounds/reading with their sounds.json, which also has the tsukumogami's
+                            sound events, and the tsukumogami's textures in assets/oboecraft/textures/entity
   src/gametest/java         Fabric game tests, on a headless server and in a client
   src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
 ```
@@ -94,7 +95,7 @@ For example, on a fail when crafting a diamond pickaxe at level 1, `fabric` coun
 
 The mod is installed on both the server and the client. Singleplayer runs on Minecraft's built-in server, so it uses the same code as a dedicated server.
 
-- **The server decides everything that matters:** SRS states, answer checking, levels, punishment and bans.
+- **The server decides everything that matters:** SRS states, answer checking, levels, punishment and bans, and when the tsukumogami appears and what it does.
 - **The client only displays:** the answer menu, "???" names, timer bars and slot markers.
 
 The server sends each player their SRS states when they join and pushes updates when they change.
@@ -129,3 +130,4 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 - [Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md)
 - [The name list's readings are under CC BY-SA 4.0](../decisions/20261106-name-list-under-cc-by-sa.md)
 - [Reading clips are made ahead of time with VOICEVOX's 玄野武宏](../decisions/20261107-reading-clips-with-voicevox.md)
+- [The tsukumogami is never saved with the world](../decisions/20261109-tsukumogami-never-saved.md)

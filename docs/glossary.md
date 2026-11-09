@@ -216,10 +216,28 @@ _Avoid_: input, material, component
 What one craft of a result uses: how many of each ingredient, noted from the input slots when a review of the result starts.
 _Avoid_: formula, pattern
 
+### Tsukumogami
+
+**Tsukumogami**:
+The mob that follows a player at night while their overdue count is at the threshold or above, and leaves when they review. Each player has at most one, and it follows only that player, its owner. See [Tsukumogami](design/tsukumogami.md).
+_Avoid_: yokai (a category of creatures, not this mob), ghost, boss, follower
+
+**Overdue**:
+The state of an item that is locked at level 1 or higher, banned or not. Level 0 items are never overdue.
+_Avoid_: due, late, expired
+
+**Overdue count**:
+The number of different overdue items a player carries, in the inventory, the hotbar, the offhand and on the cursor. Stack size doesn't matter.
+_Avoid_: backlog, debt, due count
+
+**Review freeze**:
+How long the tsukumogami stands still and watches its owner during one review, a server setting.
+_Avoid_: pause, grace period
+
 ### Settings
 
 **Server settings**:
-The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor` and whether dropping counts as an interaction. In singleplayer, the built-in server's.
+The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor`, whether dropping counts as an interaction, and the tsukumogami's threshold and review freeze. In singleplayer, the built-in server's.
 _Avoid_: config, options, game rules
 
 **Client settings**:
