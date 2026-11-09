@@ -10,6 +10,7 @@ import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
 import io.github.willdalh.oboecraft.fabric.network.ReviewAction;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.ServerTsukumogami;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.Tsukumogami;
+import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiSounds;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiType;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +22,7 @@ import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -306,6 +308,39 @@ public class TsukumogamiGameTest {
                 TestPlayers.leave(friend);
             }
         });
+    }
+
+    @GameTest
+    public void onlyItsOwnerHearsTheBellWhereItArrives(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            ServerPlayer friend = TestPlayers.join(helper, UUID.randomUUID());
+            try {
+                friend.snapTo(player.position());
+                TestPlayers.takeSentPackets(player);
+                TestPlayers.takeSentPackets(friend);
+                carryOverdue(player, 5);
+                tsukumogami().checkPlayers(server);
+                Tsukumogami tsukumogami = existing(helper, player);
+
+                List<ClientboundSoundPacket> ownerBells = arrivalBellsSentTo(player);
+                helper.assertValueEqual(ownerBells.size(), 1, "bells its owner hears");
+                ClientboundSoundPacket bell = ownerBells.getFirst();
+                double distance = new Vec3(bell.getX(), bell.getY(), bell.getZ()).distanceTo(tsukumogami.position());
+                helper.assertTrue(distance < 0.5, "the bell should ring where it arrived, not " + distance
+                        + " blocks away");
+                helper.assertValueEqual(arrivalBellsSentTo(friend), List.of(), "bells another player nearby hears");
+            } finally {
+                TestPlayers.leave(friend);
+            }
+        });
+    }
+
+    private static List<ClientboundSoundPacket> arrivalBellsSentTo(ServerPlayer player) {
+        return TestPlayers.takeSentPackets(player).stream()
+                .filter(packet -> packet instanceof ClientboundSoundPacket sound
+                        && sound.getSound().value() == TsukumogamiSounds.ARRIVE)
+                .map(ClientboundSoundPacket.class::cast)
+                .toList();
     }
 
     @GameTest

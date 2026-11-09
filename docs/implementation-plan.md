@@ -238,7 +238,7 @@ Decided in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/
 - At most 12 items orbit it. Only their item ids are sent to the players who see it.
 - One without an owner, like one made with `/summon`, removes itself, and there is no spawn egg.
 - Its settings are a threshold from 0 to 1,000, where 0 turns it off, and a review freeze from 0 to 1 hour. The server settings file went to version 2, which still reads version 1 with their defaults. The network protocol went to 8, so the release with it is a `minor` bump.
-- Its sound events are the mod's own, and play vanilla sounds through `sounds.json` until #52, so only that file and `CREDITS.md` change then. The reading clip tool keeps sound events that aren't reading clips.
+- Its sound events are the mod's own, in `sounds.json`, which the reading clip tool keeps since they aren't reading clips. Since #52 they play the mod's own sounds, made by hand from CC0 recordings, a CC BY 2.1 JP recording of a temple bell and synthesis, with each source credited in `CREDITS.md`. Only its owner hears the bell when it arrives. A strike at the end of the wind-up has a sound of its own, the hit.
 
 ### Game modes and renaming
 
