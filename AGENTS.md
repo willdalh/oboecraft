@@ -71,6 +71,10 @@ Versions of Minecraft, Fabric and libraries are in `gradle/libs.versions.toml`.
 
 Every name list entry has a reading clip in `fabric/src/client/resources/assets/oboecraft/sounds/reading/`, made by the reading clip tool, and `ReadingClipsClientGameTest` fails if one is missing. After a change to the name list, run the tool, which only makes the clips of new and changed entries. The tool rewrites the reading clips in `sounds.json` and keeps the file's other sound events, like the tsukumogami's, which are written by hand. The voice is VOICEVOX:玄野武宏, whose credit is in `CREDITS.md`. A change of voice needs a voice whose terms allow its clips to ship in the published mod, and the credit in `CREDITS.md` changes with it, see `docs/decisions/20261107-reading-clips-with-voicevox.md`.
 
+### Tsukumogami sounds
+
+The tsukumogami's sounds are in `fabric/src/client/resources/assets/oboecraft/sounds/tsukumogami/`, made once by hand from recordings and synthesis, and `TsukumogamiSoundsClientGameTest` fails if one of its sound events has no file. Every recording a sound is made from is under terms that allow it to ship in the published mod, and is credited in `CREDITS.md` with what was changed. A new or replaced sound changes its credit in the same PR.
+
 ## Releases
 
 The mod is published only as a GitHub release, with the mod jar attached and GitHub's generated release notes.

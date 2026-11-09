@@ -57,7 +57,8 @@ fabric/
   src/client/java           Code that only runs on the client
   src/client/resources      The client mixin config, the language files in assets/oboecraft/lang, the reading clips in
                             assets/oboecraft/sounds/reading with their sounds.json, which also has the tsukumogami's
-                            sound events, and the tsukumogami's textures in assets/oboecraft/textures/entity
+                            sound events, the tsukumogami's sounds in assets/oboecraft/sounds/tsukumogami, and its
+                            textures in assets/oboecraft/textures/entity
   src/gametest/java         Fabric game tests, on a headless server and in a client
   src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
 ```
