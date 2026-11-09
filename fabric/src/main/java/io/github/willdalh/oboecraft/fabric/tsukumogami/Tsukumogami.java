@@ -42,6 +42,8 @@ public final class Tsukumogami extends PathfinderMob {
     public static final byte WIND_UP_EVENT = 4;
     /** How long the attack winds up before it hits, in ticks. */
     public static final int WIND_UP_TICKS = 20;
+    /** How long the attack's animation runs, the wind-up and then the hit and settling again, in ticks. */
+    public static final int ATTACK_ANIMATION_TICKS = WIND_UP_TICKS + 12;
     /** How long it fades out before it is gone, in ticks. */
     public static final int FADE_TICKS = 40;
     /** The time between the end of one attack and the start of the next, in ticks. */
@@ -54,6 +56,8 @@ public final class Tsukumogami extends PathfinderMob {
     private static final double STUCK_DISTANCE_SQR = 1.0;
     /** From how far away it teleports behind its owner, in blocks. */
     private static final double KEEP_UP_DISTANCE = 32;
+    /** How long it waits before it looks again for a place behind its owner, after it found none, in ticks. */
+    private static final int KEEP_UP_RETRY_TICKS = 20;
 
     private static final EntityDataAccessor<List<ItemId>> DATA_ORBITING_ITEMS =
             SynchedEntityData.defineId(Tsukumogami.class, TsukumogamiType.ORBITING_ITEMS);
@@ -68,12 +72,14 @@ public final class Tsukumogami extends PathfinderMob {
     public final AnimationState watchAnimationState = new AnimationState();
     public final AnimationState fadeAnimationState = new AnimationState();
 
-    private final ServerBossEvent bossBar =
-            new ServerBossEvent(getUUID(), Component.empty(), BossEvent.BossBarColor.PURPLE,
-                    BossEvent.BossBarOverlay.PROGRESS);
+    /** Its boss bar, on the server, made when it starts following its owner. */
+    private @Nullable ServerBossEvent bossBar;
     private @Nullable ServerPlayer owner;
-    private @Nullable ServerTsukumogami followers;
+    private @Nullable ServerTsukumogami serverTsukumogami;
     private int windUpTicks;
+    /** On the client, how long the attack's animation has left to run. */
+    private int attackAnimationTicks;
+    private int keepUpRetryTicks;
     private int attackCooldownTicks;
     private int fadeTicks;
     private int ticksSinceProgress;
@@ -104,10 +110,17 @@ public final class Tsukumogami extends PathfinderMob {
     /**
      * Makes it follow its owner, on the server, before it is added to the level. Its owner alone sees its boss bar.
      */
-    void follow(ServerPlayer owner, ServerTsukumogami followers) {
+    void follow(ServerPlayer owner, ServerTsukumogami serverTsukumogami) {
         this.owner = Objects.requireNonNull(owner, "owner");
-        this.followers = Objects.requireNonNull(followers, "followers");
+        this.serverTsukumogami = Objects.requireNonNull(serverTsukumogami, "serverTsukumogami");
+        bossBar = new ServerBossEvent(
+                getUUID(), getDisplayName(), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS);
         bossBar.addPlayer(owner);
+    }
+
+    /** The players who see its boss bar, on the server. Game tests read it. */
+    public List<ServerPlayer> bossBarViewers() {
+        return bossBar == null ? List.of() : List.copyOf(bossBar.getPlayers());
     }
 
     /** Its owner, on the server. */
@@ -127,9 +140,11 @@ public final class Tsukumogami extends PathfinderMob {
             Objects.requireNonNull(getAttribute(Attributes.MAX_HEALTH)).setBaseValue(maxHealth);
             setHealth(TsukumogamiRules.scaledHealth(getHealth(), oldMaxHealth, maxHealth));
         }
-        bossBar.setName(Component.translatableWithFallback("oboecraft.tsukumogami.boss_bar", "%s (%s)",
-                getDisplayName(), overdue.size()));
-        bossBar.setProgress(getHealth() / getMaxHealth());
+        if (bossBar != null) {
+            bossBar.setName(Component.translatableWithFallback("oboecraft.tsukumogami.boss_bar", "%s (%s)",
+                    getDisplayName(), overdue.size()));
+            bossBar.setProgress(getHealth() / getMaxHealth());
+        }
     }
 
     /** The overdue items that orbit it, on both sides. */
@@ -156,7 +171,9 @@ public final class Tsukumogami extends PathfinderMob {
             return;
         }
         entityData.set(DATA_FADING, true);
-        bossBar.removeAllPlayers();
+        if (bossBar != null) {
+            bossBar.removeAllPlayers();
+        }
         getNavigation().stop();
         playSound(TsukumogamiSounds.FADE, 2.0F, 1.0F);
     }
@@ -164,7 +181,8 @@ public final class Tsukumogami extends PathfinderMob {
     @Override
     protected void customServerAiStep(ServerLevel level) {
         super.customServerAiStep(level);
-        if (owner == null || followers == null || owner.isRemoved() || owner.level() != level) {
+        if (owner == null || serverTsukumogami == null || bossBar == null || owner.isRemoved()
+                || owner.level() != level) {
             discard();
             return;
         }
@@ -175,7 +193,7 @@ public final class Tsukumogami extends PathfinderMob {
             return;
         }
         getLookControl().setLookAt(owner, 10.0F, 30.0F);
-        boolean standsStill = followers.standsStill(owner);
+        boolean standsStill = serverTsukumogami.standsStill(owner);
         entityData.set(DATA_STANDS_STILL, standsStill);
         if (standsStill) {
             getNavigation().stop();
@@ -214,14 +232,27 @@ public final class Tsukumogami extends PathfinderMob {
         if (tickCount % PATH_INTERVAL_TICKS == 0 || getNavigation().isDone()) {
             getNavigation().moveTo(owner, 1.0);
         }
-        if (distanceToSqr(owner) > KEEP_UP_DISTANCE * KEEP_UP_DISTANCE || isStuck()) {
-            TsukumogamiSpots.behind(level, owner, this).ifPresent(spot -> {
-                teleportTo(spot.x, spot.y, spot.z);
-                getNavigation().stop();
-            });
-            ticksSinceProgress = 0;
-            progressCheckedAt = position();
+        if (keepUpRetryTicks > 0) {
+            keepUpRetryTicks--;
+        } else if (distanceToSqr(owner) > KEEP_UP_DISTANCE * KEEP_UP_DISTANCE || isStuck()) {
+            keepUp(level, owner);
         }
+    }
+
+    /**
+     * Teleports to a place behind its owner. Where there is none, like over open water, it looks again a second
+     * later, not on every tick.
+     */
+    private void keepUp(ServerLevel level, ServerPlayer owner) {
+        Optional<Vec3> spot = TsukumogamiSpots.behind(level, owner, this);
+        if (spot.isPresent()) {
+            teleportTo(spot.get().x, spot.get().y, spot.get().z);
+            getNavigation().stop();
+        } else {
+            keepUpRetryTicks = KEEP_UP_RETRY_TICKS;
+        }
+        ticksSinceProgress = 0;
+        progressCheckedAt = position();
     }
 
     /** Whether it has moved less than a block in the last {@link #STUCK_TICKS} on its way to its owner. */
@@ -241,11 +272,11 @@ public final class Tsukumogami extends PathfinderMob {
      */
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-        if (isFading()) {
-            return false;
-        }
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return super.hurtServer(level, source, damage);
+        }
+        if (isFading()) {
+            return false;
         }
         Entity attacker = source.getEntity();
         if (owner != null && attacker != null && attacker.getUUID().equals(owner.getUUID())) {
@@ -260,21 +291,27 @@ public final class Tsukumogami extends PathfinderMob {
     @Override
     public void die(DamageSource source) {
         super.die(source);
-        if (followers != null && owner != null) {
-            followers.killed(owner);
+        if (serverTsukumogami != null && owner != null) {
+            serverTsukumogami.killed(owner);
         }
     }
 
+    /** Every way it is removed ends here, being unloaded with its chunk included, so its boss bar always goes. */
     @Override
-    public void remove(RemovalReason reason) {
-        super.remove(reason);
-        bossBar.removeAllPlayers();
+    public void onRemoval(RemovalReason reason) {
+        super.onRemoval(reason);
+        if (bossBar != null) {
+            bossBar.removeAllPlayers();
+        }
     }
 
     @Override
     public void tick() {
         super.tick();
         if (level().isClientSide()) {
+            // Standing still for a review interrupts the attack, as on the server.
+            attackAnimationTicks = standsStill() ? 0 : Math.max(0, attackAnimationTicks - 1);
+            windUpAnimationState.animateWhen(attackAnimationTicks > 0, tickCount);
             idleAnimationState.startIfStopped(tickCount);
             watchAnimationState.animateWhen(standsStill() && !isFading(), tickCount);
             fadeAnimationState.animateWhen(isFading(), tickCount);
@@ -284,6 +321,7 @@ public final class Tsukumogami extends PathfinderMob {
     @Override
     public void handleEntityEvent(byte id) {
         if (id == WIND_UP_EVENT) {
+            attackAnimationTicks = ATTACK_ANIMATION_TICKS;
             windUpAnimationState.start(tickCount);
         } else {
             super.handleEntityEvent(id);

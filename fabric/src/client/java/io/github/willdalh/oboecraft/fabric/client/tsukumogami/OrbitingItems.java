@@ -2,13 +2,13 @@ package io.github.willdalh.oboecraft.fabric.client.tsukumogami;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.tsukumogami.TsukumogamiRules;
+import io.github.willdalh.oboecraft.fabric.client.ItemIcons;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -42,14 +42,15 @@ final class OrbitingItems {
     }
 
     private List<ItemId> inRing = List.of();
-    /** Each item's place in the ring, before the ring's spin, in radians. */
-    private final Map<ItemId, Float> places = new HashMap<>();
+    /** The place in the ring of each item of {@link #inRing}, at the same index, before the ring's spin, in radians. */
+    private final float[] places = new float[TsukumogamiRules.MAX_ORBITING_ITEMS];
     private final List<Falling> falling = new ArrayList<>();
+    private final Placed placed = new Placed();
     private float lastAge = Float.NaN;
 
     /**
      * The items the ring shows for a frame, each with its place around the tsukumogami's feet, its turn and its size.
-     * Kept by its render state and filled again for each frame, so a frame makes no new objects for the items.
+     * Each ring keeps one and fills it again for each frame, so a frame makes no new objects for the items.
      */
     static final class Placed {
         static final int CAPACITY = TsukumogamiRules.MAX_ORBITING_ITEMS + MAX_FALLING;
@@ -77,57 +78,66 @@ final class OrbitingItems {
         lastAge = age;
         List<ItemId> now = fading ? List.of() : items;
         if (!now.equals(inRing)) {
-            for (ItemId item : inRing) {
-                if (!now.contains(item) && falling.size() < MAX_FALLING) {
-                    falling.add(new Falling(item, angleOf(item, age), age));
-                }
-            }
-            places.keySet().retainAll(now);
-            for (int i = 0; i < now.size(); i++) {
-                places.putIfAbsent(now.get(i), evenPlace(i, now.size()));
-            }
-            inRing = now;
+            changeRing(now, age);
         }
         float share = Math.min(1, elapsed * SETTLE);
         for (int i = 0; i < inRing.size(); i++) {
-            ItemId item = inRing.get(i);
-            float place = places.get(item);
-            places.put(item, place + Mth.wrapDegrees((evenPlace(i, inRing.size()) - place) * Mth.RAD_TO_DEG)
-                    * Mth.DEG_TO_RAD * share);
+            float toEven = Mth.wrapDegrees((evenPlace(i, inRing.size()) - places[i]) * Mth.RAD_TO_DEG);
+            places[i] += toEven * Mth.DEG_TO_RAD * share;
         }
-        falling.removeIf(item -> age - item.startAge() > FALL_TICKS);
+        for (Iterator<Falling> it = falling.iterator(); it.hasNext(); ) {
+            if (age - it.next().startAge() > FALL_TICKS) {
+                it.remove();
+            }
+        }
+    }
+
+    /**
+     * Makes the ring show {@code now}, a list of at most {@link TsukumogamiRules#MAX_ORBITING_ITEMS}: the items that
+     * left start falling, the items that stay keep their places, and new items start at an even place.
+     */
+    private void changeRing(List<ItemId> now, float age) {
+        float[] oldPlaces = places.clone();
+        for (int i = 0; i < inRing.size(); i++) {
+            if (!now.contains(inRing.get(i)) && falling.size() < MAX_FALLING) {
+                falling.add(new Falling(inRing.get(i), oldPlaces[i] + age * SPIN, age));
+            }
+        }
+        for (int i = 0; i < now.size(); i++) {
+            int before = inRing.indexOf(now.get(i));
+            places[i] = before >= 0 ? oldPlaces[before] : evenPlace(i, now.size());
+        }
+        inRing = now;
     }
 
     private static float evenPlace(int index, int count) {
         return Mth.TWO_PI * index / count;
     }
 
-    private float angleOf(ItemId item, float age) {
-        return places.getOrDefault(item, 0.0F) + age * SPIN;
-    }
-
     /**
-     * Places the items for a frame, around the feet of the tsukumogami facing {@code bodyRot}. Items without an icon,
-     * like the camp maps, aren't drawn.
+     * Places the items for a frame, around the feet of the tsukumogami facing {@code bodyRot}, and returns them. Items
+     * without an icon, like the camp maps, aren't drawn.
      */
-    void place(Placed out, Entity entity, float age, float bodyRot, Function<ItemId, Optional<ItemStack>> icons,
-            ItemModelResolver resolver) {
+    Placed place(Entity entity, float age, float bodyRot, ItemIcons icons, ItemModelResolver resolver) {
         float forwardX = -Mth.sin(bodyRot * Mth.DEG_TO_RAD) * FORWARD;
         float forwardZ = Mth.cos(bodyRot * Mth.DEG_TO_RAD) * FORWARD;
+        RegistryAccess registries = entity.level().registryAccess();
+        Placed out = placed;
         out.count = 0;
-        for (ItemId item : inRing) {
-            float angle = angleOf(item, age);
+        for (int i = 0; i < inRing.size(); i++) {
+            float angle = places[i] + age * SPIN;
             float bob = Mth.sin(age * 0.08F + angle * 3) * 0.06F;
-            add(out, entity, icons.apply(item), resolver, forwardX + Mth.cos(angle) * RADIUS, HEIGHT + bob,
-                    forwardZ + Mth.sin(angle) * RADIUS, -angle * Mth.RAD_TO_DEG, SCALE);
+            add(out, entity, icons.icon(registries, inRing.get(i)), resolver, forwardX + Mth.cos(angle) * RADIUS,
+                    HEIGHT + bob, forwardZ + Mth.sin(angle) * RADIUS, -angle * Mth.RAD_TO_DEG, SCALE);
         }
         for (Falling item : falling) {
             float progress = Math.min(1, (age - item.startAge()) / FALL_TICKS);
             float radius = RADIUS + progress * 0.5F;
-            add(out, entity, icons.apply(item.item()), resolver, forwardX + Mth.cos(item.angle()) * radius,
+            add(out, entity, icons.icon(registries, item.item()), resolver, forwardX + Mth.cos(item.angle()) * radius,
                     HEIGHT - progress * progress * HEIGHT, forwardZ + Mth.sin(item.angle()) * radius,
                     -item.angle() * Mth.RAD_TO_DEG + progress * 540, SCALE * (1 - progress * 0.6F));
         }
+        return out;
     }
 
     private static void add(Placed out, Entity entity, Optional<ItemStack> icon, ItemModelResolver resolver,

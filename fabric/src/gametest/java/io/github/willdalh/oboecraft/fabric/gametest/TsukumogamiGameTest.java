@@ -24,6 +24,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -213,11 +214,15 @@ public class TsukumogamiGameTest {
             helper.assertTrue(tsukumogami.isFading(), "it should fade out right after the pass");
             assertNone(helper, player, "after the pass");
 
-            // Locked again the same night, it waits before it comes back.
+            // Locked again the same night, it waits before it comes back, and arriving doesn't shorten the wait.
             setOverdue(player, ITEMS.getFirst());
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "right after it faded");
-            later(TsukumogamiRules.RETURN_DELAY);
+            tsukumogami().arrived(player);
+            later(TsukumogamiRules.ARRIVAL_DELAY);
+            tsukumogami().checkPlayers(server);
+            assertNone(helper, player, "an arrival's wait after it faded");
+            later(TsukumogamiRules.RETURN_DELAY.minus(TsukumogamiRules.ARRIVAL_DELAY));
             tsukumogami().checkPlayers(server);
             existing(helper, player);
         });
@@ -288,8 +293,15 @@ public class TsukumogamiGameTest {
                 helper.assertValueEqual(tsukumogami.getHealth(), 20.0F, "health after the others' damage");
                 helper.assertTrue(tsukumogami.hurtServer(level, player.damageSources().playerAttack(player), 5),
                         "the owner's hit");
-                helper.assertTrue(tsukumogami.hurtServer(level, level.damageSources().genericKill(), 1000), "/kill");
                 helper.assertTrue(!tsukumogami.canBeSeenAsEnemy(), "other mobs should ignore it");
+
+                // Fading out, nothing hurts it, but /kill still works.
+                unlock(player, ITEMS.getFirst());
+                tsukumogami().checkPlayers(server);
+                helper.assertTrue(tsukumogami.isFading(), "it should fade out");
+                helper.assertTrue(!tsukumogami.hurtServer(level, player.damageSources().playerAttack(player), 5),
+                        "the owner's hit while it fades");
+                helper.assertTrue(tsukumogami.hurtServer(level, level.damageSources().genericKill(), 1000), "/kill");
             } finally {
                 TestPlayers.leave(friend);
             }
@@ -325,15 +337,39 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
-    public void itsOwnerCantSleepWhileItExists(GameTestHelper helper) {
+    public void itsOwnerCantSleepWhileItExistsOrIsComing(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
-            carryOverdue(player, 5);
             var bed = helper.absolutePos(BlockPos.ZERO);
+            carryOverdue(player, 4);
             helper.assertTrue(EntitySleepEvents.ALLOW_SLEEPING.invoker().allowSleep(player, bed) == null,
-                    "its owner may sleep before it appears");
+                    "the player may sleep below the threshold");
+
+            // At the threshold, but still waiting after the player arrived: sleeping would skip the night.
+            carryOverdue(player, 5);
+            tsukumogami().arrived(player);
+            helper.assertTrue(EntitySleepEvents.ALLOW_SLEEPING.invoker().allowSleep(player, bed) != null,
+                    "the player can't sleep while it waits to arrive");
+
+            // An owner who got into bed anyway is woken when it arrives.
+            player.startSleeping(bed);
+            later(TsukumogamiRules.ARRIVAL_DELAY);
             tsukumogami().checkPlayers(server);
+            existing(helper, player);
+            helper.assertTrue(!player.isSleeping(), "its owner should be woken when it arrives");
             helper.assertTrue(EntitySleepEvents.ALLOW_SLEEPING.invoker().allowSleep(player, bed) != null,
                     "its owner can't sleep");
+        });
+    }
+
+    @GameTest
+    public void itsBossBarGoesWithItEvenWhenItsChunkUnloads(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami tsukumogami = existing(helper, player);
+            helper.assertValueEqual(tsukumogami.bossBarViewers(), List.of(player), "who sees its boss bar");
+            tsukumogami.setRemoved(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            helper.assertValueEqual(tsukumogami.bossBarViewers(), List.of(), "who sees it after it unloaded");
         });
     }
 
@@ -344,7 +380,9 @@ public class TsukumogamiGameTest {
             tsukumogami().checkPlayers(server);
             Tsukumogami first = existing(helper, player);
             player.setGameMode(GameType.ADVENTURE);
+            tsukumogami().checkPlayers(server);
             helper.assertValueEqual(tsukumogami().existingOf(player), Optional.of(first), "in adventure mode");
+            helper.assertTrue(!first.isFading(), "changing to adventure mode shouldn't make it fade out");
             player.setGameMode(GameType.CREATIVE);
             helper.assertTrue(first.isRemoved(), "creative mode should remove it");
 

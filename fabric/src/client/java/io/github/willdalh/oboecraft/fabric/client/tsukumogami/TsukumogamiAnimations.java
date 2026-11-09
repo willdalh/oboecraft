@@ -79,7 +79,8 @@ final class TsukumogamiAnimations {
      * The attack: it rears back with both hands raised and its jaw opening over the wind-up, then brings them down at
      * the moment the hit lands, and settles again.
      */
-    static final AnimationDefinition WIND_UP = AnimationDefinition.Builder.withLength(seconds(Tsukumogami.WIND_UP_TICKS) + 0.6F)
+    static final AnimationDefinition WIND_UP = AnimationDefinition.Builder
+            .withLength(seconds(Tsukumogami.ATTACK_ANIMATION_TICKS))
             .addAnimation("upper_body", rotation(
                     smooth(0.0F, 0, 0, 0), smooth(0.8F, -22, 0, 0), linear(0.95F, -24, 0, 0),
                     linear(1.1F, 30, 0, 0), smooth(1.6F, 0, 0, 0)))
