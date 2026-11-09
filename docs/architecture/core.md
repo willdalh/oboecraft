@@ -29,6 +29,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | | `DurationText`, `LevelsText` | 12 |
 | `core.text` | `JapaneseText`, `Romaji` | 4 |
 | `core.punishment` | `Punishment`, `Recipe`, `ProtectedItems` | 9 |
+| `core.tsukumogami` | `OverdueItems`, `Night`, `TsukumogamiRules` | [#51](https://github.com/willdalh/oboecraft/issues/51) |
 
 ### Items
 
@@ -84,6 +85,14 @@ The rules are in [Punishment](../design/punishment.md).
 
 Every count is `count × part × percent / (whole × 100)`, rounded up, in `long` integer arithmetic, so no share is rounded up because of a floating-point error. It is never more than the count.
 
+### Tsukumogami
+
+The rules are in [Tsukumogami](../design/tsukumogami.md). Whether a player can be followed at all, by game mode, dimension and difficulty, is a Minecraft question, so `fabric` decides it.
+
+- `OverdueItems.isOverdue(state, now, settings)`: whether a state is overdue, locked by `SrsRules.isLocked` at level 1 or higher, banned or not. `OverdueItems.of(carried, states, now, settings)` takes the items of the stacks a player carries, in a stable order and with repeats, and returns each overdue item once, in the order it is first carried. Its size is the overdue count.
+- `Night`: `isNight(dayTime)` is whether a day time in ticks is in the night, from `START` (12,542) up to `END` (23,460) of each `DAY_LENGTH` (24,000), and `nightOf(dayTime)` which night it is, as the number of its day.
+- `TsukumogamiRules`: the fixed numbers, like `BASE_HEALTH`, `HEALTH_PER_ITEM`, `MAX_HEALTH`, `RETURN_DELAY`, `ARRIVAL_DELAY`, `STILL_AFTER_REVIEW` and `MAX_ORBITING_ITEMS`. `isOn(settings)` is whether the threshold is above 0. `shouldExist(overdueCount, dayTime, killedOnNight, now, waitsUntil, settings)` is whether a player's tsukumogami should exist. `maxHealth(overdueCount, settings)` is its max health, and `scaledHealth(health, oldMax, newMax)` its health after the max changes, keeping the same fraction. `standsStill(reviewStartedAt, reviewEndedAt, now, settings)` is whether it stands still for its owner's review.
+
 ### Answer checking
 
 `AnswerChecker` normalizes the typed answer with `JapaneseText.normalize`, then searches for a way to read it as the Japanese name. A step in the search is a position in the name's whole reading together with a position in the answer. From each step it tries:
@@ -111,13 +120,13 @@ The answer checker only keeps what depends on the answer: the states it has visi
 ### Settings
 
 - `LevelSettings`: one level's interval and demotion.
-- `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels, `banLength`, `percentageFactor` and `dropCountsAsInteraction`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` and `demotion(level)` are a level's interval and demotion. `withLevels`, `withBanLength`, `withPercentageFactor` and `withDropCountsAsInteraction` return a copy with one setting changed.
+- `Settings`: a record with the [server settings](../design/settings.md#server-settings): the levels, `banLength`, `percentageFactor`, `dropCountsAsInteraction`, `tsukumogamiThreshold` and `tsukumogamiReviewFreeze`. `Settings.DEFAULTS` holds the defaults, and the record checks its values when it is built. `topLevel()` is the number of levels plus one, and `interval(level)` and `demotion(level)` are a level's interval and demotion. `withLevels`, `withBanLength`, `withPercentageFactor`, `withDropCountsAsInteraction`, `withTsukumogamiThreshold` and `withTsukumogamiReviewFreeze` return a copy with one setting changed.
 
-- `Settings` and `LevelSettings` also check that values stay small enough to work with: at most `MAX_LEVELS` (100) levels, demotions up to 100, intervals and the ban length up to `MAX_DURATION` (1,000,000 days), and `percentageFactor` up to `MAX_PERCENTAGE_FACTOR` (100). Settings from a file or the network are only ever built through these records.
+- `Settings` and `LevelSettings` also check that values stay small enough to work with: at most `MAX_LEVELS` (100) levels, demotions up to 100, intervals and the ban length up to `MAX_DURATION` (1,000,000 days), and `percentageFactor` up to `MAX_PERCENTAGE_FACTOR` (100), the tsukumogami threshold up to `MAX_TSUKUMOGAMI_THRESHOLD` (1,000), and the review freeze up to `MAX_TSUKUMOGAMI_REVIEW_FREEZE` (1 hour). Settings from a file or the network are only ever built through these records.
 - `DurationText`: durations as people write them, like `10m` or `1h 30m`: `parse` reads whole numbers with `d`, `h`, `m` and `s` from the largest unit down, and `format` writes every unit that isn't zero. The settings file and the settings screen use it.
 - `LevelsText`: the levels as the settings screen shows them, a list of intervals and a list of demotions separated by commas, with `intervals`, `demotions` and `parse`.
 
-Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, and the ban length and `percentageFactor` in 9. Milestone 12 added the limits and the text formats.
+Each setting is added to `Settings` by the milestone that first uses it: the levels in 3b, the drop setting in 6, the ban length and `percentageFactor` in 9, and the tsukumogami's settings in #51. Milestone 12 added the limits and the text formats.
 
 Client settings, like clickable buttons, only change what the client shows, so they live in `fabric`.
 
