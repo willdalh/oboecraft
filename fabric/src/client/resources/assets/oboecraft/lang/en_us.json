@@ -61,6 +61,7 @@
   "subtitles.oboecraft.reading": "Japanese name is said",
   "entity.oboecraft.tsukumogami": "Tsukumogami",
   "oboecraft.tsukumogami.boss_bar": "%s (%s)",
+  "oboecraft.tsukumogami.boss_bar_waiting": "%s (%s) — Waiting until you’re safe",
   "oboecraft.tsukumogami.arrived": "A tsukumogami is following you. Review your overdue items to drive it away.",
   "oboecraft.tsukumogami.no_sleep": "You can't sleep while a tsukumogami follows you",
   "subtitles.oboecraft.entity.tsukumogami.arrive": "A temple bell tolls",

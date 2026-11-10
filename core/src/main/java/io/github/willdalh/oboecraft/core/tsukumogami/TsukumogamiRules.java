@@ -8,8 +8,8 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 /**
- * The rules of the tsukumogami: when a player's tsukumogami should exist, its health and when it stands still for a
- * review. Whether a player can be followed at all, by game mode, dimension and difficulty, is a Minecraft question,
+ * The rules of the tsukumogami: when a player's tsukumogami should exist, its health, its review pause and its wait
+ * for safety. Whether a player can be followed at all, by game mode, dimension and difficulty, is a Minecraft question,
  * so the adapter decides it. These numbers are fixed rules, not settings.
  */
 public final class TsukumogamiRules {
@@ -28,6 +28,10 @@ public final class TsukumogamiRules {
     public static final Duration ARRIVAL_DELAY = Duration.ofSeconds(10);
     /** How long it keeps standing still after a review ends, so its owner isn't hit the moment they are back. */
     public static final Duration STILL_AFTER_REVIEW = Duration.ofSeconds(2);
+    /** How long its owner must be free of threats before attacks resume. */
+    public static final Duration SAFE_AFTER_THREAT = Duration.ofSeconds(5);
+    /** The range around its owner in which a targeting mob counts as a threat, in blocks. */
+    public static final double THREAT_RANGE = 32;
     /** The most overdue items that orbit it. */
     public static final int MAX_ORBITING_ITEMS = 12;
 
@@ -76,6 +80,11 @@ public final class TsukumogamiRules {
             return newMaxHealth;
         }
         return Math.clamp(health / oldMaxHealth * newMaxHealth, 0, newMaxHealth);
+    }
+
+    /** Threat protection is independent of the review freeze and its settings. */
+    public static boolean waitsForSafety(Optional<Instant> lastThreatAt, Instant now) {
+        return lastThreatAt.map(last -> now.isBefore(last.plus(SAFE_AFTER_THREAT))).orElse(false);
     }
 
     /**

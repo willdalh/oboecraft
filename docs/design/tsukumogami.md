@@ -37,6 +37,7 @@ It follows and attacks only its owner. It ignores other players and mobs, and mo
 | Health | 20 HP at the threshold, plus 6 HP for each overdue item above it, up to 100 HP. When the overdue count changes, its max health changes and it keeps the same fraction of its health, so a pass in the middle of a fight weakens it at once. Damage and speed don't change. |
 | Damage it takes | Only damage its owner causes: melee, arrows, tridents, thrown potions and anything else that has the owner as its attacker. Other players, other mobs and the owner's pets do nothing, and neither do lava, fire, falling, drowning, suffocation and cactus. Other players' hits play a dull sound, so nobody thinks it is broken. `/kill` and the void still work, also while it fades out. |
 | During a review | While its owner has any review going, lessons included, it stands still and watches them, for at most the **Tsukumogami review freeze**. After that it moves again even with the answer menu open, so the menu can't be held open through the night. Every new review starts a new freeze, and it stays still for 2 seconds after a review ends, so the owner isn't hit the moment they are back. It can still be hurt while it stands still. With a freeze of 0, it never stands still. |
+| During danger | Another living mob within 32 blocks targeting its owner suspends attacks, including an angered neutral mob. Sight and a path are not required, so a trapped targeting mob still counts. It cancels a pending strike and keeps following, then waits five continuous seconds without a threat before starting a fresh attack. A new threat restarts the wait. This works even when the review freeze expires or is 0, and reviews remain available. Idle mobs, mobs targeting someone else, environmental hazards and PvP do not count. |
 | Sleeping | Its owner can't sleep while it exists, wherever it is, and is told why. They can't either while it should exist but is still waiting to arrive or has found no place to arrive, and an owner who is in bed when it arrives is woken. Otherwise sleeping would skip the night and get rid of it. It doesn't stop other players from sleeping. |
 
 In multiplayer, an owner who can't sleep holds up the night for everyone, unless the server lowers `playersSleepingPercentage`. That is accepted, since the owner can fix it by reviewing the items they carry.
@@ -56,6 +57,7 @@ It is never saved with the world. Whether it should exist is worked out from its
 
 - The message above the hotbar each time it appears.
 - A boss bar, only for its owner, with its name and the overdue count, like 付喪神 (7), which shows its health. The threshold isn't shown, so the goal is "review until it leaves", not "do the minimum".
+- During danger and the five-second grace period, the boss bar adds “Waiting until you’re safe” alongside the overdue count.
 - Its name is 付喪神 in Japanese and Tsukumogami in English, following the game language like the rest of the mod's text.
 
 ## Look
@@ -139,3 +141,5 @@ Both are [server settings](settings.md). The other numbers on this page are fixe
 ## Performance
 
 The server only checks players while a tsukumogami could exist: at night with the threshold above 0, once a second, and a player right after each of their reviews ends, so the fade-out and the boss bar react at once. During the day, a check is one comparison of the time of day.
+
+Each existing tsukumogami checks nearby mobs targeting its owner on every AI tick, before a strike can land. The search is limited to the 32-block area around its owner.
