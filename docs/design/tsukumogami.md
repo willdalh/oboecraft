@@ -83,9 +83,19 @@ It moves slowly and heavily, never suddenly except in the hit itself. The heavy 
 
 Each of these blends into the next over about a third of a second, so it never snaps from one pose to another.
 
-| Walking | Attacking | Fading out |
+The recordings below are from the game, on a lit stage so that the motion shows. At night it is as dark as in the picture above.
+
+| Walking | Attacking | Attacking, as its owner sees it |
 |---|---|---|
-| ![The tsukumogami walks past with slow, sliding steps, its train dragging behind it](../images/tsukumogami-walk.gif) | ![The tsukumogami rears up with its hands raised, brings them down and straightens up](../images/tsukumogami-attack.gif) | ![The tsukumogami's items fall away and it dissolves from the hem up, its mask last](../images/tsukumogami-fade.gif) |
+| ![The tsukumogami walks past with slow, sliding steps, its train dragging behind it](../images/tsukumogami-walk.gif) | ![The tsukumogami rears up with its hands raised, brings them down and straightens up](../images/tsukumogami-attack.gif) | ![The mask looms over its owner with its jaw open and its eyes flaring, the hands come down, and its owner is knocked back](../images/tsukumogami-attack-owner-view.gif) |
+
+| A review starts | It is hurt |
+|---|---|
+| ![The tsukumogami leans in and tilts its head as its owner's review starts](../images/tsukumogami-watch.gif) | ![The tsukumogami jolts back from a blow and stands still again](../images/tsukumogami-flinch.gif) |
+
+| Fading out | Killed |
+|---|---|
+| ![The tsukumogami's items fall away and it dissolves from the hem up, its mask last](../images/tsukumogami-fade.gif) | ![The tsukumogami is knocked back, its kimono falls in on itself and the mask comes down on it](../images/tsukumogami-death.gif) |
 
 It is made with Minecraft's own entity models and keyframe animations, with a glowing layer for the eyes, Minecraft's own dissolve for the fade-out and no animation library, so the mod still only needs Fabric API. It was reworked in [willdalh/oboecraft#53](https://github.com/willdalh/oboecraft/issues/53).
 
