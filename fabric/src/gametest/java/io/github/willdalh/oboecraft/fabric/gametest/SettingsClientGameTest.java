@@ -100,8 +100,9 @@ public class SettingsClientGameTest implements FabricClientGameTest {
     }
 
     /**
-     * A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. Clicking
-     * a button leaves the typing bar focused, so the player can go on typing.
+     * A lesson's answer menu has a button for each action, and Show answer and Close do what their keys do. Show answer
+     * shows the name, then becomes Show reading, which shows the reading and is then disabled. After a click, the
+     * typing bar keeps what was typed and still takes the typing.
      */
     private static void clickingTheAnswerMenusButtons(
             ClientGameTestContext context, TestSingleplayerContext singleplayer) {
@@ -127,7 +128,22 @@ public class SettingsClientGameTest implements FabricClientGameTest {
             check(input.isFocused() && client.gui.screen().getFocused() == input,
                     "the typing bar should stay focused after a button is clicked");
         });
-        context.runOnClient(client -> pressButton(client, "key.oboecraft.close"));
+        check(!context.computeOnClient(client -> ((AnswerScreen) client.gui.screen()).showsReading()),
+                "Show answer should show only the name");
+        context.getInput().typeChars("オーク");
+        context.runOnClient(client -> clickButton(client, "oboecraft.answer_menu.show_reading"));
+        context.getInput().typeChars("の原木");
+        context.runOnClient(client -> {
+            EditBox input = fields(client).getFirst();
+            check(input.isFocused() && client.gui.screen().getFocused() == input,
+                    "the typing bar should stay focused after Show reading rebuilds the buttons");
+            check(((AnswerScreen) client.gui.screen()).showsReading(), "Show reading should show the reading");
+            check(!button(client, "oboecraft.answer_menu.show_reading").active, "Show reading should then be disabled");
+            check(fields(client).getFirst().getValue().equals("オークの原木"),
+                    "the typing bar should keep its text and take the typing after a click, not "
+                            + fields(client).getFirst().getValue());
+            pressButton(client, "key.oboecraft.close");
+        });
         context.waitForScreen(null);
     }
 

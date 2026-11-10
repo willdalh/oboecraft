@@ -5,6 +5,7 @@
   "oboecraft.answer_menu.wrong": "不正解です。残り1回です。",
   "oboecraft.answer_menu.attempt_left": "残り1回",
   "oboecraft.answer_menu.failed": "不正解でした。正解は:",
+  "oboecraft.answer_menu.show_reading": "読みを表示",
   "oboecraft.answer_menu.close_hint": "%s: 閉じる",
   "oboecraft.review.banned": "不正解のため、あと%sは解答できません。",
   "oboecraft.progress.broken": "Oboecraftの進行状況ファイルを読み込めなかったため、進行状況は空から始まります。壊れたファイルは %s として保存されています。",

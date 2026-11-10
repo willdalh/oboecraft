@@ -45,12 +45,18 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             .withStyle(ChatFormatting.GOLD);
     private static final Component FAILED = Component.translatable("oboecraft.answer_menu.failed")
             .withStyle(ChatFormatting.RED);
+    private static final Component SHOW_READING = Component.translatable("oboecraft.answer_menu.show_reading");
     private static final int INPUT_WIDTH = 200;
     private static final int INPUT_HEIGHT = 20;
     private static final int BUTTON_HEIGHT = 20;
     /** The space around a button's label. */
     private static final int BUTTON_PADDING = 12;
     private static final int BUTTON_GAP = 4;
+    /** The height of a line of text below the typing bar: a hint line, a message or a line of the answer. */
+    private static final int LINE_HEIGHT = 12;
+    /** The space between the typing bar and the hint below it. */
+    private static final int HINT_GAP = 8;
+    private static final int SECONDARY_TEXT_COLOR = 0xFFA0A0A0;
     /** How long the answer stays on screen after a fail before a key can close the menu, so a double press doesn't. */
     private static final long FAIL_SHOWN_MILLIS = 500;
 
@@ -64,6 +70,10 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     private @Nullable EditBox input;
     private boolean wrong;
     private ReviewAnswered.@Nullable Answer shownAnswer;
+    /** Whether the reading is shown below the Japanese name. Only set once the name is shown. */
+    private boolean readingShown;
+    /** The top of the highest action button, or the screen's height without buttons. The menu's text stays above it. */
+    private int buttonsTop;
     private boolean failed;
     /** When the menu showed the fail, in {@link Util#getMillis()}. */
     private long failedAtMillis;
@@ -113,6 +123,11 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         return failed;
     }
 
+    /** Whether the menu shows the reading below the Japanese name. Client game tests read it. */
+    public boolean showsReading() {
+        return readingShown;
+    }
+
     @Override
     protected void init() {
         String typed = input == null ? "" : input.getValue();
@@ -123,6 +138,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         input.setVisible(!failed);
         input.setResponder(value -> wrong = false);
         addRenderableWidget(input);
+        buttonsTop = height;
         if (OboecraftClient.clientSettings().clickableButtons()) {
             addActionButtons();
         }
@@ -132,11 +148,12 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     /**
      * One button for each action the keys can do now, at the bottom, when the clickable buttons setting is on. The
      * buttons are as wide as the longest label, in one row or more if the screen is too narrow. After a fail, only
-     * Close.
+     * revealing the reading and closing are available.
      */
     private void addActionButtons() {
         List<Button> buttons = new ArrayList<>();
         if (failed) {
+            buttons.add(revealButton());
             buttons.add(actionButton(ReviewKeys.CLOSE, () -> {
                 if (failShownLongEnough()) {
                     onClose();
@@ -148,7 +165,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             buttons.add(actionButton(ReviewKeys.KNOWN, () -> action(ReviewAction.Action.KNOWN)));
             buttons.add(actionButton(ReviewKeys.IGNORE, () -> action(ReviewAction.Action.IGNORE)));
             if (level == 0) {
-                buttons.add(actionButton(ReviewKeys.SHOW, () -> action(ReviewAction.Action.SHOW_ANSWER)));
+                buttons.add(revealButton());
             }
             buttons.add(actionButton(ReviewKeys.CLOSE, this::onClose));
         }
@@ -165,6 +182,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             int rowWidth = inRow * buttonWidth + (inRow - 1) * BUTTON_GAP;
             int x = (width - rowWidth) / 2 + (index % perRow) * (buttonWidth + BUTTON_GAP);
             int y = height - (rows - row) * (BUTTON_HEIGHT + BUTTON_GAP) - 4;
+            buttonsTop = Math.min(buttonsTop, y);
             buttons.get(index).setRectangle(buttonWidth, BUTTON_HEIGHT, x, y);
             addRenderableWidget(buttons.get(index));
         }
@@ -176,7 +194,25 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
      * typing.
      */
     private Button actionButton(ReviewKeys.Binding binding, Runnable press) {
-        return new ActionButton(Component.translatable(binding.mapping().getName()), button -> {
+        return actionButton(Component.translatable(binding.mapping().getName()), press);
+    }
+
+    /** Show answer's button, labeled with what it shows next, and disabled once everything is shown. */
+    private Button revealButton() {
+        Component label = showLabel();
+        Button button = actionButton(label == null ? SHOW_READING : label, this::revealAnswer);
+        button.active = label != null;
+        return button;
+    }
+
+    /** What Show answer shows next: the Japanese name, then its reading, or null once both are shown. */
+    private @Nullable Component showLabel() {
+        if (readingShown) return null;
+        return shownAnswer == null ? Component.translatable(ReviewKeys.SHOW.mapping().getName()) : SHOW_READING;
+    }
+
+    private Button actionButton(Component label, Runnable press) {
+        return new ActionButton(label, button -> {
             if (!composing) {
                 press.run();
             }
@@ -209,8 +245,10 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
      * doesn't submit, an Esc that cancels it doesn't close the menu, and a Backspace doesn't delete confirmed text.
      *
      * <p>Don't know only acts while the typing bar is empty, so its default key, Delete, still deletes typed text and
-     * fixing a typo never fails the review. After a fail, only a new press of Answer or Close, not a held key's
-     * repeat, closes the menu, and not before the answer has been shown for {@link #FAIL_SHOWN_MILLIS}.
+     * fixing a typo never fails the review. Show answer only acts on a new press, so holding it shows the name but not
+     * the reading too, and only while there is more to show, so a key it shares with another action still does that.
+     * After a fail, only a new press of Answer or Close, not a held key's repeat, closes the menu, and not before the
+     * answer has been shown for {@link #FAIL_SHOWN_MILLIS}.
      */
     @Override
     public boolean keyPressed(KeyEvent event) {
@@ -219,7 +257,9 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             return true;
         }
         if (failed) {
-            if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
+            if (showLabel() != null && ReviewKeys.SHOW.matches(event)) {
+                if (!repeat) revealAnswer();
+            } else if (!repeat && failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || isAnswerKey(event))) {
                 onClose();
             }
             return true;
@@ -232,8 +272,8 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             action(ReviewAction.Action.IGNORE);
             return true;
         }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
-            action(ReviewAction.Action.SHOW_ANSWER);
+        if (level == 0 && showLabel() != null && ReviewKeys.SHOW.matches(event)) {
+            if (!repeat) revealAnswer();
             return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
@@ -270,6 +310,10 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (composing) return true;
         if (failed) {
+            if (showLabel() != null && ReviewKeys.SHOW.matches(event)) {
+                revealAnswer();
+                return true;
+            }
             if (failShownLongEnough() && (ReviewKeys.CLOSE.matches(event) || ReviewKeys.ANSWER.matches(event))) {
                 onClose();
             }
@@ -277,8 +321,8 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         }
         if (ReviewKeys.KNOWN.matches(event)) { action(ReviewAction.Action.KNOWN); return true; }
         if (ReviewKeys.IGNORE.matches(event)) { action(ReviewAction.Action.IGNORE); return true; }
-        if (level == 0 && ReviewKeys.SHOW.matches(event)) {
-            action(ReviewAction.Action.SHOW_ANSWER); return true;
+        if (level == 0 && showLabel() != null && ReviewKeys.SHOW.matches(event)) {
+            revealAnswer(); return true;
         }
         if (ReviewKeys.DONT_KNOW.matches(event) && input.getValue().isEmpty()) {
             action(ReviewAction.Action.DONT_KNOW); return true;
@@ -303,10 +347,26 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         return shownAnswer != null;
     }
 
+    /**
+     * Shows the answer in two steps: the first asks the server for the Japanese name, which only a lesson gives, and
+     * the next shows the reading the server sent with it. The reading is only display, so the server isn't told.
+     */
+    private void revealAnswer() {
+        if (shownAnswer == null) {
+            if (level == 0) action(ReviewAction.Action.SHOW_ANSWER);
+        } else if (!readingShown) {
+            readingShown = true;
+            refreshButtons();
+            updateHint();
+        }
+    }
+
     void showAnswer(ReviewAnswered.Answer answer) {
         input.setValue("");
         wrong = false;
         shownAnswer = answer;
+        refreshButtons();
+        updateHint();
     }
 
     private void submit() {
@@ -324,7 +384,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         updateHint();
     }
 
-    /** The buttons depend on the level and on a fail, so they are made again when those change. */
+    /** The buttons reflect the level, a fail and which part of the answer has been revealed. */
     private void refreshButtons() {
         if (OboecraftClient.clientSettings().clickableButtons()) {
             rebuildWidgets();
@@ -332,8 +392,22 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     }
 
     private void updateHint() {
-        Component hint = failed ? ReviewKeys.closeHint() : ReviewKeys.hint(level == 0);
+        Component hint = failed ? ReviewKeys.closeHint(showLabel()) : ReviewKeys.hint(level == 0, showLabel());
         hintLines = font.split(hint, Math.max(100, width - 24));
+        placeInput();
+    }
+
+    /**
+     * Puts the typing bar in the middle of the screen, or higher if the hint and messages below it would reach the
+     * buttons. Both lines of the answer are kept free once the name is shown, so the reading has room when shown.
+     * The heights match what {@link #extractRenderState} draws below the typing bar.
+     */
+    private void placeInput() {
+        int messageLines = shownAnswer != null ? 2 : (wrong || level > 0 && attemptsLeft == 1 ? 1 : 0);
+        if (failed) messageLines++;
+        int belowInput = HINT_GAP + hintLines.size() * LINE_HEIGHT
+                + (messageLines == 0 ? 0 : LINE_HEIGHT + messageLines * LINE_HEIGHT);
+        input.setY(Math.max(0, Math.min(height / 2, buttonsTop - 8 - INPUT_HEIGHT - belowInput)));
     }
 
     /** The server said the answer was wrong. The typing bar is cleared, and the review goes on with one attempt. */
@@ -341,6 +415,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         input.setValue("");
         wrong = true;
         attemptsLeft = ReviewRules.ATTEMPTS - SrsState.Leveled.MAX_WRONG_ATTEMPTS;
+        updateHint();
     }
 
     /**
@@ -388,7 +463,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         super.extractRenderState(graphics, mouseX, mouseY, a);
         int centerX = width / 2;
-        int top = height / 2;
+        int top = input.getY();
         // Keep the image's bottom above the level label, so growing it never covers the answer field or hint.
         float itemSize = Math.min(16f * OboecraftClient.clientSettings().reviewItemScalePercent() / 100f,
                 Math.max(0, top - 36));
@@ -400,19 +475,22 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             graphics.pose().popMatrix();
         }
         graphics.centeredText(font, Component.translatable("oboecraft.answer_menu.level", level), centerX, top - 20, -1);
-        int hintY = top + INPUT_HEIGHT + 8;
+        int hintY = top + INPUT_HEIGHT + HINT_GAP;
         for (var line : hintLines) {
-            graphics.text(font, line, centerX - font.width(line) / 2, hintY, 0xFFA0A0A0);
-            hintY += 12;
+            graphics.text(font, line, centerX - font.width(line) / 2, hintY, SECONDARY_TEXT_COLOR);
+            hintY += LINE_HEIGHT;
         }
-        int messageY = hintY + 12;
+        int messageY = hintY + LINE_HEIGHT;
         if (failed) {
             graphics.centeredText(font, FAILED, centerX, messageY, -1);
-            messageY += 12;
+            messageY += LINE_HEIGHT;
         }
         if (shownAnswer != null) {
-            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName() + " (" + shownAnswer.reading() + ")"),
-                    centerX, messageY, -1);
+            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName()), centerX, messageY, -1);
+            if (readingShown) {
+                graphics.centeredText(font, Component.literal(shownAnswer.reading()), centerX,
+                        messageY + LINE_HEIGHT, SECONDARY_TEXT_COLOR);
+            }
         }
         if (wrong) {
             graphics.centeredText(font, WRONG, centerX, messageY, -1);

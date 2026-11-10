@@ -8,6 +8,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 
 /** Screen-local actions use the Controls bindings, without consuming keys typed into the answer. */
 public final class ReviewKeys {
@@ -43,20 +44,25 @@ public final class ReviewKeys {
      */
     static void register() {}
 
-    static Component hint(boolean lesson) {
+    /** The keys the menu takes now. Show answer is listed with {@code showLabel}, or left out when it is null. */
+    static Component hint(boolean lesson, @Nullable Component showLabel) {
         MutableComponent result = Component.empty();
         boolean first = true;
         for (Binding binding : lesson ? new Binding[]{ANSWER, CLOSE, KNOWN, IGNORE, SHOW, DONT_KNOW}
                 : new Binding[]{ANSWER, CLOSE, DONT_KNOW, KNOWN, IGNORE}) {
+            if (binding == SHOW && showLabel == null) continue;
             if (!first) result.append("  ·  ");
             first = false;
-            result.append(binding.label()).append(": ").append(Component.translatable(binding.mapping().getName()));
+            result.append(binding.label()).append(": ")
+                    .append(binding == SHOW ? showLabel : Component.translatable(binding.mapping().getName()));
         }
         return result;
     }
 
-    /** After a fail, the menu only shows the answer, and the answer and close keys close it. */
-    static Component closeHint() {
-        return Component.translatable("oboecraft.answer_menu.close_hint", CLOSE.label());
+    /** After a fail, the answer and close keys close the menu, and Show answer is listed while it can show more. */
+    static Component closeHint(@Nullable Component showLabel) {
+        MutableComponent result = Component.translatable("oboecraft.answer_menu.close_hint", CLOSE.label());
+        if (showLabel != null) result.append("  ·  ").append(SHOW.label()).append(": ").append(showLabel);
+        return result;
     }
 }
