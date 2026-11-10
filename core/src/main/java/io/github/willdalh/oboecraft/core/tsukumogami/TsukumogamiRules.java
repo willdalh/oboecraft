@@ -13,13 +13,15 @@ import java.util.OptionalLong;
  * so the adapter decides it. These numbers are fixed rules, not settings.
  */
 public final class TsukumogamiRules {
+    /** Half a Minecraft day of elapsed game ticks after a kill. */
+    public static final long KILL_RELIEF_TICKS = 12_000;
     /** Its health at the threshold. */
     public static final int BASE_HEALTH = 20;
     /** The health it gains for each overdue item above the threshold. */
     public static final int HEALTH_PER_ITEM = 6;
     /** The most health it can have. */
     public static final int MAX_HEALTH = 100;
-    /** How long it waits after it was reviewed away before it can come back the same night. */
+    /** How long it waits after it was reviewed away before it can come back. */
     public static final Duration RETURN_DELAY = Duration.ofSeconds(30);
     /**
      * How long it waits after its owner joins, respawns, returns to the Overworld or to survival or adventure mode,
@@ -44,21 +46,20 @@ public final class TsukumogamiRules {
     }
 
     /**
-     * Whether a player's tsukumogami should exist, for a player it can follow. It does at night while the overdue
-     * count is at the threshold or above, unless it was killed this night or is waiting.
+     * Whether a player's tsukumogami should exist, for a player it can follow. It does while the overdue
+     * count is at the threshold or above, unless kill relief is active or it is waiting.
      *
      * @param overdueCount  the player's overdue count
-     * @param dayTime       the Overworld's day time, in ticks
-     * @param killedOnNight the night it was last killed on, see {@link Night#nightOf}, if it was
+     * @param gameTime      the Overworld's elapsed game time, in ticks
+     * @param killedAtTick  the game tick it was last killed at, if it was
      * @param waitsUntil    when it may appear again after being reviewed away or after its owner arrived
      */
-    public static boolean shouldExist(int overdueCount, long dayTime, OptionalLong killedOnNight, Instant now,
+    public static boolean shouldExist(int overdueCount, long gameTime, OptionalLong killedAtTick, Instant now,
             Instant waitsUntil, Settings settings) {
-        Objects.requireNonNull(killedOnNight, "killedOnNight");
+        Objects.requireNonNull(killedAtTick, "killedAtTick");
         return isOn(settings)
                 && overdueCount >= settings.tsukumogamiThreshold()
-                && Night.isNight(dayTime)
-                && !(killedOnNight.isPresent() && killedOnNight.getAsLong() == Night.nightOf(dayTime))
+                && !(killedAtTick.isPresent() && gameTime - killedAtTick.getAsLong() < KILL_RELIEF_TICKS)
                 && !now.isBefore(waitsUntil);
     }
 

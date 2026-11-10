@@ -232,9 +232,9 @@ Decided in [willdalh/oboecraft#36](https://github.com/willdalh/oboecraft/issues/
 
 Decided in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), from [RFC-20261109](rfcs/20261109-tsukumogami.md), see [Tsukumogami](design/tsukumogami.md) and [ADR: The tsukumogami is never saved with the world](decisions/20261109-tsukumogami-never-saved.md). Its own sounds came in [#52](https://github.com/willdalh/oboecraft/issues/52), and its model, texture and animations were reworked in [#53](https://github.com/willdalh/oboecraft/issues/53):
 
-- Night is when a player can sleep in clear weather, ticks 12,542 to 23,459 of the Overworld's day. Weather doesn't make it night early.
-- It comes back 30 seconds after it was reviewed away the same night, and waits 10 seconds after its owner joins, respawns, returns to the Overworld or to survival or adventure mode. These are fixed rules, like its health and damage.
-- Only damage with its owner as the attacker counts, so the owner's pets and burning after a fire hit don't. It only stops its owner from sleeping, and doesn't count as a monster nearby for anyone else. Its owner can't sleep either while it should exist but waits or has no place to arrive, and is woken when it arrives, so getting into bed first never skips its night.
+- It appears day and night, including in open sunlight, and survives sunrise. Killing it gives 12,000 elapsed game ticks of relief, unaffected by sky-time changes.
+- It comes back 30 seconds after it was reviewed away, and waits 10 seconds after its owner joins, respawns, returns to the Overworld or to survival or adventure mode. These are fixed rules, like its health and damage.
+- Only damage with its owner as the attacker counts, so the owner's pets and burning after a fire hit don't. It only stops its owner from sleeping, and doesn't count as a monster nearby for anyone else. Its owner can't sleep either while it should exist but waits or has no place to arrive, and is woken when it arrives, so getting into bed first never avoids the encounter.
 - At most 12 items orbit it. Only their item ids are sent to the players who see it.
 - One without an owner, like one made with `/summon`, removes itself, and there is no spawn egg.
 - Its settings are a threshold from 0 to 1,000, where 0 turns it off, and a review freeze from 0 to 1 hour. The server settings file went to version 2, which still reads version 1 with their defaults. The network protocol went to 8, so the release with it is a `minor` bump.

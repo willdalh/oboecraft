@@ -3,7 +3,6 @@ package io.github.willdalh.oboecraft.fabric.gametest;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
-import io.github.willdalh.oboecraft.core.tsukumogami.Night;
 import io.github.willdalh.oboecraft.core.tsukumogami.TsukumogamiRules;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
@@ -42,6 +41,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -152,7 +152,7 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
-    public void neverAppearsDuringTheDayForLessonsOrWhenTurnedOff(GameTestHelper helper) {
+    public void appearsDuringTheDayButNotForLessonsOrWhenTurnedOff(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             for (int i = 0; i < 6; i++) {
                 player.getInventory().setItem(i, new ItemStack(MINECRAFT_ITEMS.get(i), 4));
@@ -160,12 +160,19 @@ public class TsukumogamiGameTest {
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "with only level 0 items");
 
-            carryOverdue(player, 6);
             OverworldTime.set(server, NOON);
             tsukumogami().checkPlayers(server);
-            assertNone(helper, player, "at noon");
+            assertNone(helper, player, "with only level 0 items at noon");
+            carryOverdue(player, 6);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami daytime = existing(helper, player);
+            helper.assertTrue(server.overworld().canSeeSky(daytime.blockPosition()), "it arrives in open sunlight");
+            ticks(daytime, 40);
+            helper.assertTrue(daytime.isAlive() && !daytime.isFading() && !daytime.isOnFire(),
+                    "it remains active in sunlight");
+            tsukumogami().checkPlayers(server);
+            helper.assertValueEqual(existing(helper, player), daytime, "one tsukumogami during the day");
 
-            OverworldTime.set(server, MIDNIGHT);
             OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS.withTsukumogamiThreshold(0));
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "with the threshold at 0");
@@ -212,6 +219,7 @@ public class TsukumogamiGameTest {
     @GameTest
     public void aPassBelowTheThresholdMakesItFadeOutAndWait(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
+            OverworldTime.set(server, NOON);
             carryOverdue(player, 5);
             tsukumogami().checkPlayers(server);
             Tsukumogami tsukumogami = existing(helper, player);
@@ -222,7 +230,7 @@ public class TsukumogamiGameTest {
             helper.assertTrue(tsukumogami.isFading(), "it should fade out right after the pass");
             assertNone(helper, player, "after the pass");
 
-            // Locked again the same night, it waits before it comes back, and arriving doesn't shorten the wait.
+            // Locked again, it waits before it comes back, and arriving doesn't shorten the wait.
             setOverdue(player, ITEMS.getFirst());
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "right after it faded");
@@ -249,20 +257,20 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
-    public void itLeavesAtDawn(GameTestHelper helper) {
+    public void itSurvivesSunrise(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             carryOverdue(player, 5);
             tsukumogami().checkPlayers(server);
             Tsukumogami tsukumogami = existing(helper, player);
-            OverworldTime.set(server, Night.END);
+            OverworldTime.set(server, 23_460);
             tsukumogami().checkPlayers(server);
-            helper.assertTrue(tsukumogami.isFading(), "it should fade out at dawn");
-            assertNone(helper, player, "at dawn");
+            helper.assertTrue(!tsukumogami.isFading(), "it should remain active at dawn");
+            helper.assertValueEqual(existing(helper, player), tsukumogami, "same entity after sunrise");
         });
     }
 
     @GameTest
-    public void killedItIsGoneUntilTheNextNightAndDropsNothing(GameTestHelper helper) {
+    public void skyTimeChangesDoNotConsumeKillReliefAndItDropsNothing(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             carryOverdue(player, 5);
             tsukumogami().checkPlayers(server);
@@ -277,9 +285,33 @@ public class TsukumogamiGameTest {
 
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "later the same night");
-            OverworldTime.set(server, MIDNIGHT + Night.DAY_LENGTH);
+            OverworldTime.set(server, MIDNIGHT + 24_000);
             tsukumogami().checkPlayers(server);
-            existing(helper, player);
+            assertNone(helper, player, "after skipping a sky day");
+            OverworldTime.set(server, NOON);
+            tsukumogami().checkPlayers(server);
+            assertNone(helper, player, "after moving sky time backward");
+
+            ServerLevelData data = (ServerLevelData) server.overworld().getLevelData();
+            long killedAt = server.overworld().getGameTime();
+            try {
+                data.setGameTime(killedAt + TsukumogamiRules.KILL_RELIEF_TICKS - 1);
+                tsukumogami().checkPlayers(server);
+                assertNone(helper, player, "one tick before kill relief expires");
+                data.setGameTime(killedAt + TsukumogamiRules.KILL_RELIEF_TICKS);
+                tsukumogami().checkPlayers(server);
+                Tsukumogami returned = existing(helper, player);
+                // Killing at noon gets the same full relief as killing at midnight.
+                returned.hurtServer(server.overworld(), player.damageSources().playerAttack(player), 1000);
+                data.setGameTime(killedAt + 2 * TsukumogamiRules.KILL_RELIEF_TICKS - 1);
+                tsukumogami().checkPlayers(server);
+                assertNone(helper, player, "one tick before daytime kill relief expires");
+                data.setGameTime(killedAt + 2 * TsukumogamiRules.KILL_RELIEF_TICKS);
+                tsukumogami().checkPlayers(server);
+                existing(helper, player);
+            } finally {
+                data.setGameTime(killedAt);
+            }
         });
     }
 
@@ -627,6 +659,7 @@ public class TsukumogamiGameTest {
     @GameTest
     public void creativeModeDeathAndPeacefulRemoveIt(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
+            OverworldTime.set(server, NOON);
             carryOverdue(player, 5);
             tsukumogami().checkPlayers(server);
             Tsukumogami first = existing(helper, player);
@@ -684,7 +717,7 @@ public class TsukumogamiGameTest {
                 later(TsukumogamiRules.ARRIVAL_DELAY);
                 carryOverdue(again, 5);
                 tsukumogami().checkPlayers(server);
-                assertNone(helper, again, "after joining again the night it was killed");
+                assertNone(helper, again, "after joining again during kill relief");
             } finally {
                 TestPlayers.leave(again);
             }

@@ -31,7 +31,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The tsukumogami, a menreiki that follows one player, its owner, while their overdue items pile up at night. It
+ * The tsukumogami, a menreiki that follows one player, its owner, while their overdue items pile up. It
  * follows and attacks only its owner, only its owner can hurt it, and other mobs ignore it. {@link ServerTsukumogami}
  * makes it and decides when it leaves. One that has no owner, like one made with {@code /summon}, removes itself.
  *
@@ -210,7 +210,7 @@ public final class Tsukumogami extends PathfinderMob {
     }
 
     /**
-     * Starts fading out on the spot, after its owner reviewed it away or at dawn. Its orbiting items fall away, and it
+     * Starts fading out on the spot, after its owner reviewed it away. Its orbiting items fall away, and it
      * is gone after {@link #FADE_TICKS}. It can't be hurt while it fades.
      */
     void fadeOut() {

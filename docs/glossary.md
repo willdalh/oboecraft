@@ -219,7 +219,7 @@ _Avoid_: formula, pattern
 ### Tsukumogami
 
 **Tsukumogami**:
-The mob that follows a player at night while their overdue count is at the threshold or above, and leaves when they review. Each player has at most one, and it follows only that player, its owner. See [Tsukumogami](design/tsukumogami.md).
+The mob that follows a player day and night while their overdue count is at the threshold or above, and leaves when they review. Each player has at most one, and it follows only that player, its owner. See [Tsukumogami](design/tsukumogami.md).
 _Avoid_: yokai (a category of creatures, not this mob), ghost, boss, follower
 
 **Overdue**:

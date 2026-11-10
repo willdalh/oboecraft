@@ -1,6 +1,6 @@
 # Tsukumogami
 
-When a player lets their reviews pile up, a 付喪神 (tsukumogami) follows them at night. In folklore, tsukumogami are objects that come alive after years of neglect. Here, the player's own neglected items are its halo. It grows stronger the more items are overdue, stands still while its owner reviews, and leaves once enough reviews are done, so the backlog is felt in the game and the only real way out is to review. The proposal is [RFC-20261109](../rfcs/20261109-tsukumogami.md), and it was built in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), with its sounds from [#52](https://github.com/willdalh/oboecraft/issues/52).
+When a player lets their reviews pile up, a 付喪神 (tsukumogami) follows them day and night. In folklore, tsukumogami are objects that come alive after years of neglect. Here, the player's own neglected items are its halo. It grows stronger the more items are overdue, stands still while its owner reviews, and leaves once enough reviews are done, so the backlog is felt in the game and the only real way out is to review. The proposal is [RFC-20261109](../rfcs/20261109-tsukumogami.md), and it was built in [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51), with its sounds from [#52](https://github.com/willdalh/oboecraft/issues/52).
 
 The server decides everything about it. The client only draws it.
 
@@ -17,9 +17,10 @@ An item is **overdue** when it is [locked](srs-state.md) at level 1 or higher. T
 A player's tsukumogami appears when all of these hold:
 
 - The overdue count is at the **Tsukumogami threshold** or above. A threshold of 0 turns it off, see [Settings](settings.md).
-- It is night in the Overworld: from tick 12,542 to 23,459 of the sky's day, when a player can sleep in clear weather. Rain doesn't make it night early, and the time is the sky's whether the player is above or below ground.
-- The player is alive in the Overworld, in survival or adventure mode, and the difficulty isn't Peaceful.
-- It wasn't killed this night, and it isn't waiting (see below).
+- The player is alive in the Overworld, in survival or adventure mode, with their progress loaded, and the difficulty isn't Peaceful.
+- It has no active 12,000-game-tick kill cooldown, and it isn't waiting (see below).
+
+It can appear day or night, including in open sunlight, with no biome or light-level restriction. This is the per-player overdue-review mechanic, not natural monster spawning.
 
 It arrives 16 to 24 blocks from its owner, on solid ground, out of the owner's sight if there is such a place, so it arrives instead of popping into view. A deep temple bell rings where it arrived, which only its owner hears, and its owner sees above the hotbar: "A tsukumogami is following you. Review your overdue items to drive it away."
 
@@ -38,20 +39,20 @@ It follows and attacks only its owner. It ignores other players and mobs, and mo
 | Damage it takes | Only damage its owner causes: melee, arrows, tridents, thrown potions and anything else that has the owner as its attacker. Other players, other mobs and the owner's pets do nothing, and neither do lava, fire, falling, drowning, suffocation and cactus. Other players' hits play a dull sound, so nobody thinks it is broken. `/kill` and the void still work, also while it fades out. |
 | During a review | While its owner has any review going, lessons included, it stands still and watches them, for at most the **Tsukumogami review freeze**. After that it moves again even with the answer menu open, so the menu can't be held open through the night. Every new review starts a new freeze, and it stays still for 2 seconds after a review ends, so the owner isn't hit the moment they are back. It can still be hurt while it stands still. With a freeze of 0, it never stands still. |
 | During danger | Another living mob within 32 blocks targeting its owner suspends attacks, including an angered neutral mob. Sight and a path are not required, so a trapped targeting mob still counts. It cancels a pending strike and keeps following, then waits five continuous seconds without a threat before starting a fresh attack. A new threat restarts the wait. This works even when the review freeze expires or is 0, and reviews remain available. Idle mobs, mobs targeting someone else, environmental hazards and PvP do not count. |
-| Sleeping | Its owner can't sleep while it exists, wherever it is, and is told why. They can't either while it should exist but is still waiting to arrive or has found no place to arrive, and an owner who is in bed when it arrives is woken. Otherwise sleeping would skip the night and get rid of it. It doesn't stop other players from sleeping. |
+| Sleeping | Its owner can't sleep while it exists, wherever it is, and is told why. They can't either while it should exist but is still waiting to arrive or has found no place to arrive, and an owner who is in bed when it arrives is woken. It doesn't stop other players from sleeping. |
 
 In multiplayer, an owner who can't sleep holds up the night for everyone, unless the server lowers `playersSleepingPercentage`. That is accepted, since the owner can fix it by reviewing the items they carry.
 
 ## How it leaves
 
-- **Reviewing:** when the overdue count drops below the threshold, its orbiting items fall away and it fades out on the spot, with a wind chime. If the count rises to the threshold again the same night, it comes back after 30 seconds. The server checks right after each review, so this happens at once.
-- **Killing:** it is gone for the rest of that night and comes back the next night if the count is still too high.
-- **Dawn:** it fades out at sunrise.
+- **Reviewing:** when the overdue count drops below the threshold, its orbiting items fall away and it fades out on the spot, with a wind chime. If the count rises to the threshold again, it comes back after 30 seconds. The server checks right after each review, so this happens at once.
+- **Killing:** it is gone for 12,000 elapsed game ticks from the kill: half a Minecraft day, about 10 minutes at 20 ticks per second. Skipping or changing sky time does not consume this relief. Afterward it may return if the usual eligibility and delay rules allow it.
+- Sunrise does not make it fade or disappear.
 - Its owner dying, logging out, leaving the Overworld or changing to creative or spectator mode removes it, and so does Peaceful. After that the normal rules apply again, 10 seconds after the owner respawns, joins, returns to the Overworld or returns to survival or adventure mode, or later if it was reviewed away less than 30 seconds before. Changing between survival and adventure mode changes nothing. Logging out never gets rid of it for good.
 
 It drops nothing, neither items nor experience, whether it is killed or reviewed away, so it never pays to call it.
 
-It is never saved with the world. Whether it should exist is worked out from its owner's progress and the world, and that it was killed tonight is only remembered while the server runs, so a restart forgets it. See [ADR: The tsukumogami is never saved with the world](../decisions/20261109-tsukumogami-never-saved.md).
+It is never saved with the world. Whether it should exist is worked out from its owner's progress and the world, and its kill cooldown is only remembered while the server runs, so a restart forgets it. See [ADR: The tsukumogami is never saved with the world](../decisions/20261109-tsukumogami-never-saved.md).
 
 ## What the owner sees
 
@@ -140,6 +141,6 @@ Both are [server settings](settings.md). The other numbers on this page are fixe
 
 ## Performance
 
-The server only checks players while a tsukumogami could exist: at night with the threshold above 0, once a second, and a player right after each of their reviews ends, so the fade-out and the boss bar react at once. During the day, a check is one comparison of the time of day.
+The server checks players with the threshold above 0, once a second throughout day and night, and a player right after each of their reviews ends, so the fade-out and the boss bar react at once.
 
 Each existing tsukumogami checks nearby mobs targeting its owner on every AI tick, before a strike can land. The search is limited to the 32-block area around its owner.
