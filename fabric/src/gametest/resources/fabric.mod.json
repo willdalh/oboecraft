@@ -4,6 +4,9 @@
   "version": "${version}",
   "name": "Oboecraft game tests",
   "environment": "*",
+  "mixins": [
+    { "config": "oboecraft.gametest.client.mixins.json", "environment": "client" }
+  ],
   "entrypoints": {
     "fabric-gametest": [
       "io.github.willdalh.oboecraft.fabric.gametest.ModLoadedGameTest",
