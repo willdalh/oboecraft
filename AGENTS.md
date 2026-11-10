@@ -50,6 +50,7 @@ Run these from the repository root. The first run downloads Gradle, Java 25 and 
 |---|---|
 | `./gradlew build` | Compiles, runs the unit tests of `core`, `json` and `tools` and the Fabric game tests, and builds the mod jar in `fabric/build/libs/` |
 | `./gradlew :core:test` | Runs only the core unit tests |
+| `./gradlew :fabric:genSources` | Generates decompiled Minecraft sources for checking the current APIs |
 | `./gradlew runGameTest` | Runs only the Fabric game tests, on a headless server |
 | `./gradlew runClientGameTest` | Runs the Fabric client game tests in a real client. Not part of `build`. It needs a display: without one, install `xvfb` and `mesa-vulkan-drivers` and run `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClientGameTest`, as CI does |
 | `./gradlew runClient` | Starts the game with the mod |
@@ -62,6 +63,13 @@ The first `runServer` stops and asks you to accept Minecraft's EULA. Set `eula=t
 The mod's settings files are in the run folder's `config/oboecraft/`: `fabric/run/config/oboecraft/server.json` for `runClient` and `runServer`. A missing server settings file is written with the defaults when the server starts. See `docs/architecture/settings-files.md`.
 
 Versions of Minecraft, Fabric and libraries are in `gradle/libs.versions.toml`.
+
+### Build and API pitfalls
+
+- **Maven Central rate limits:** dependency downloads can fail with HTTP 429, both on the first build and when generating sources. Wait before retrying the same command. Fewer Gradle workers reduce concurrent downloads: try `./gradlew build --max-workers=2` or `./gradlew :fabric:genSources --max-workers=2`.
+- **Check the current Minecraft APIs:** Minecraft 26.3 is newer than agents' training data, and many names have changed. Don't rely on remembered names or signatures. Run `./gradlew :fabric:genSources` and read the generated sources before using an unfamiliar API. Fabric API doesn't ship sources for this version; inspect its classes in the dependency jars, with a decompiler or `javap`, instead.
+
+For game test and client game test pitfalls, see [Testing](docs/architecture/overview.md#testing).
 
 ### Name list
 
