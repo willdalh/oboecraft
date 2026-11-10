@@ -61,6 +61,7 @@
   "subtitles.oboecraft.reading": "日本語名の読み上げ",
   "entity.oboecraft.tsukumogami": "付喪神",
   "oboecraft.tsukumogami.boss_bar": "%s (%s)",
+  "oboecraft.tsukumogami.boss_bar_waiting": "%s (%s) — 安全になるまで待っています",
   "oboecraft.tsukumogami.arrived": "付喪神が付いてきています。復習の期限が来たアイテムを復習して追い払いましょう。",
   "oboecraft.tsukumogami.no_sleep": "付喪神が付いてきている間は眠れません",
   "subtitles.oboecraft.entity.tsukumogami.arrive": "寺の鐘が鳴る",

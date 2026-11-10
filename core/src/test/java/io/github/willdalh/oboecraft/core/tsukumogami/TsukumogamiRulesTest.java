@@ -111,6 +111,15 @@ class TsukumogamiRulesTest {
     }
 
     @Test
+    void attacksWaitForFiveContinuousSecondsWithoutThreats() {
+        assertFalse(TsukumogamiRules.waitsForSafety(Optional.empty(), NOW));
+        assertTrue(TsukumogamiRules.waitsForSafety(Optional.of(NOW), NOW));
+        assertTrue(TsukumogamiRules.waitsForSafety(Optional.of(NOW.minusMillis(4_999)), NOW));
+        assertFalse(TsukumogamiRules.waitsForSafety(Optional.of(NOW.minusSeconds(5)), NOW));
+        assertTrue(TsukumogamiRules.waitsForSafety(Optional.of(NOW.minusSeconds(1)), NOW));
+    }
+
+    @Test
     void aFreezeOfZeroNeverStandsStill() {
         Settings noFreeze = SETTINGS.withTsukumogamiReviewFreeze(Duration.ZERO);
 

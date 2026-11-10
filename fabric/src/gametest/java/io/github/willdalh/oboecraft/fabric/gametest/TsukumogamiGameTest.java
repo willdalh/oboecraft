@@ -23,12 +23,16 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -37,6 +41,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -385,6 +390,159 @@ public class TsukumogamiGameTest {
             tsukumogami.tick();
             helper.assertTrue(tsukumogami.getNavigation().isInProgress(), "it follows its owner again after that");
         });
+    }
+
+    @GameTest
+    public void threatsCancelPendingStrikesAndRestartTheSafetyGrace(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami spirit = existing(helper, player);
+            spirit.snapTo(player.getX(), player.getY(), player.getZ() + 1, 180, 0);
+            TestPlayers.takeSentPackets(player);
+            spirit.tick();
+            helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.ATTACK).size(), 1, "pending strike");
+            float health = player.getHealth();
+            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            try {
+                ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
+                helper.assertTrue(spirit.waitsForSafety(), "danger suspends attacks");
+                helper.assertValueEqual(player.getHealth(), health, "health after the cancelled strike");
+                helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.HIT), List.of(), "cancelled hit");
+                helper.assertTrue(spirit.bossBarName().getString().contains("(5) — Waiting until you’re safe"),
+                        "the boss bar explains danger alongside the count");
+                threat.setTarget(null);
+                later(Duration.ofMillis(4_999));
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety(), "the full grace period is protected");
+                threat.setTarget(player);
+                spirit.tick();
+                threat.discard();
+                later(Duration.ofMillis(4_999));
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety(), "a new threat restarts the grace period");
+                later(Duration.ofMillis(1));
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "attacks resume at five safe seconds");
+                helper.assertTrue(!spirit.bossBarName().getString().contains("Waiting"), "normal boss bar returns");
+                ticks(spirit, Tsukumogami.WIND_UP_TICKS - 1);
+                helper.assertValueEqual(player.getHealth(), health, "resuming starts a fresh full wind-up");
+                spirit.tick();
+                helper.assertTrue(player.getHealth() < health, "the fresh strike deals damage");
+            } finally {
+                threat.discard();
+            }
+        });
+    }
+
+    @GameTest
+    public void onlyLivingMobsTargetingTheOwnerWithinThirtyTwoBlocksCount(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami spirit = existing(helper, player);
+            Mob threat = threat(player, EntityTypes.WOLF, 32.01);
+            ServerPlayer friend = TestPlayers.join(helper, UUID.randomUUID());
+            try {
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "a target beyond 32 blocks does not count");
+                threat.snapTo(player.position().add(24, 0, 24));
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "range is spherical, not a bounding box");
+                threat.snapTo(player.position().add(32, 0, 0));
+                threat.setTarget(friend);
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "targeting another player does not count");
+                threat.setTarget(null);
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "an idle nearby mob does not count");
+                // A targeting neutral mob counts through a wall, even when it cannot move.
+                for (int y = 0; y < 3; y++) {
+                    player.level().setBlockAndUpdate(player.blockPosition().offset(1, y, 0),
+                            Blocks.STONE.defaultBlockState());
+                }
+                helper.assertTrue(!threat.hasLineOfSight(player), "the wall blocks sight of the owner");
+                threat.setTarget(player);
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety(), "a targeting neutral mob at exactly 32 blocks counts");
+                threat.setHealth(0);
+                later(TsukumogamiRules.SAFE_AFTER_THREAT);
+                spirit.tick();
+                helper.assertTrue(!spirit.waitsForSafety(), "a dead mob does not renew the grace period");
+            } finally {
+                threat.discard();
+                TestPlayers.leave(friend);
+                for (int y = 0; y < 3; y++) {
+                    player.level().setBlockAndUpdate(player.blockPosition().offset(1, y, 0),
+                            Blocks.AIR.defaultBlockState());
+                }
+            }
+        });
+    }
+
+    @GameTest
+    public void dangerAllowsFollowingAndReviewsRegardlessOfTheReviewFreeze(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+            carryOverdue(player, 6);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami spirit = existing(helper, player);
+            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            try {
+                spirit.snapTo(player.position().add(50, 0, 0));
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety() && !spirit.standsStill(), "danger does not freeze movement");
+                helper.assertTrue(spirit.distanceToSqr(player) < 32 * 32, "it still keeps up with its owner");
+                OboecraftMod.serverReviews().start(player, 1, FIRST_SLOT);
+                spirit.tick();
+                helper.assertTrue(spirit.standsStill(), "a review still freezes movement");
+                later(Settings.DEFAULTS.tsukumogamiReviewFreeze());
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety() && !spirit.standsStill(), "danger outlasts the review freeze");
+                OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO));
+                spirit.snapTo(player.position().add(0, 0, 1));
+                float health = player.getHealth();
+                ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
+                helper.assertTrue(spirit.waitsForSafety(), "disabling the review freeze does not disable protection");
+                helper.assertValueEqual(player.getHealth(), health, "no damage with the freeze disabled");
+                OboecraftMod.serverReviews().answer(player, 1, "オークの原木");
+                helper.assertValueEqual(spirit.orbitingItems().size(), 5, "a review can pass during danger");
+                helper.assertTrue(spirit.bossBarName().getString().contains("(5) — Waiting until you’re safe"),
+                        "a review updates the count without losing the waiting message");
+            } finally {
+                threat.discard();
+            }
+        });
+    }
+
+    @GameTest
+    public void dangerLetsItFollowEvenDuringAttackRecovery(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami spirit = existing(helper, player);
+            spirit.snapTo(player.position().add(0, 0, 1));
+            ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
+            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            try {
+                spirit.snapTo(player.position().add(0, 0, 4));
+                spirit.tick();
+                helper.assertTrue(spirit.waitsForSafety(), "danger protects during recovery");
+                helper.assertTrue(spirit.getNavigation().isInProgress(), "danger lets it follow during recovery");
+            } finally {
+                threat.discard();
+            }
+        });
+    }
+
+    private static Mob threat(ServerPlayer player, EntityType<? extends Mob> type, double distance) {
+        Mob mob = type.create(player.level(), EntitySpawnReason.EVENT);
+        mob.setNoAi(true);
+        mob.snapTo(player.position().add(distance, 0, 0));
+        mob.setTarget(player);
+        player.level().addFreshEntity(mob);
+        return mob;
     }
 
     private static void ticks(Tsukumogami tsukumogami, int count) {
