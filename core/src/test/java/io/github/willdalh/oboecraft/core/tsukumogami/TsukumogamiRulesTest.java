@@ -14,25 +14,25 @@ import org.junit.jupiter.api.Test;
 class TsukumogamiRulesTest {
     private static final Instant NOW = Instant.parse("2026-11-09T22:00:00Z");
     private static final Settings SETTINGS = Settings.DEFAULTS;
-    private static final long NIGHT = 3 * Night.DAY_LENGTH + 18_000;
-    private static final long DAY = 3 * Night.DAY_LENGTH + 6_000;
+    private static final long GAME_TICK = 3 * 24_000 + 18_000;
+    private static final long EARLIER_GAME_TICK = 3 * 24_000 + 6_000;
     private static final Instant NOT_WAITING = NOW.minusSeconds(1);
 
-    private static boolean shouldExist(int overdueCount, long dayTime, OptionalLong killedOnNight, Instant waitsUntil,
+    private static boolean shouldExist(int overdueCount, long gameTime, OptionalLong killedAtTick, Instant waitsUntil,
             Settings settings) {
-        return TsukumogamiRules.shouldExist(overdueCount, dayTime, killedOnNight, NOW, waitsUntil, settings);
+        return TsukumogamiRules.shouldExist(overdueCount, gameTime, killedAtTick, NOW, waitsUntil, settings);
     }
 
     @Test
-    void itAppearsAtNightFromTheThreshold() {
-        assertFalse(shouldExist(4, NIGHT, OptionalLong.empty(), NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(5, NIGHT, OptionalLong.empty(), NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(40, NIGHT, OptionalLong.empty(), NOT_WAITING, SETTINGS));
+    void itAppearsFromTheThreshold() {
+        assertFalse(shouldExist(4, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
+        assertTrue(shouldExist(5, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
+        assertTrue(shouldExist(40, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
     }
 
     @Test
-    void itNeverAppearsDuringTheDay() {
-        assertFalse(shouldExist(40, DAY, OptionalLong.empty(), NOT_WAITING, SETTINGS));
+    void itAppearsAtAnyGameTime() {
+        assertTrue(shouldExist(40, EARLIER_GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
     }
 
     @Test
@@ -41,23 +41,25 @@ class TsukumogamiRulesTest {
 
         assertFalse(TsukumogamiRules.isOn(off));
         assertTrue(TsukumogamiRules.isOn(SETTINGS));
-        assertFalse(shouldExist(0, NIGHT, OptionalLong.empty(), NOT_WAITING, off));
-        assertFalse(shouldExist(40, NIGHT, OptionalLong.empty(), NOT_WAITING, off));
+        assertFalse(shouldExist(0, GAME_TICK, OptionalLong.empty(), NOT_WAITING, off));
+        assertFalse(shouldExist(40, GAME_TICK, OptionalLong.empty(), NOT_WAITING, off));
     }
 
     @Test
-    void killedItIsGoneForTheRestOfThatNightOnly() {
-        OptionalLong killedTonight = OptionalLong.of(Night.nightOf(NIGHT));
+    void killReliefLastsExactlyHalfADay() {
+        OptionalLong killedAtTick = OptionalLong.of(GAME_TICK);
 
-        assertFalse(shouldExist(10, NIGHT, killedTonight, NOT_WAITING, SETTINGS));
-        assertFalse(shouldExist(10, NIGHT + 5_000, killedTonight, NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(10, NIGHT + Night.DAY_LENGTH, killedTonight, NOT_WAITING, SETTINGS));
+        assertFalse(shouldExist(10, GAME_TICK, killedAtTick, NOT_WAITING, SETTINGS));
+        assertFalse(shouldExist(10, GAME_TICK + 11_999, killedAtTick, NOT_WAITING, SETTINGS));
+        assertTrue(shouldExist(10, GAME_TICK + 12_000, killedAtTick, NOT_WAITING, SETTINGS));
+        assertFalse(shouldExist(4, GAME_TICK + 12_000, killedAtTick, NOT_WAITING, SETTINGS));
+        assertFalse(shouldExist(10, GAME_TICK + 12_000, killedAtTick, NOW.plusSeconds(1), SETTINGS));
     }
 
     @Test
     void itWaitsUntilItsDelayIsOver() {
-        assertFalse(shouldExist(10, NIGHT, OptionalLong.empty(), NOW.plusMillis(1), SETTINGS));
-        assertTrue(shouldExist(10, NIGHT, OptionalLong.empty(), NOW, SETTINGS));
+        assertFalse(shouldExist(10, GAME_TICK, OptionalLong.empty(), NOW.plusMillis(1), SETTINGS));
+        assertTrue(shouldExist(10, GAME_TICK, OptionalLong.empty(), NOW, SETTINGS));
     }
 
     @Test
