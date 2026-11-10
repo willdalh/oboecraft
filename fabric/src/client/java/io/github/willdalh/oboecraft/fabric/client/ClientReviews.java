@@ -153,8 +153,8 @@ public final class ClientReviews {
 
     /**
      * The server checked an answer. A pass closes the menu, shows the Japanese name in the notification and plays the
-     * item's reading clip. After a fail, the menu stays open and shows the Japanese name and reading, until the player
-     * closes it.
+     * item's reading clip. After a fail, the menu stays open and shows the Japanese name, and its reading once the player
+     * asks for it, until the player closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
         // The server passed the item even if the player closed the menu before the reply came, so the name is shown

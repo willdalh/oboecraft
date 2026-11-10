@@ -30,7 +30,7 @@ The notification is shown for 3 seconds of real time and fades out during the la
 
 The server sends the name with the pass, and the client shows it even if the player closed the answer menu before the reply came, since the item was passed.
 
-Only a pass shows it. After a fail, the answer menu shows the Japanese name and reading instead, see [Reviews](reviews.md#outcomes).
+Only a pass shows it. After a fail, the answer menu shows the Japanese name instead, and its reading once the player asks for it, see [Reviews](reviews.md#outcomes).
 
 ## Reading clip
 
