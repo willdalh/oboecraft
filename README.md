@@ -19,7 +19,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer.
 - **Hear every word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
-- **Don't let your reviews pile up.** At night, if you carry five or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry. It leaves at dawn, and killing it only gets rid of it for the night.
+- **Don't let your reviews pile up.** At night, if you carry five or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It suspends attacks while another mob within 32 blocks targets you and for five safe seconds afterward. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry. It leaves at dawn, and killing it only gets rid of it for the night.
 
 <table>
   <tr>

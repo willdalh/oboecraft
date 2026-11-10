@@ -12,7 +12,7 @@ import net.minecraft.util.Mth;
 public final class TsukumogamiMotion {
     /** How long it takes to lean into watching its owner, and to straighten up again, in ticks. */
     private static final int WATCH_BLEND_TICKS = 10;
-    /** How long an attack that a review or fading out interrupts takes to settle, in ticks. */
+    /** How long an attack that a review, danger or fading out interrupts takes to settle, in ticks. */
     private static final int ATTACK_SETTLE_TICKS = 6;
     /** How long it flinches when it is hurt, in ticks. */
     public static final int FLINCH_TICKS = 9;
@@ -37,11 +37,11 @@ public final class TsukumogamiMotion {
     }
 
     /**
-     * Moves every animation on by one tick. An attack runs to its end unless the tsukumogami stands still for a review
-     * or fades out: then it stops where it is and settles, instead of finishing a hit the server never made.
+     * Moves every animation on by one tick. An attack runs to its end unless the tsukumogami stands still for a review,
+     * waits for safety or fades out: then it stops where it is and settles, instead of finishing a hit the server never made.
      */
-    void tick(boolean standsStill, boolean fading) {
-        boolean attackGoesOn = attack.isRunning() && !standsStill && !fading;
+    void tick(boolean standsStill, boolean fading, boolean waitsForSafety) {
+        boolean attackGoesOn = attack.isRunning() && !standsStill && !fading && !waitsForSafety;
         attacking.tick(attackGoesOn);
         if (attackGoesOn) {
             attack.tick();

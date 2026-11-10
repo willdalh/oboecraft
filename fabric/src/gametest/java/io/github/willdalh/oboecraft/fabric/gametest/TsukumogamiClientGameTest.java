@@ -17,6 +17,8 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -81,6 +83,36 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("tsukumogami-wind-up");
             context.waitFor(client -> client.player.getHealth() < client.player.getMaxHealth(), 20);
             context.takeScreenshot("tsukumogami-hit");
+
+            // Danger interrupts the next wind-up without putting it into the review's watching pose.
+            context.waitFor(client -> tsukumogamiOnClient(client)
+                    .filter(tsukumogami -> tsukumogami.motion().attackSeconds(1) > 0
+                            && tsukumogami.motion().attackSeconds(1) < 0.4F).isPresent(), 200);
+            int threatId = singleplayer.getServer().computeOnServer(server -> {
+                ServerPlayer owner = player(server);
+                var threat = EntityTypes.ZOMBIE.create(server.overworld(), EntitySpawnReason.EVENT);
+                threat.setNoAi(true);
+                threat.snapTo(owner.position().add(10, 0, 0));
+                threat.setTarget(owner);
+                server.overworld().addFreshEntity(threat);
+                return threat.getId();
+            });
+            context.waitFor(client -> tsukumogamiOnClient(client).filter(Tsukumogami::waitsForSafety).isPresent(), 40);
+            float healthInDanger = context.computeOnClient(client -> client.player.getHealth());
+            context.waitTicks(Tsukumogami.ATTACK_ANIMATION_TICKS);
+            check(context.computeOnClient(client -> tsukumogamiOnClient(client).orElseThrow().motion()
+                    .attackWeight(1) == 0), "danger settles the cancelled attack animation");
+            check(context.computeOnClient(client -> tsukumogamiOnClient(client).orElseThrow().motion()
+                    .watchWeight(1) == 0), "danger does not use the review watching pose");
+            check(context.computeOnClient(client -> client.player.getHealth() >= healthInDanger),
+                    "the owner isn't hit during danger");
+            context.takeScreenshot("tsukumogami-waiting-for-safety");
+            singleplayer.getServer().runOnServer(server -> {
+                server.overworld().getEntity(threatId).discard();
+                OboecraftMod.clock().setSource(InstantSource.offset(InstantSource.system(), Duration.ofMinutes(2)));
+            });
+            context.waitFor(client -> tsukumogamiOnClient(client)
+                    .filter(tsukumogami -> !tsukumogami.waitsForSafety()).isPresent(), 40);
 
             // A review that starts during the next wind-up stops the attack, and it watches its owner.
             context.waitFor(client -> tsukumogamiOnClient(client)

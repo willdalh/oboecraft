@@ -23,6 +23,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
@@ -55,6 +56,7 @@ public final class ServerTsukumogami implements ReviewListener {
         private OptionalLong killedOnNight = OptionalLong.empty();
         private Optional<Instant> reviewStartedAt = Optional.empty();
         private Optional<Instant> reviewEndedAt = Optional.empty();
+        private Optional<Instant> lastThreatAt = Optional.empty();
     }
 
     public ServerTsukumogami(ItemMapping itemMapping, ServerProgress progress) {
@@ -202,6 +204,20 @@ public final class ServerTsukumogami implements ReviewListener {
                 owner.reviewStartedAt, owner.reviewEndedAt, progress.now(), progress.settings());
     }
 
+    /** Checks threats each AI tick, before any pending strike can land. No sight or path check is needed. */
+    boolean waitsForSafety(ServerPlayer player, Tsukumogami tsukumogami) {
+        double range = TsukumogamiRules.THREAT_RANGE;
+        boolean threatened = !player.level().getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(range),
+                mob -> mob != tsukumogami && mob.isAlive() && mob.getTarget() == player
+                        && mob.distanceToSqr(player) <= range * range).isEmpty();
+        OwnerState owner = owner(player);
+        Instant now = progress.now();
+        if (threatened) {
+            owner.lastThreatAt = Optional.of(now);
+        }
+        return TsukumogamiRules.waitsForSafety(owner.lastThreatAt, now);
+    }
+
     /** The player killed their tsukumogami, so it is gone for the rest of this night. */
     void killed(ServerPlayer player) {
         existing.remove(player.getUUID());
@@ -265,6 +281,7 @@ public final class ServerTsukumogami implements ReviewListener {
         OwnerState owner = owner(player);
         owner.reviewStartedAt = Optional.empty();
         owner.reviewEndedAt = Optional.empty();
+        owner.lastThreatAt = Optional.empty();
         if (owner.killedOnNight.isEmpty() && !owner.waitsUntil.isAfter(progress.now())) {
             owners.remove(player.getUUID());
         }

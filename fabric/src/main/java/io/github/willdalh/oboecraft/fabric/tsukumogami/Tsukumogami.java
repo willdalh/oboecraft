@@ -35,7 +35,7 @@ import org.jspecify.annotations.Nullable;
  * follows and attacks only its owner, only its owner can hurt it, and other mobs ignore it. {@link ServerTsukumogami}
  * makes it and decides when it leaves. One that has no owner, like one made with {@code /summon}, removes itself.
  *
- * <p>Everyone who sees it is sent its orbiting items, whether it stands still and whether it fades out, and is told
+ * <p>Everyone who sees it is sent its orbiting items, whether it stands still, waits for safety or fades out, and is told
  * when an attack's wind-up starts. Their clients animate it from that with {@link TsukumogamiMotion}. Only its owner
  * sees its boss bar.
  */
@@ -73,6 +73,8 @@ public final class Tsukumogami extends PathfinderMob {
             SynchedEntityData.defineId(Tsukumogami.class, TsukumogamiType.ORBITING_ITEMS);
     private static final EntityDataAccessor<Boolean> DATA_STANDS_STILL =
             SynchedEntityData.defineId(Tsukumogami.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_WAITS_FOR_SAFETY =
+            SynchedEntityData.defineId(Tsukumogami.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_FADING =
             SynchedEntityData.defineId(Tsukumogami.class, EntityDataSerializers.BOOLEAN);
 
@@ -83,6 +85,7 @@ public final class Tsukumogami extends PathfinderMob {
     private @Nullable ServerBossEvent bossBar;
     private @Nullable ServerPlayer owner;
     private @Nullable ServerTsukumogami serverTsukumogami;
+    private int overdueCount;
     private int windUpTicks;
     private int keepUpRetryTicks;
     private int attackCooldownTicks;
@@ -109,6 +112,7 @@ public final class Tsukumogami extends PathfinderMob {
         super.defineSynchedData(entityData);
         entityData.define(DATA_ORBITING_ITEMS, List.of());
         entityData.define(DATA_STANDS_STILL, false);
+        entityData.define(DATA_WAITS_FOR_SAFETY, false);
         entityData.define(DATA_FADING, false);
     }
 
@@ -145,11 +149,31 @@ public final class Tsukumogami extends PathfinderMob {
             Objects.requireNonNull(getAttribute(Attributes.MAX_HEALTH)).setBaseValue(maxHealth);
             setHealth(TsukumogamiRules.scaledHealth(getHealth(), oldMaxHealth, maxHealth));
         }
+        overdueCount = overdue.size();
+        updateBossBarName();
         if (bossBar != null) {
-            bossBar.setName(Component.translatableWithFallback("oboecraft.tsukumogami.boss_bar", "%s (%s)",
-                    getDisplayName(), overdue.size()));
             bossBar.setProgress(getHealth() / getMaxHealth());
         }
+    }
+
+    private void updateBossBarName() {
+        if (bossBar != null) {
+            bossBar.setName(waitsForSafety()
+                    ? Component.translatableWithFallback("oboecraft.tsukumogami.boss_bar_waiting",
+                            "%s (%s) — Waiting until you’re safe", getDisplayName(), overdueCount)
+                    : Component.translatableWithFallback("oboecraft.tsukumogami.boss_bar", "%s (%s)",
+                            getDisplayName(), overdueCount));
+        }
+    }
+
+    /** Whether attacks are suspended for danger or its grace period, on both sides. */
+    public boolean waitsForSafety() {
+        return entityData.get(DATA_WAITS_FOR_SAFETY);
+    }
+
+    /** Its current boss bar title, for server game tests. */
+    public Component bossBarName() {
+        return bossBar == null ? getDisplayName() : bossBar.getName();
     }
 
     /** The overdue items that orbit it, on both sides. */
@@ -216,6 +240,14 @@ public final class Tsukumogami extends PathfinderMob {
             return;
         }
         getLookControl().setLookAt(owner, 10.0F, 30.0F);
+        boolean waiting = serverTsukumogami.waitsForSafety(owner, this);
+        if (waiting != waitsForSafety()) {
+            entityData.set(DATA_WAITS_FOR_SAFETY, waiting);
+            updateBossBarName();
+        }
+        if (waiting) {
+            windUpTicks = 0;
+        }
         boolean standsStill = serverTsukumogami.standsStill(owner);
         entityData.set(DATA_STANDS_STILL, standsStill);
         if (standsStill) {
@@ -246,13 +278,13 @@ public final class Tsukumogami extends PathfinderMob {
             }
             return;
         }
-        if (attackCooldownTicks > ATTACK_COOLDOWN_TICKS - RECOVERY_TICKS) {
+        if (!waitsForSafety() && attackCooldownTicks > ATTACK_COOLDOWN_TICKS - RECOVERY_TICKS) {
             getNavigation().stop();
             return;
         }
         if (isWithinMeleeAttackRange(owner)) {
             ticksSinceProgress = 0;
-            if (attackCooldownTicks == 0) {
+            if (!waitsForSafety() && attackCooldownTicks == 0) {
                 getNavigation().stop();
                 windUpTicks = WIND_UP_TICKS;
                 level.broadcastEntityEvent(this, WIND_UP_EVENT);
@@ -340,7 +372,7 @@ public final class Tsukumogami extends PathfinderMob {
     public void tick() {
         super.tick();
         if (level().isClientSide()) {
-            motion.tick(standsStill(), isFading());
+            motion.tick(standsStill(), isFading(), waitsForSafety());
         }
     }
 
