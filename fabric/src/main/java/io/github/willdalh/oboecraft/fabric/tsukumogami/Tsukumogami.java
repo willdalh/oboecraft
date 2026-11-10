@@ -19,7 +19,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
@@ -36,7 +35,8 @@ import org.jspecify.annotations.Nullable;
  * follows and attacks only its owner, only its owner can hurt it, and other mobs ignore it. {@link ServerTsukumogami}
  * makes it and decides when it leaves. One that has no owner, like one made with {@code /summon}, removes itself.
  *
- * <p>Everyone who sees it is sent its orbiting items, whether it stands still and whether it fades out. Only its owner
+ * <p>Everyone who sees it is sent its orbiting items, whether it stands still and whether it fades out, and is told
+ * when an attack's wind-up starts. Their clients animate it from that with {@link TsukumogamiMotion}. Only its owner
  * sees its boss bar.
  */
 public final class Tsukumogami extends PathfinderMob {
@@ -44,12 +44,16 @@ public final class Tsukumogami extends PathfinderMob {
     public static final byte WIND_UP_EVENT = 4;
     /** How long the attack winds up before it hits, in ticks. */
     public static final int WIND_UP_TICKS = 20;
-    /** How long the attack's animation runs, the wind-up and then the hit and settling again, in ticks. */
-    public static final int ATTACK_ANIMATION_TICKS = WIND_UP_TICKS + 12;
+    /** How long it stands where it is after the hit, straightening up again, in ticks. */
+    public static final int RECOVERY_TICKS = 20;
+    /** How long the attack's animation runs, the wind-up and then the hit and straightening up again, in ticks. */
+    public static final int ATTACK_ANIMATION_TICKS = WIND_UP_TICKS + RECOVERY_TICKS;
     /** How long it fades out before it is gone, in ticks. */
     public static final int FADE_TICKS = 40;
-    /** The time between the end of one attack and the start of the next, in ticks. */
+    /** The time between the hit of one attack and the start of the next, in ticks. */
     public static final int ATTACK_COOLDOWN_TICKS = 30;
+    /** How far it walks between two steps, in blocks. Its walk on the client takes a step as often as it sounds. */
+    public static final float STEP_BLOCKS = 1.1F;
     /** How often it looks for a new path to its owner, in ticks. */
     private static final int PATH_INTERVAL_TICKS = 10;
     /** How long it may make no progress towards its owner before it counts as stuck, in ticks. */
@@ -60,6 +64,8 @@ public final class Tsukumogami extends PathfinderMob {
     private static final double KEEP_UP_DISTANCE = 32;
     /** How long it waits before it looks again for a place behind its owner, after it found none, in ticks. */
     private static final int KEEP_UP_RETRY_TICKS = 20;
+    /** How much of a block it walked counts towards its next step, as Minecraft counts it. */
+    private static final float MOVE_DISTANCE_PER_BLOCK = 0.6F;
     /** How loud the bell is when it arrives, loud enough for its owner to hear from where it arrives. */
     private static final float ARRIVAL_BELL_VOLUME = 4.0F;
 
@@ -70,19 +76,14 @@ public final class Tsukumogami extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> DATA_FADING =
             SynchedEntityData.defineId(Tsukumogami.class, EntityDataSerializers.BOOLEAN);
 
-    /** The client's animations. */
-    public final AnimationState idleAnimationState = new AnimationState();
-    public final AnimationState windUpAnimationState = new AnimationState();
-    public final AnimationState watchAnimationState = new AnimationState();
-    public final AnimationState fadeAnimationState = new AnimationState();
+    /** How it moves on the client. */
+    private final TsukumogamiMotion motion = new TsukumogamiMotion();
 
     /** Its boss bar, on the server, made when it starts following its owner. */
     private @Nullable ServerBossEvent bossBar;
     private @Nullable ServerPlayer owner;
     private @Nullable ServerTsukumogami serverTsukumogami;
     private int windUpTicks;
-    /** On the client, how long the attack's animation has left to run. */
-    private int attackAnimationTicks;
     private int keepUpRetryTicks;
     private int attackCooldownTicks;
     private int fadeTicks;
@@ -179,6 +180,11 @@ public final class Tsukumogami extends PathfinderMob {
         return entityData.get(DATA_FADING);
     }
 
+    /** How it moves, on the client. */
+    public TsukumogamiMotion motion() {
+        return motion;
+    }
+
     /**
      * Starts fading out on the spot, after its owner reviewed it away or at dawn. Its orbiting items fall away, and it
      * is gone after {@link #FADE_TICKS}. It can't be hurt while it fades.
@@ -221,7 +227,10 @@ public final class Tsukumogami extends PathfinderMob {
         bossBar.setProgress(getHealth() / getMaxHealth());
     }
 
-    /** Walks to its owner and attacks with a slow, heavy hit, and keeps up if it falls behind or gets stuck. */
+    /**
+     * Walks to its owner and attacks with a slow, heavy hit, after which it stands where it is while it straightens
+     * up, and keeps up if it falls behind or gets stuck.
+     */
     private void fightOwner(ServerLevel level, ServerPlayer owner) {
         if (attackCooldownTicks > 0) {
             attackCooldownTicks--;
@@ -235,6 +244,10 @@ public final class Tsukumogami extends PathfinderMob {
                 }
                 attackCooldownTicks = ATTACK_COOLDOWN_TICKS;
             }
+            return;
+        }
+        if (attackCooldownTicks > ATTACK_COOLDOWN_TICKS - RECOVERY_TICKS) {
+            getNavigation().stop();
             return;
         }
         if (isWithinMeleeAttackRange(owner)) {
@@ -327,23 +340,32 @@ public final class Tsukumogami extends PathfinderMob {
     public void tick() {
         super.tick();
         if (level().isClientSide()) {
-            // Standing still for a review interrupts the attack, as on the server.
-            attackAnimationTicks = standsStill() ? 0 : Math.max(0, attackAnimationTicks - 1);
-            windUpAnimationState.animateWhen(attackAnimationTicks > 0, tickCount);
-            idleAnimationState.startIfStopped(tickCount);
-            watchAnimationState.animateWhen(standsStill() && !isFading(), tickCount);
-            fadeAnimationState.animateWhen(isFading(), tickCount);
+            motion.tick(standsStill(), isFading());
         }
     }
 
     @Override
     public void handleEntityEvent(byte id) {
         if (id == WIND_UP_EVENT) {
-            attackAnimationTicks = ATTACK_ANIMATION_TICKS;
-            windUpAnimationState.start(tickCount);
+            motion.startAttack();
         } else {
             super.handleEntityEvent(id);
         }
+    }
+
+    /** It flinches when it is hurt, on the client, in place of the flailing walk of Minecraft's own mobs. */
+    @Override
+    public void handleDamageEvent(DamageSource source) {
+        float walkSpeed = walkAnimation.speed();
+        super.handleDamageEvent(source);
+        walkAnimation.setSpeed(walkSpeed);
+        motion.startFlinch();
+    }
+
+    /** A step sounds every {@link #STEP_BLOCKS}. */
+    @Override
+    protected float nextStep() {
+        return moveDist + STEP_BLOCKS * MOVE_DISTANCE_PER_BLOCK;
     }
 
     /** Other mobs never target it, and it never leads them to its owner. */
