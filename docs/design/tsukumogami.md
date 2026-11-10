@@ -97,6 +97,16 @@ The recordings below are from the game, on a lit stage so that the motion shows.
 |---|---|
 | ![The tsukumogami's items fall away and it dissolves from the hem up, its mask last](../images/tsukumogami-fade.gif) | ![The tsukumogami is knocked back, its kimono falls in on itself and the mask comes down on it](../images/tsukumogami-death.gif) |
 
+And this is what its owner sees of it at night, with its boss bar, in screenshots from the game:
+
+| It stands | The wind-up | The hit |
+|---|---|---|
+| ![The tsukumogami stands a few blocks away at night, its eyes glowing dimly, with bread, a torch and an apple orbiting it](../images/tsukumogami-night-standing.png) | ![The mask looms over its owner with its eyes flaring, its jaw open and its sleeves raised to either side](../images/tsukumogami-night-wind-up.png) | ![The open jaw of the mask fills the view as it comes down over its owner](../images/tsukumogami-night-hit.png) |
+
+| A review starts | A pass knocks an item out | It fades out |
+|---|---|---|
+| ![The mask close to its owner, tilted to one side, watching](../images/tsukumogami-night-watching.png) | ![The tsukumogami with its boss bar now showing Tsukumogami (5), an oak log falling away from its ring](../images/tsukumogami-night-item-knocked-out.png) | ![Only the mask, the head and the shoulders are left, with the kimono below them dissolved](../images/tsukumogami-night-fading.png) |
+
 It is made with Minecraft's own entity models and keyframe animations, with a glowing layer for the eyes, Minecraft's own dissolve for the fade-out and no animation library, so the mod still only needs Fabric API. It was reworked in [willdalh/oboecraft#53](https://github.com/willdalh/oboecraft/issues/53).
 
 ## Sounds
