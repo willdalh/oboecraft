@@ -18,7 +18,7 @@ public final class IgnoredItems {
         var crafting = player.inventoryMenu.getCraftSlots();
         for (int slot = 0; slot < crafting.getContainerSize(); slot++) dropSlot(player, item, crafting, slot);
         ItemStack carried = player.containerMenu.getCarried();
-        if (matches(carried, item) && player.drop(carried.copy(), false, Prediction.SERVER_ONLY) != null) {
+        if (matches(player, carried, item) && player.drop(carried.copy(), false, Prediction.SERVER_ONLY) != null) {
             player.containerMenu.setCarried(ItemStack.EMPTY);
         }
         player.inventoryMenu.broadcastChanges();
@@ -27,12 +27,12 @@ public final class IgnoredItems {
 
     private static void dropSlot(ServerPlayer player, ItemId item, Container container, int slot) {
         ItemStack stack = container.getItem(slot);
-        if (matches(stack, item) && player.drop(stack.copy(), false, Prediction.SERVER_ONLY) != null) {
+        if (matches(player, stack, item) && player.drop(stack.copy(), false, Prediction.SERVER_ONLY) != null) {
             container.setItem(slot, ItemStack.EMPTY);
         }
     }
 
-    private static boolean matches(ItemStack stack, ItemId item) {
-        return OboecraftMod.itemMapping().entryOf(stack).map(entry -> entry.id().equals(item)).orElse(false);
+    private static boolean matches(ServerPlayer player, ItemStack stack, ItemId item) {
+        return OboecraftMod.itemMappings().get(OboecraftMod.serverProgress().language(player)).entryOf(stack).map(entry -> entry.id().equals(item)).orElse(false);
     }
 }

@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -43,7 +44,7 @@ public class ProgressStoreClientGameTest implements FabricClientGameTest {
         ProgressFolder.delete();
         UUID player = context.computeOnClient(client -> client.getUser().getProfileId());
         Path folder = ProgressStore.folder(FabricLoader.getInstance().getGameDir());
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve("ja_jp").resolve(player + ".json");
         write(file, Progress.EMPTY.with(OAK_LOG, LEVEL_THREE));
 
         Path worldProgress;
@@ -61,7 +62,7 @@ public class ProgressStoreClientGameTest implements FabricClientGameTest {
             });
             try {
                 List<CustomPacketPayload> sent = new ArrayList<>();
-                otherGame.start(new Connection(PacketFlow.CLIENTBOUND), player, sent::add).join();
+                otherGame.start(new Connection(PacketFlow.CLIENTBOUND), player, LearningLanguage.JAPANESE, sent::add).join();
                 check(sent.equals(List.of(new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE))),
                         "another game can't use the file, but sent " + sent);
             } finally {

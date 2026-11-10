@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -53,7 +54,7 @@ public class ProgressStoreGameTest {
     /** Starts a session and returns what the client sends the server. */
     private static CustomPacketPayload start(ProgressStore store, Connection connection, UUID player) {
         List<CustomPacketPayload> sent = new ArrayList<>();
-        store.start(connection, player, sent::add).join();
+        store.start(connection, player, LearningLanguage.JAPANESE, sent::add).join();
         return sent.getFirst();
     }
 
@@ -73,13 +74,13 @@ public class ProgressStoreGameTest {
         Connection connection = connection();
         ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            helper.assertValueEqual(start(store, connection, player), new UploadProgress(Progress.EMPTY), "sent");
+            helper.assertValueEqual(start(store, connection, player), new UploadProgress("ja_jp", Progress.EMPTY), "sent");
             store.changed(connection, LEVEL_THREE);
             store.end(connection).join();
 
-            helper.assertValueEqual(read(folder.resolve(player + ".json")),
+            helper.assertValueEqual(read(folder.resolve("ja_jp").resolve(player + ".json")),
                     new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
-            helper.assertValueEqual(start(store, connection(), player), new UploadProgress(LEVEL_THREE),
+            helper.assertValueEqual(start(store, connection(), player), new UploadProgress("ja_jp", LEVEL_THREE),
                     "sent next time");
         } finally {
             store.close();
@@ -97,7 +98,7 @@ public class ProgressStoreGameTest {
         store.changed(connection, LEVEL_THREE);
 
         helper.succeedWhen(() -> {
-            helper.assertValueEqual(read(folder.resolve(player + ".json")),
+            helper.assertValueEqual(read(folder.resolve("ja_jp").resolve(player + ".json")),
                     new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
             store.close();
         });
@@ -107,7 +108,7 @@ public class ProgressStoreGameTest {
     public void anotherConnectionCantChangeOrEndTheSession(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve("ja_jp").resolve(player + ".json");
         Connection earlier = connection();
         Connection current = connection();
         ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
@@ -143,7 +144,7 @@ public class ProgressStoreGameTest {
         } finally {
             store.close();
         }
-        helper.assertFalse(Files.exists(folder.resolve(player + ".json")), "no progress file");
+        helper.assertFalse(Files.exists(folder.resolve("ja_jp").resolve(player + ".json")), "no progress file");
         helper.succeed();
     }
 
@@ -161,7 +162,7 @@ public class ProgressStoreGameTest {
         store.changed(connection, Progress.EMPTY);
         store.end(connection).join();
 
-        helper.assertValueEqual(read(folder.resolve(player + ".json")),
+        helper.assertValueEqual(read(folder.resolve("ja_jp").resolve(player + ".json")),
                 new ProgressFiles.ReadResult.Loaded(LEVEL_THREE), "saved progress");
         helper.succeed();
     }
@@ -176,7 +177,7 @@ public class ProgressStoreGameTest {
         try {
             start(store, connection, player);
             // A folder where the file should be makes every save fail.
-            Files.createDirectory(folder.resolve(player + ".json"));
+            Files.createDirectory(folder.resolve("ja_jp").resolve(player + ".json"));
             store.changed(connection, LEVEL_THREE);
             store.end(connection).join();
         } finally {
@@ -198,10 +199,10 @@ public class ProgressStoreGameTest {
             helper.assertValueEqual(start(secondGame, connection(), player),
                     new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE), "sent by the second game");
             helper.assertValueEqual(start(secondGame, connection(), UUID.randomUUID()),
-                    new UploadProgress(Progress.EMPTY), "another player's progress");
+                    new UploadProgress("ja_jp", Progress.EMPTY), "another player's progress");
 
             firstGame.end(firstConnection).join();
-            helper.assertValueEqual(start(secondGame, connection(), player), new UploadProgress(Progress.EMPTY),
+            helper.assertValueEqual(start(secondGame, connection(), player), new UploadProgress("ja_jp", Progress.EMPTY),
                     "sent once the first game has left");
         } finally {
             firstGame.close();
@@ -214,8 +215,9 @@ public class ProgressStoreGameTest {
     public void aFileFromANewerVersionIsntSentAndIsLeftAlone(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve("ja_jp").resolve(player + ".json");
         String newer = "{\"version\": 99, \"items\": {}}";
+        Files.createDirectories(file.getParent());
         Files.writeString(file, newer);
         Connection connection = connection();
         ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
@@ -235,12 +237,13 @@ public class ProgressStoreGameTest {
     public void aBrokenFileIsKeptAndThePlayerStartsEmpty(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve("ja_jp").resolve(player + ".json");
+        Files.createDirectories(file.getParent());
         Files.writeString(file, "{ broken");
         ProgressStore store = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            helper.assertValueEqual(start(store, connection(), player), new UploadProgress(Progress.EMPTY), "sent");
-            helper.assertValueEqual(store.takeBrokenFileKeptAs(), Optional.of(player + ".json.broken"),
+            helper.assertValueEqual(start(store, connection(), player), new UploadProgress("ja_jp", Progress.EMPTY), "sent");
+            helper.assertValueEqual(store.takeBrokenFileKeptAs(), Optional.of(Path.of("ja_jp", player + ".json.broken").toString()),
                     "the name the player is told");
             helper.assertValueEqual(store.takeBrokenFileKeptAs(), Optional.empty(), "told once");
             helper.assertValueEqual(Files.readString(file.resolveSibling(player + ".json.broken")), "{ broken",
@@ -255,7 +258,7 @@ public class ProgressStoreGameTest {
     public void progressTooLargeToSendIsntSentAndIsLeftAlone(GameTestHelper helper) throws IOException {
         Path folder = folder();
         UUID player = UUID.randomUUID();
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve("ja_jp").resolve(player + ".json");
         Map<ItemId, SrsState> states = new HashMap<>();
         for (int i = 0; i <= 65_536; i++) {
             states.put(new ItemId("item.test.item_" + i), new SrsState.Known());

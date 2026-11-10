@@ -14,7 +14,7 @@ import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The notification after a pass: the item's Japanese name as plain text, centered at the top of the screen, below
+ * The notification after a pass: the item's name as plain text, centered at the top of the screen, below
  * any boss bars. It is shown for {@link NotificationTiming#SHOWN} of real time and fades out at the end. A new pass
  * replaces it. It is drawn after the screen, so a menu's screen that a review went back to doesn't dim it. Only used
  * on the client thread.
@@ -35,26 +35,26 @@ public final class PassNotification {
     /** Text at an alpha below this is drawn opaque by Minecraft's font, so it isn't drawn at all. */
     private static final float MIN_ALPHA = 4 / 255f;
 
-    private @Nullable String japaneseName;
+    private @Nullable String name;
     private long shownAtMillis;
 
-    /** Shows {@code japaneseName}, replacing the notification that is shown, if any. */
-    public void show(String japaneseName) {
-        this.japaneseName = Objects.requireNonNull(japaneseName, "japaneseName");
+    /** Shows {@code name}, replacing the notification that is shown, if any. */
+    public void show(String name) {
+        this.name = Objects.requireNonNull(name, "name");
         shownAtMillis = Util.getMillis();
     }
 
-    /** The Japanese name that is shown now, until the notification is over. */
+    /** The name that is shown now, until the notification is over. */
     public Optional<String> shown() {
-        if (japaneseName != null && NotificationTiming.isOver(elapsed())) {
+        if (name != null && NotificationTiming.isOver(elapsed())) {
             clear();
         }
-        return Optional.ofNullable(japaneseName);
+        return Optional.ofNullable(name);
     }
 
     /** Hides the notification, as when the player leaves the world or server. */
     public void clear() {
-        japaneseName = null;
+        name = null;
     }
 
     /**

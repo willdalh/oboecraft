@@ -1,8 +1,10 @@
 package io.github.willdalh.oboecraft.tools.namelist;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
-import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.item.Name;
+import io.github.willdalh.oboecraft.core.item.PlainName;
+import java.util.function.Function;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,9 +17,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Builds the name list from the keys Minecraft names stacks with and their Japanese names. Keys with the same Japanese
+ * Builds the name list from the keys Minecraft names stacks with and their translated names. Keys with the same
  * name become one entry. An entry that is already in the name list keeps its item id, and keeps its parts as long as
- * its Japanese name is the same, since they have been reviewed. Only new and changed names are guessed, and those need
+ * its source name is the same, since they have been reviewed. Only new and changed names are guessed, and those need
  * review.
  */
 final class NameListGenerator {
@@ -38,7 +40,7 @@ final class NameListGenerator {
     }
 
     /**
-     * An entry whose parts and readings were guessed.
+     * An entry that needs review, with notes about its name or grouping.
      *
      * @param entry the entry
      * @param notes what to check closely, empty if nothing stood out
@@ -50,15 +52,15 @@ final class NameListGenerator {
     private static final class Draft {
         final ItemId id;
         final List<String> translationKeys;
-        final JapaneseName japaneseName;
+        final Name name;
         final List<String> notes;
         final boolean generated;
 
-        Draft(ItemId id, List<String> translationKeys, JapaneseName japaneseName, List<String> notes,
+        Draft(ItemId id, List<String> translationKeys, Name name, List<String> notes,
                 boolean generated) {
             this.id = id;
             this.translationKeys = new ArrayList<>(translationKeys);
-            this.japaneseName = japaneseName;
+            this.name = name;
             this.notes = notes;
             this.generated = generated;
         }
@@ -75,6 +77,36 @@ final class NameListGenerator {
      */
     static Result generate(List<ItemNameKey> keys, Map<String, String> japanese, List<NameListEntry> existing,
             NameGuesser guesser) {
+        return generateNames(keys, japanese, existing, name -> {
+            GuessedName guess = guesser.guess(name);
+            return new GeneratedName(guess.name(), guess.notes());
+        });
+    }
+
+    private record GeneratedName(Name name, List<String> notes) { }
+
+    static Result generatePlain(List<ItemNameKey> keys, Map<String, String> translated, Map<String, String> english,
+            List<NameListEntry> existing) {
+        Result result = generateNames(keys, translated, existing, name -> new GeneratedName(new PlainName(name), List.of()));
+        Map<ItemId, List<String>> flags = new LinkedHashMap<>();
+        result.generated().forEach(entry -> flags.put(entry.entry().id(), new ArrayList<>(entry.notes())));
+        for (NameListEntry entry : result.entries()) {
+            for (String key : entry.translationKeys()) {
+                String text = translated.get(key);
+                if (text != null && text.equals(english.get(key))) {
+                    flags.computeIfAbsent(entry.id(), unused -> new ArrayList<>()).add("Same as English: " + key);
+                }
+                if (text != null && FORMAT_ARGUMENT.matcher(text).find()) {
+                    flags.computeIfAbsent(entry.id(), unused -> new ArrayList<>()).add("Format argument: " + key + " = " + text);
+                }
+            }
+        }
+        return new Result(result.entries(), result.entries().stream().filter(entry -> flags.containsKey(entry.id()))
+                .map(entry -> new GeneratedEntry(entry, List.copyOf(flags.get(entry.id())))).toList(), result.notes());
+    }
+
+    private static Result generateNames(List<ItemNameKey> keys, Map<String, String> japanese,
+            List<NameListEntry> existing, Function<String, GeneratedName> guesser) {
         List<String> notes = new ArrayList<>();
         SequencedMap<String, List<String>> keysByName = new LinkedHashMap<>();
         List<ItemNameKey> namedAfterArguments = new ArrayList<>();
@@ -85,7 +117,7 @@ final class NameListGenerator {
             }
             String name = japanese.get(key.translationKey());
             if (name == null) {
-                notes.add(key.translationKey() + " has no Japanese name, so it is left out");
+                notes.add(key.translationKey() + " has no name, so it is left out");
             } else if (FORMAT_ARGUMENT.matcher(name).find()) {
                 namedAfterArguments.add(key);
             } else {
@@ -122,8 +154,8 @@ final class NameListGenerator {
 
         for (NameListEntry entry : existing) {
             if (!keeperOf.containsKey(entry.id())) {
-                drafts.add(new Draft(entry.id(), entry.translationKeys(), entry.japaneseName(), List.of(), false));
-                notes.add(entry.id() + " (" + entry.japaneseName().text() + ") is no longer in the game. It is kept, "
+                drafts.add(new Draft(entry.id(), entry.translationKeys(), entry.name(), List.of(), false));
+                notes.add(entry.id() + " (" + entry.name().text() + ") is no longer in the game. It is kept, "
                         + "so saved progress for it isn't lost");
             }
         }
@@ -131,7 +163,7 @@ final class NameListGenerator {
         List<NameListEntry> entries = new ArrayList<>();
         List<GeneratedEntry> generated = new ArrayList<>();
         for (Draft draft : drafts) {
-            NameListEntry entry = new NameListEntry(draft.id, draft.translationKeys, draft.japaneseName);
+            NameListEntry entry = new NameListEntry(draft.id, draft.translationKeys, draft.name);
             entries.add(entry);
             if (draft.generated) {
                 generated.add(new GeneratedEntry(entry, draft.notes));
@@ -170,7 +202,7 @@ final class NameListGenerator {
      * split off from its entry and becomes a new item. Only a new or changed name is guessed.
      */
     private static Draft draftFor(String name, List<String> keys, Map<String, NameListEntry> existingByKey,
-            Map<ItemId, String> keeperOf, Set<ItemId> existingIds, NameGuesser guesser, List<String> listNotes) {
+            Map<ItemId, String> keeperOf, Set<ItemId> existingIds, Function<String, GeneratedName> guesser, List<String> listNotes) {
         List<NameListEntry> touched = keys.stream()
                 .map(existingByKey::get)
                 .filter(Objects::nonNull)
@@ -178,27 +210,28 @@ final class NameListGenerator {
                 .toList();
         if (touched.size() > 1) {
             throw new IllegalStateException("The entries " + touched.stream().map(NameListEntry::id).toList()
-                    + " now have the same Japanese name " + name + ". Merging entries needs former ids, which the "
+                    + " now have the same name " + name + ". Merging entries needs former ids, which the "
                     + "name list doesn't have yet. See docs/design/items.md.");
         }
         NameListEntry previous = touched.isEmpty() ? null : touched.getFirst();
         boolean keepsId = previous != null && name.equals(keeperOf.get(previous.id()));
-        boolean nameUnchanged = previous != null && previous.japaneseName().text().equals(name);
+        boolean nameUnchanged = previous != null && (previous.name() instanceof PlainName plain
+                ? plain.sourceText() : previous.name().text()).equals(name);
         ItemId id = keepsId ? previous.id() : newId(name, keys, existingIds);
         String splitFrom = previous != null && !keepsId
-                ? "Split from " + previous.id() + " (" + previous.japaneseName().text() + "), so it is a new item"
+                ? "Split from " + previous.id() + " (" + previous.name().text() + "), so it is a new item"
                 : null;
 
         if (nameUnchanged) {
             if (splitFrom != null) {
                 listNotes.add(id + " (" + name + "): " + splitFrom + ". Its name is unchanged, so it keeps its parts");
             }
-            return new Draft(id, keys, previous.japaneseName(), List.of(), false);
+            return new Draft(id, keys, previous.name(), splitFrom == null ? List.of() : List.of(splitFrom), splitFrom != null);
         }
-        GuessedName guess = guesser.guess(name);
+        GeneratedName guess = guesser.apply(name);
         List<String> notes = new ArrayList<>();
         if (keepsId) {
-            notes.add("The Japanese name changed from " + previous.japaneseName().text());
+            notes.add("The name changed from " + previous.name().text());
         } else if (splitFrom != null) {
             notes.add(splitFrom);
         }

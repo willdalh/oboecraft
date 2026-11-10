@@ -22,17 +22,17 @@ tasks.test {
     useJUnitPlatform()
 }
 
-// Writes the name list from Minecraft's Japanese names, and a list of the generated entries to review.
+// Writes the name list from Minecraft's supported language files, and a list of the generated entries to review.
 tasks.register<JavaExec>("generateNameList") {
     group = "oboecraft"
-    description = "Writes the name list from Minecraft's Japanese names, and a list of the new entries to review."
+    description = "Writes the name list from Minecraft's supported language files, and a list of the new entries to review."
     javaLauncher = javaToolchains.launcherFor(java.toolchain)
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass = "io.github.willdalh.oboecraft.tools.namelist.NameListTool"
     jvmArgs("-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8")
     args(
         "--minecraft-version", libs.versions.minecraft.get(),
-        "--name-list", rootProject.file("fabric/src/main/resources/oboecraft/name_list.json").absolutePath,
+        "--name-lists", rootProject.file("fabric/src/main/resources/oboecraft/name_lists").absolutePath,
         "--review-list", layout.buildDirectory.file("name-list/review.md").get().asFile.absolutePath,
         "--cache", layout.buildDirectory.dir("name-list/cache").get().asFile.absolutePath,
     )
@@ -48,7 +48,7 @@ tasks.register<JavaExec>("generateReadingClips") {
     mainClass = "io.github.willdalh.oboecraft.tools.readingclips.ReadingClipTool"
     jvmArgs("-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8")
     args(
-        "--name-list", rootProject.file("fabric/src/main/resources/oboecraft/name_list.json").absolutePath,
+        "--name-list", rootProject.file("fabric/src/main/resources/oboecraft/name_lists/ja_jp.json").absolutePath,
         "--assets", rootProject.file("fabric/src/client/resources/assets/oboecraft").absolutePath,
         "--clip-list", project.file("reading-clips.json").absolutePath,
         "--review-list", layout.buildDirectory.file("reading-clips/review.md").get().asFile.absolutePath,

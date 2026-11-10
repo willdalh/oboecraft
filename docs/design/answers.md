@@ -1,8 +1,16 @@
 # Answers
 
-How the server decides whether a typed answer is correct. The correct answer is the item's Japanese name, see [Items](items.md). Milestone 4 built these rules.
+How the server decides whether a typed answer is correct. The correct answer is the item's name in the active learning language, see [Items](items.md). Milestone 4 built these rules.
 
-The general rule: the same sound passes, a different sound fails. Kanji must be the ones in the Japanese name, and kana must be the right ones.
+The general rule: the same sound passes, a different sound fails.
+
+## German, Norwegian Bokmål and Dutch
+
+Case, spaces, hyphens and punctuation are ignored. Keyboard stand-ins ä/ö/ü → ae/oe/ue, ß → ss and æ/ø/å → ae/oe/aa are accepted. The accents é, è, ê, ë and ï may be omitted. Unicode composed and decomposed spellings agree. Plain a/o/u do not replace umlauts, and plain a/o do not replace å/ø. Any other wrong, missing or extra letter fails, with no typo tolerance. Minecraft's names contain no articles, so none are required. Japanese kana, romaji, long-vowel and particle rules never apply here.
+
+## Japanese
+
+Kanji must be the ones in the Japanese name, and kana must be the right ones.
 
 ## Parts of the name
 

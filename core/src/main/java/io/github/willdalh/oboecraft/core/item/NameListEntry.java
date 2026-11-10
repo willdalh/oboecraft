@@ -8,13 +8,13 @@ import java.util.Objects;
  *
  * @param id              the item's id
  * @param translationKeys every translation key that maps to this item, at least one
- * @param japaneseName    the item's name in Minecraft's Japanese translation, with its reading, the correct answer
+ * @param name            the item's name in its learning language, the correct answer
  */
-public record NameListEntry(ItemId id, List<String> translationKeys, JapaneseName japaneseName) {
+public record NameListEntry(ItemId id, List<String> translationKeys, Name name) {
     public NameListEntry {
         Objects.requireNonNull(id, "id");
         translationKeys = List.copyOf(translationKeys);
-        Objects.requireNonNull(japaneseName, "japaneseName");
+        Objects.requireNonNull(name, "name");
         if (translationKeys.isEmpty()) {
             throw new IllegalArgumentException(id + " has no translation keys");
         }

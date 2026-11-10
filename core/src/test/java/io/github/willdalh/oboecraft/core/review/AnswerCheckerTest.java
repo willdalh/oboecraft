@@ -29,13 +29,13 @@ class AnswerCheckerTest {
 
     private static void assertPasses(NameListEntry entry, String... answers) {
         for (String answer : answers) {
-            assertTrue(AnswerChecker.isCorrect(entry, answer), answer + " passes for " + entry.japaneseName());
+            assertTrue(AnswerChecker.isCorrect(entry, answer), answer + " passes for " + entry.name());
         }
     }
 
     private static void assertFails(NameListEntry entry, String... answers) {
         for (String answer : answers) {
-            assertFalse(AnswerChecker.isCorrect(entry, answer), answer + " fails for " + entry.japaneseName());
+            assertFalse(AnswerChecker.isCorrect(entry, answer), answer + " fails for " + entry.name());
         }
     }
 

@@ -1,13 +1,13 @@
 # Oboecraft
 
-A Minecraft mod for learning Japanese, using spaced repetition on the items in the game.
+A Minecraft mod for learning item names in Japanese, German, Norwegian Bokmål or Dutch, using spaced repetition on the items in the game.
 
 ## Language
 
 ### Items
 
 **Item**:
-Anything in Minecraft with its own Japanese name, like oak log or potion of healing. Each item has its own SRS state per player.
+Anything in Minecraft with its own name in a learning language, like oak log or potion of healing. Each item has its own SRS state per player and learning language.
 _Avoid_: item type, word, card
 
 **Minecraft item**:
@@ -15,7 +15,7 @@ One of Minecraft's own kinds of item, like `minecraft:potion`. One Minecraft ite
 _Avoid_: item type, vanilla item
 
 **Item id**:
-The name that identifies an item, like `block.minecraft.oak_log`. It is one of the translation keys of the item's Japanese name.
+The name that identifies an item, like `block.minecraft.oak_log`. It is one of the translation keys of the item's name in its learning language.
 _Avoid_: item key, Minecraft id
 
 **Translation key**:
@@ -63,7 +63,7 @@ The small amber mark on a stack during the final tenth of its interval. It disap
 _Avoid_: badge, warning icon
 
 **Notification**:
-The item's Japanese name, shown at the top of the screen for a few seconds after a pass.
+The item's name in the learning language, shown at the top of the screen for a few seconds after a pass.
 _Avoid_: toast, popup, title
 
 ### Reviews
@@ -102,9 +102,21 @@ _Avoid_: first review, introduction
 The screen where the player answers for a locked item.
 _Avoid_: menu, quiz screen, popup
 
-**Japanese name**:
-The item's name in the Japanese translation of Minecraft, like オークの原木. It is the correct answer in a review.
+**Learning language**:
+The language whose item names a player learns: Japanese, German, Norwegian Bokmål or Dutch. It follows the game language and stays the same until the player joins again.
+_Avoid_: target language, study language
+
+**Game language**:
+The language selected in Minecraft's language setting, used for Minecraft's and the mod's own text.
+_Avoid_: display language, UI language
+
+**Name**:
+An item's name in the learning language, which is the correct answer in a review.
 _Avoid_: translation, correct answer, word
+
+**Japanese name**:
+A name in Japanese, like オークの原木, made of name parts with readings.
+_Avoid_: translation, word
 
 **Reading**:
 How a Japanese name or a name part is pronounced, written in hiragana, like おーくのげんぼく. Each Japanese name has one reading, made of its name parts' readings.
@@ -115,7 +127,7 @@ One piece of a Japanese name with its own reading: one kanji, like 原 (げん),
 _Avoid_: segment, token, word, unit
 
 **Name list**:
-All items with their Japanese names and readings.
+All items in one learning language with their names, and with parts and readings for Japanese.
 _Avoid_: word list, dictionary, vocabulary
 
 **Reading clip**:
@@ -153,7 +165,7 @@ Everything tracked about one item for one player: whether it is leveled, known o
 _Avoid_: card, item progress
 
 **Progress**:
-All SRS states for one player. Their game keeps it on their computer and sends it to every world they join.
+All SRS states for one player in one learning language. Their game keeps separate progress for each language and sends only the active language to every world they join.
 _Avoid_: save, profile
 
 **Promote**:

@@ -6,7 +6,7 @@ import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.core.srs.DisplayRules;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,10 +18,10 @@ import net.minecraft.world.item.ItemStack;
  * and asks core {@link LockCheck}.
  */
 public final class Locks {
-    private final ItemMapping itemMapping;
+    private final ItemMappings itemMappings;
 
-    public Locks(ItemMapping itemMapping) {
-        this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+    public Locks(ItemMappings itemMappings) {
+        this.itemMappings = Objects.requireNonNull(itemMappings, "itemMappings");
     }
 
     /**
@@ -69,7 +69,7 @@ public final class Locks {
     }
 
     private Optional<NameListEntry> activeEntry(ProgressView view, Player player, ItemStack stack) {
-        return active(view, player) ? itemMapping.entryOf(stack) : Optional.empty();
+        return active(view, player) ? itemMappings.get(view.language(player)).entryOf(stack) : Optional.empty();
     }
 
     /** The stack, if the lock check stops the player's interaction with it on {@code view}'s side. */

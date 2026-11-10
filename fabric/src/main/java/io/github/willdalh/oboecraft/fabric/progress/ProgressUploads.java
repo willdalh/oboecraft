@@ -1,6 +1,5 @@
 package io.github.willdalh.oboecraft.fabric.progress;
 
-import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.mixin.ServerCommonPacketListenerImplAccessor;
 import io.github.willdalh.oboecraft.fabric.network.ProgressAnswer;
@@ -84,12 +83,12 @@ public final class ProgressUploads {
      *
      * @param connection the connection the player entered the world over, the same as while they were configured
      */
-    public Optional<Progress> take(UUID player, Connection connection) {
+    public Optional<UploadProgress> take(UUID player, Connection connection) {
         UploadTask task = joining.get(player);
         if (task == null || connectionOf(task.connection) != connection || !joining.remove(player, task)) {
             return Optional.empty();
         }
-        return task.answer.get() instanceof UploadProgress upload ? Optional.of(upload.progress()) : Optional.empty();
+        return task.answer.get() instanceof UploadProgress upload ? Optional.of(upload) : Optional.empty();
     }
 
     /** The network connection of a listener, which stays the same from configuration into the world. */
@@ -133,7 +132,14 @@ public final class ProgressUploads {
                 return false;
             }
             return switch (answer.get()) {
-                case UploadProgress upload -> true;
+                case UploadProgress upload -> {
+                    if (upload.language().isEmpty()) {
+                        disconnect(Component.translatableWithFallback("oboecraft.progress.unsupported_language",
+                                "Your game sent an unsupported Oboecraft learning language."));
+                        yield false;
+                    }
+                    yield true;
+                }
                 case ProgressUnavailable unavailable -> {
                     OboecraftMod.LOGGER.warn("{} couldn't send their progress: {}",
                             connection.getOwner().name(), unavailable.reason());

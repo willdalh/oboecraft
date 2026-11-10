@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import com.mojang.authlib.GameProfile;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
@@ -37,7 +38,7 @@ final class TestPlayers {
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
         CHANNELS.put(id, new EmbeddedChannel(connection));
         helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
-        OboecraftMod.serverProgress().start(player, Progress.EMPTY);
+        OboecraftMod.serverProgress().start(player, LearningLanguage.JAPANESE, Progress.EMPTY);
         player.setGameMode(GameType.SURVIVAL);
         return player;
     }

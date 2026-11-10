@@ -7,6 +7,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.JapaneseName;
+import io.github.willdalh.oboecraft.core.item.Name;
+import io.github.willdalh.oboecraft.core.item.PlainName;
 import io.github.willdalh.oboecraft.core.item.NameList;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.core.item.NamePart;
@@ -27,7 +29,7 @@ public final class NameListJson {
 
     /**
      * Parses a name list: an array of entries, each with an {@code id}, its {@code translationKeys} and the
-     * {@code japaneseName} as an array of parts. A part in kana is a string, like {@code "オーク"}, and any other part is
+     * {@code name} as plain text or, for Japanese, an array of parts. A part in kana is a string, like {@code "オーク"}, and any other part is
      * an array of its text and its reading, like {@code ["原", "げん"]}.
      *
      * @throws IllegalArgumentException if the name list is invalid, saying which entry is wrong: its id, or its place
@@ -60,7 +62,8 @@ public final class NameListJson {
                 .map(entry -> "  {\"id\": " + GSON.toJson(entry.id().value())
                         + ", \"translationKeys\": " + entry.translationKeys().stream().map(GSON::toJson)
                                 .collect(Collectors.joining(", ", "[", "]"))
-                        + ", \"japaneseName\": " + formatName(entry.japaneseName()) + "}")
+                        + ", \"name\": " + formatName(entry.name())
+                        + (entry.name() instanceof PlainName plain ? ", \"sourceName\": " + GSON.toJson(plain.sourceText()) : "") + "}")
                 .collect(Collectors.joining(",\n", "[\n", "\n]\n"));
     }
 
@@ -76,7 +79,16 @@ public final class NameListJson {
         return new NameListEntry(
                 new ItemId(requireString(entry.get("id"), "id")),
                 translationKeys,
-                parseJapaneseName(requireArray(entry.get("japaneseName"), "japaneseName")));
+                parseName(entry));
+    }
+
+    private static Name parseName(JsonObject entry) {
+        JsonElement json = entry.get("name");
+        if (json != null && json.isJsonPrimitive()) {
+            String text = requireString(json, "name");
+            return new PlainName(text, entry.has("sourceName") ? requireString(entry.get("sourceName"), "sourceName") : text);
+        }
+        return parseJapaneseName(requireArray(json, "name"));
     }
 
     private static JapaneseName parseJapaneseName(JsonArray json) {
@@ -100,8 +112,9 @@ public final class NameListJson {
                 requireString(textAndReading.get(1), "A part's reading"));
     }
 
-    private static String formatName(JapaneseName name) {
-        return name.parts().stream()
+    private static String formatName(Name name) {
+        if (name instanceof PlainName plain) return GSON.toJson(plain.text());
+        return ((JapaneseName) name).parts().stream()
                 .map(part -> isReadAsWritten(part)
                         ? GSON.toJson(part.text())
                         : "[" + GSON.toJson(part.text()) + ", " + GSON.toJson(part.reading()) + "]")

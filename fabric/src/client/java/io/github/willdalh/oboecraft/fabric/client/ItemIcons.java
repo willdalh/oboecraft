@@ -1,7 +1,8 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.fabric.item.NamedStacks;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,12 +19,12 @@ import org.jspecify.annotations.Nullable;
  * used on the client thread.
  */
 public final class ItemIcons {
-    private final ItemMapping mapping;
+    private final ItemMappings mappings;
     private @Nullable RegistryAccess madeFor;
     private Map<ItemId, ItemStack> icons = Map.of();
 
-    ItemIcons(ItemMapping mapping) {
-        this.mapping = Objects.requireNonNull(mapping, "mapping");
+    ItemIcons(ItemMappings mappings) {
+        this.mappings = Objects.requireNonNull(mappings, "mappings");
     }
 
     /** The item's icon in the world with these registries. Callers only draw the stack and never change it. */
@@ -43,8 +44,13 @@ public final class ItemIcons {
 
     private Map<ItemId, ItemStack> iconsByItem(RegistryAccess registries) {
         Map<ItemId, ItemStack> found = new HashMap<>();
-        for (ItemStack stack : NamedStacks.all(registries.lookupOrThrow(Registries.BANNER_PATTERN))) {
-            mapping.entryOf(stack).ifPresent(entry -> found.putIfAbsent(entry.id(), stack));
+        var stacks = NamedStacks.all(registries.lookupOrThrow(Registries.BANNER_PATTERN));
+        // Other players' tsukumogami carry ids from their languages too. Each id is a translation key, so the
+        // union has the same representative stack wherever an id is shared between languages.
+        for (LearningLanguage language : LearningLanguage.values()) {
+            for (ItemStack stack : stacks) {
+                mappings.get(language).entryOf(stack).ifPresent(entry -> found.putIfAbsent(entry.id(), stack));
+            }
         }
         return Map.copyOf(found);
     }

@@ -6,7 +6,7 @@ The client displays the player's [synced progress](time.md#the-client). It never
 
 A locked item's name is `???` in its hover tooltip and in the selected-item label above the hotbar. This includes custom names and the names of locked contents listed in another item's tooltip or shown as a bundle's selected item. The name keeps its usual color and style, and the tooltip keeps its other information, like enchantments, lore, potion effects and advanced details.
 
-Unlocked items show their normal Minecraft name in the player's selected language. Names elsewhere, such as advancements, death messages and search indexes, are unchanged. This is a learning aid, not a way to keep the Japanese names secret from a modified client.
+Changing game language in-world changes unlocked names immediately, while review answers stay in the learning language selected at join. Unlocked items show their normal Minecraft name in the player's selected language. Names elsewhere, such as advancements, death messages and search indexes, are unchanged. This is a learning aid, not a way to keep the answers secret from a modified client.
 
 The displays use the same conditions as the [lock check](lock-check.md): they are off in creative and spectator mode, before progress arrives for the current connection, and on servers without the mod. Stacks outside the name list are unchanged.
 
@@ -24,17 +24,17 @@ The marker disappears when the item locks; its name is then hidden instead. Lock
 
 ## Notification
 
-After a pass, the item's Japanese name is shown at the top of the screen, so the player sees how it is written even when they answered in kana or romaji. It is written as in the name list, with kanji where the name has kanji, like オークの原木. There is no reading, icon, box or background: only the name as white text with Minecraft's usual text shadow, centered near the top edge at twice the normal text size. A name too wide for the screen is drawn smaller, so it always fits with a small margin. When boss bars are shown, the name goes below the last one, so boss health is never covered.
+After a pass, the item's name in the learning language is shown at the top of the screen, so the player sees its spelling. For Japanese this also works when they answered in kana or romaji. It is written as in the name list, with kanji where the name has kanji, like オークの原木. There is no reading, icon, box or background: only the name as white text with Minecraft's usual text shadow, centered near the top edge at twice the normal text size. A name too wide for the screen is drawn smaller, so it always fits with a small margin. When boss bars are shown, the name goes below the last one, so boss health is never covered.
 
 The notification is shown for 3 seconds of real time and fades out during the last second, also while the game is paused or ticks at another rate. A new pass replaces it at once. It is drawn on top of the HUD and of any open screen, so after a review from the inventory or a container it isn't dimmed by the screen's dark background. It is hidden with the HUD (F1), and while an answer menu is open, so the next review's menu never shows the last item's name. It is cleared when the player leaves the world or server.
 
 The server sends the name with the pass, and the client shows it even if the player closed the answer menu before the reply came, since the item was passed.
 
-Only a pass shows it. After a fail, the answer menu shows the Japanese name instead, and its reading once the player asks for it, see [Reviews](reviews.md#outcomes).
+Only a pass shows it. After a fail, the answer menu shows the name instead, and in Japanese its reading once the player asks for it, see [Reviews](reviews.md#outcomes).
 
 ## Reading clip
 
-With the notification, the item's reading clip plays: the reading of the Japanese name, said by a voice, so the player hears how the name is said. The clips are made ahead of time with VOICEVOX, in the voice 玄野武宏, from the reviewed readings in the name list, and ship with the mod as one sound file per item. So they work offline and sound the same for everyone. The [word list](word-list.md) plays them too, from a button on each row. See [Reading clip tool](../architecture/reading-clip-tool.md).
+For Japanese only, with the notification, the item's reading clip plays: the reading of the Japanese name, said by a voice, so the player hears how the name is said. The clips are made ahead of time with VOICEVOX, in the voice 玄野武宏, from the reviewed readings in the name list, and ship with the mod as one sound file per item. So they work offline and sound the same for everyone. The [word list](word-list.md) plays them too, from a button on each row. See [Reading clip tool](../architecture/reading-clip-tool.md).
 
 The clip plays in Minecraft's Voice/Speech sound category, so the player sets its volume, or turns it off, under Options → Music & Sounds. It isn't placed in the world, so it sounds the same wherever the player looks, and it shows the subtitle "Japanese name is said" when subtitles are on. A new clip, from a pass or the word list, stops the clip that is playing. Leaving the world or server stops it.
 

@@ -8,7 +8,7 @@ import io.github.willdalh.oboecraft.core.review.ReviewStart;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.display.TimerText;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
@@ -35,16 +35,16 @@ import org.jspecify.annotations.Nullable;
  * earlier review never changes a newer one. Only used on the client thread.
  */
 public final class ClientReviews {
-    private final ItemMapping itemMapping;
+    private final ItemMappings itemMappings;
     private final Locks locks;
     private final ClientProgress progress;
     private final PassNotification notification;
     private final ReadingClips readingClips;
     private int lastReviewId;
 
-    ClientReviews(ItemMapping itemMapping, Locks locks, ClientProgress progress, PassNotification notification,
+    ClientReviews(ItemMappings itemMappings, Locks locks, ClientProgress progress, PassNotification notification,
             ReadingClips readingClips) {
-        this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+        this.itemMappings = Objects.requireNonNull(itemMappings, "itemMappings");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.notification = Objects.requireNonNull(notification, "notification");
@@ -79,7 +79,7 @@ public final class ClientReviews {
         if (!Locks.active(progress, player) || slot < 0 || slot >= player.containerMenu.slots.size()) return false;
         var clicked = player.containerMenu.getSlot(slot);
         if (clicked.container != player.getInventory() || !player.containerMenu.getCarried().isEmpty()) return false;
-        var entry = itemMapping.entryOf(clicked.getItem());
+        var entry = itemMappings.get(progress.language()).entryOf(clicked.getItem());
         if (entry.isEmpty()) return false;
         switch (ReviewRules.start(progress.state(player, entry.get().id()), progress.now(), progress.settings())) {
             case ReviewStart.Started started -> openAnswerMenu(player,
@@ -106,7 +106,7 @@ public final class ClientReviews {
         if (player == null) {
             return;
         }
-        location.stackIn(player).ifPresent(stack -> itemMapping.entryOf(stack).ifPresent(entry ->
+        location.stackIn(player).ifPresent(stack -> itemMappings.get(progress.language()).entryOf(stack).ifPresent(entry ->
                 openAnswerMenu(player, location, entry, stack)));
     }
 
@@ -152,8 +152,8 @@ public final class ClientReviews {
     }
 
     /**
-     * The server checked an answer. A pass closes the menu, shows the Japanese name in the notification and plays the
-     * item's reading clip. After a fail, the menu stays open and shows the Japanese name, and its reading once the player
+     * The server checked an answer. A pass closes the menu, shows the name in the notification and, for Japanese, plays the
+     * item's reading clip. After a fail, the menu stays open and shows the name, and its Japanese reading once the player
      * asks for it, until the player closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
@@ -161,8 +161,8 @@ public final class ClientReviews {
         // and said.
         if (outcome == ReviewOutcome.PASS) {
             answer.ifPresent(shown -> {
-                notification.show(shown.japaneseName());
-                readingClips.play(shown.item());
+                notification.show(shown.name());
+                if (shown.reading().isPresent()) readingClips.play(shown.item());
             });
         }
         AnswerScreen screen = answerScreen(reviewId);

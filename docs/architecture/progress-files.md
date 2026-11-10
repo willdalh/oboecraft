@@ -6,7 +6,7 @@ Format 3 stores leveled, known and ignored states, and for a leveled state also 
 
 ## Where the files are
 
-One file per account on the player's computer, named by the account's UUID: `<game folder>/oboecraft/progress/<uuid>.json`. Servers keep no progress files.
+One file per account and learning language on the player's computer, named by the account's UUID: `<game folder>/oboecraft/progress/<language>/<uuid>.json`. The folders are `ja_jp`, `de_de`, `no_no` and `nl_nl`; each has independent file versions, locks and broken-file handling. Servers keep no progress files.
 
 While the player is in a world, the game holds a lock on `<uuid>.json.lock` next to the file, with Java's `FileChannel.tryLock`, so another game on the same computer can't send the same progress and save over this game's changes. The lock file stays when the game leaves, and holds nothing.
 
@@ -59,3 +59,11 @@ Progress too large to send, with more states or bytes than `UploadProgress` carr
 If the file can't be read at all, for example because of its permissions, or a broken file can't be moved, the player is disconnected with a message asking them to check their game's log, and the file is left alone. Playing on would save over a file whose contents are unknown.
 
 The client only reads and writes the file on one background thread of its own, so two saves of one file never race.
+
+## Moving existing Japanese progress
+
+`ProgressMigration` runs on the store's background thread at startup for every account in the old folder. A Japanese join retries migration if startup could not acquire a lock. It holds both the old and Japanese `.lock` files; a running older game delays migration, and a Japanese join is refused as in use until that lock is released.
+
+An old `progress/<uuid>.json` is copied as complete bytes to a temporary file beside `progress/ja_jp/<uuid>.json`, flushed and replaced atomically as normal saving does. The original modification time is retained. Only then is the old path replaced atomically with a JSON stub whose `version` is 2147483647. Older mods reject that version with their existing newer-version message. Migration recognizes its stub and can be repeated after a crash. No original progress is deleted before a complete preserved copy exists.
+
+If both files exist, their filesystem modification times decide the winner (the destination wins ties). The other is copied to an unused Japanese `.broken` path before replacement. All old `.broken` and numbered `.broken` files move to unused names beside the Japanese file, preserving even invalid UTF-8 bytes. No backup is overwritten. Errors leave the original data available and prevent using an unknown Japanese file. Other language files are untouched.

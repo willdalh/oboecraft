@@ -5,7 +5,7 @@
 <h1 align="center">Oboecraft</h1>
 
 <p align="center">
-  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese.
+  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese, German, Norwegian Bokmål or Dutch.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **Mistakes cost items.** You get two attempts. A fail removes up to half of that item from your inventory, moves it down a level and bans it for five minutes, so it can't be answered until the ban ends. Words you have known for longer lose less.
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer.
-- **Hear every word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
+- **Hear every Japanese word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
 - **Don't let your reviews pile up.** If you carry five or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It suspends attacks while another mob within 32 blocks targets you and for five safe seconds afterward. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry. It stays through sunrise; killing it gives 12,000 game ticks of relief (about 10 minutes at 20 ticks per second).
 
 <table>
@@ -48,13 +48,29 @@ On a server, install the mod on the server too. Players need the same version of
 
 Set the game language to 日本語 under Options → Language, so the names you learn are the ones you see. Locks only apply in survival and adventure mode.
 
+## Learning languages
+
+Your Minecraft language setting chooses what you learn:
+
+| Game language | Learning language |
+|---|---|
+| Japanese (`ja_jp`) | Japanese |
+| German (`de_de`) | German |
+| Norsk bokmål (`no_no`) | Norwegian Bokmål |
+| Dutch (`nl_nl`) | Dutch |
+| Every other language, including `de_at`, `de_ch`, `nn_no` and `nl_be` | Japanese |
+
+Each language has separate progress that follows you between worlds. Different players can learn different languages on the same server. Changing the game language in a world takes effect for learning on the next join; a chat message reminds you. Until then, unlocked names follow the new game language but answers stay in the current learning language.
+
+German, Bokmål and Dutch use Minecraft's own item names. Case, spacing and punctuation don't matter; keyboard spellings such as `ae/oe/ue`, `ss` and `ae/oe/aa` work for ä/ö/ü, ß and æ/ø/å. Plain a/o/u do not replace umlauts. The accents é, è, ê, ë and ï may be left out. There is no typo tolerance, and no articles are required. Reading reveals, spoken names and the word list's speaker buttons are Japanese-only. The tsukumogami, temple bell and **あ** button keep their Japanese style in every learning language.
+
 ## Keys
 
 | Key | In the answer menu |
 |---|---|
 | Enter | Answer |
 | Delete | Don't know: fails at once, or shows the answer in a lesson |
-| F9 | Show the Japanese name in a lesson; press again to reveal its hiragana reading. Also reveals the reading after a fail. |
+| F9 | Show the name in a lesson. In Japanese only, press again for the hiragana reading; also reveals the reading after a fail. |
 | F7 | Already known: unlock the item for good |
 | F8 | Ignore: drop the item and never learn it |
 | Esc | Close without losing anything |
@@ -67,6 +83,6 @@ The levels, their intervals, the ban length, how much a fail removes, and when t
 
 ## License
 
-The code is under the [MIT license](LICENSE). The Japanese names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:玄野武宏. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The code is under the [MIT license](LICENSE). The item names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:玄野武宏. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 [AGENTS.md](AGENTS.md) has the commands to build and test the mod, and [`docs/`](docs/) describes how it works.

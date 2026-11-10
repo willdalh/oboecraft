@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -29,10 +30,10 @@ public final class ClientProgress implements ProgressView {
      *                       computer's clock
      */
     private record Snapshot(
-            ClientPacketListener connection, Progress progress, Settings settings, Instant serverTime,
+            ClientPacketListener connection, LearningLanguage language, Progress progress, Settings settings, Instant serverTime,
             long receivedNanos) {
         Snapshot withServerTime(Instant time) {
-            return new Snapshot(connection, progress, settings, time, System.nanoTime());
+            return new Snapshot(connection, language, progress, settings, time, System.nanoTime());
         }
     }
 
@@ -42,8 +43,8 @@ public final class ClientProgress implements ProgressView {
      * Replaces all states and the settings with the ones the server sent when the player joined, or when its settings
      * changed.
      */
-    public void sync(ClientPacketListener connection, Progress progress, Settings settings, Instant serverTime) {
-        snapshot = new Snapshot(connection, progress, settings, serverTime, System.nanoTime());
+    public void sync(ClientPacketListener connection, LearningLanguage language, Progress progress, Settings settings, Instant serverTime) {
+        snapshot = new Snapshot(connection, language, progress, settings, serverTime, System.nanoTime());
     }
 
     /**
@@ -57,7 +58,7 @@ public final class ClientProgress implements ProgressView {
             return Optional.empty();
         }
         Progress updated = current.progress().with(item, state);
-        snapshot = new Snapshot(connection, updated, current.settings(), serverTime, System.nanoTime());
+        snapshot = new Snapshot(connection, current.language(), updated, current.settings(), serverTime, System.nanoTime());
         return Optional.of(updated);
     }
 
@@ -92,12 +93,14 @@ public final class ClientProgress implements ProgressView {
     /** One immutable read of the connection's progress and estimated time, reused for a whole display frame. */
     public ProgressView capture() {
         Snapshot current = current();
-        return current == null ? Captured.EMPTY : new Captured(current.progress(),
+        return current == null ? Captured.EMPTY : new Captured(current.progress(), current.language(),
                 current.serverTime().plusNanos(System.nanoTime() - current.receivedNanos()), current.settings());
     }
 
-    private record Captured(@Nullable Progress progress, Instant now, Settings settings) implements ProgressView {
-        private static final Captured EMPTY = new Captured(null, Instant.EPOCH, Settings.DEFAULTS);
+    private record Captured(@Nullable Progress progress, LearningLanguage learningLanguage, Instant now, Settings settings) implements ProgressView {
+        private static final Captured EMPTY = new Captured(null, LearningLanguage.JAPANESE, Instant.EPOCH, Settings.DEFAULTS);
+
+        @Override public LearningLanguage language(Player player) { return learningLanguage; }
 
         @Override
         public boolean hasProgress(Player player) {
@@ -109,6 +112,13 @@ public final class ClientProgress implements ProgressView {
             return progress == null ? SrsState.Leveled.NEW : progress.state(item);
         }
     }
+
+    public LearningLanguage language() {
+        Snapshot current = current();
+        return current == null ? LearningLanguage.JAPANESE : current.language();
+    }
+
+    @Override public LearningLanguage language(Player player) { return language(); }
 
     @Override
     public boolean hasProgress(Player player) {

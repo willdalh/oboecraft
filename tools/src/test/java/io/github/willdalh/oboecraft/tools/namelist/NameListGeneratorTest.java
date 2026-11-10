@@ -86,8 +86,8 @@ class NameListGeneratorTest {
 
         NameListGenerator.GeneratedEntry generated = result.generated().getFirst();
         assertEquals(new ItemId("block.minecraft.oak_log"), generated.entry().id());
-        assertEquals("オークのマルタ", generated.entry().japaneseName().text());
-        assertEquals("The Japanese name changed from オークの原木", generated.notes().getFirst());
+        assertEquals("オークのマルタ", generated.entry().name().text());
+        assertEquals("The name changed from オークの原木", generated.notes().getFirst());
     }
 
     @Test
@@ -123,7 +123,7 @@ class NameListGeneratorTest {
 
         NameListEntry cat = result.entries().get(1);
         assertEquals(new ItemId("item.minecraft.music_disc_cat"), cat.id());
-        assertSame(reviewed, cat.japaneseName());
+        assertSame(reviewed, cat.name());
         assertEquals(List.of("サーティーンのレコード"), guessed);
         assertTrue(result.notes().getFirst().contains("Split from item.minecraft.music_disc_13"));
     }

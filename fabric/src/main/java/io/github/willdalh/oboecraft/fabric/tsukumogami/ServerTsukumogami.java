@@ -4,7 +4,7 @@ import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.tsukumogami.OverdueItems;
 import io.github.willdalh.oboecraft.core.tsukumogami.TsukumogamiRules;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import io.github.willdalh.oboecraft.fabric.progress.ServerProgress;
 import io.github.willdalh.oboecraft.fabric.review.ReviewListener;
 import java.time.Instant;
@@ -42,7 +42,7 @@ public final class ServerTsukumogami implements ReviewListener {
     /** How often the players are checked, in ticks. */
     public static final int CHECK_INTERVAL_TICKS = 20;
 
-    private final ItemMapping itemMapping;
+    private final ItemMappings itemMappings;
     private final ServerProgress progress;
     private final Map<UUID, OwnerState> owners = new HashMap<>();
     /** The tsukumogami that exist, by owner, so disabling the feature only looks at these. */
@@ -58,8 +58,8 @@ public final class ServerTsukumogami implements ReviewListener {
         private Optional<Instant> lastThreatAt = Optional.empty();
     }
 
-    public ServerTsukumogami(ItemMapping itemMapping, ServerProgress progress) {
-        this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+    public ServerTsukumogami(ItemMappings itemMappings, ServerProgress progress) {
+        this.itemMappings = Objects.requireNonNull(itemMappings, "itemMappings");
         this.progress = Objects.requireNonNull(progress, "progress");
     }
 
@@ -133,16 +133,16 @@ public final class ServerTsukumogami implements ReviewListener {
         Inventory inventory = player.getInventory();
         List<ItemId> carried = new ArrayList<>(Inventory.INVENTORY_SIZE + 2);
         for (ItemStack stack : inventory.getNonEquipmentItems()) {
-            addItemOf(stack, carried);
+            addItemOf(player, stack, carried);
         }
-        addItemOf(inventory.getItem(Inventory.SLOT_OFFHAND), carried);
-        addItemOf(player.containerMenu.getCarried(), carried);
+        addItemOf(player, inventory.getItem(Inventory.SLOT_OFFHAND), carried);
+        addItemOf(player, player.containerMenu.getCarried(), carried);
         return OverdueItems.of(carried, item -> progress.state(player, item), now, settings);
     }
 
-    private void addItemOf(ItemStack stack, List<ItemId> items) {
+    private void addItemOf(ServerPlayer player, ItemStack stack, List<ItemId> items) {
         if (!stack.isEmpty()) {
-            itemMapping.entryOf(stack).ifPresent(entry -> items.add(entry.id()));
+            itemMappings.get(progress.language(player)).entryOf(stack).ifPresent(entry -> items.add(entry.id()));
         }
     }
 

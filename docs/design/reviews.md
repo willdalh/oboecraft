@@ -2,6 +2,8 @@
 
 A review is one round in the answer menu for a locked item. It ends in a pass, a fail, or is cancelled when the player closes the menu. The server runs every review. The client only shows the answer menu and sends what the player does.
 
+The name and answer placeholder use the active learning language. Japanese reveals have two steps: name, then reading. For German, Bokmål and Dutch, Show answer in a lesson or a fail reveals only the name; there is no Show reading action or button. The review, lesson and punishment rules below are shared by all languages.
+
 ## Starting a review
 
 A review starts in one of two ways:
@@ -61,15 +63,15 @@ The server checks the answer, with the rules in [Answers](answers.md). The clien
 | Action | Default key | Result |
 |---|---|---|
 | Answer | Enter | An attempt |
-| Don't know | Delete | A fail at once, or in a lesson, shows the Japanese name. Only while the typing bar is empty, so Delete still deletes typed text and fixing a typo never fails the review. |
+| Don't know | Delete | A fail at once, or in a lesson, shows the name. Only while the typing bar is empty, so Delete still deletes typed text and fixing a typo never fails the review. |
 | Already known | F7 | The item becomes known and is unlocked forever, and the review ends |
 | Ignore | F8 | The item becomes ignored, and the review ends |
-| Show answer | F9 | In a lesson, first shows the Japanese name. Once the name is shown, including after a fail, another press shows its hiragana reading below it. |
+| Show answer | F9 | In a lesson, first shows the name. In Japanese only, once the name is shown, including after a fail, another press shows its hiragana reading below it. |
 | Close | Esc | The review is cancelled. Nothing is punished and the item stays locked. |
 
 All keys can be rebound in Minecraft's Controls screen, including mouse buttons. Already known, Ignore and Show answer default to F7, F8 and F9 so vanilla Controls shows no false conflicts with movement keys. Both Enter keys submit on the default Answer binding; rebinding Answer removes that fallback. The hint shows the current binding. Close remains available with Esc as on other Minecraft screens.
 
-The hint line lists Don't know at every level. Show answer is listed in lessons before the name is revealed. Once the name is shown, the same binding is labeled Show reading, including after a fail. Holding the key does not reveal both stages: showing the reading needs another press. Once the reading is shown, Show answer leaves the hint, and the reading stays visible until the menu closes.
+The hint line lists Don't know at every level. Show answer is listed in lessons before the name is revealed. In Japanese only, once the name is shown, the same binding is labeled Show reading, including after a fail. Other languages have no further reveal, so the binding leaves the hint. Holding the key does not reveal both stages: showing the reading needs another press. Once the reading is shown, Show answer leaves the hint, and the reading stays visible until the menu closes.
 
 With the [clickable buttons](settings.md#client-settings) setting on, the answer menu also has a button for each of these actions, which does what its key does. Since milestone 12.
 
@@ -77,8 +79,8 @@ With the [clickable buttons](settings.md#client-settings) setting on, the answer
 
 A review of an item at level 0 is a lesson:
 
-- Show answer shows the Japanese name alone, with its normal kanji and kana. Pressing it again shows the hiragana reading on a separate line below. Revealing the reading preserves any text the player has typed.
-- A wrong answer, or Don't know, shows the Japanese name, and the reading only if it was already revealed. The same Show answer binding can then reveal its reading. It isn't a fail: nothing is removed, the item isn't banned and wrong attempts aren't counted.
+- Show answer shows the name alone. For Japanese it uses its normal kanji and kana, and pressing it again shows the hiragana reading on a separate line below. Revealing the reading preserves any text the player has typed.
+- A wrong answer, or Don't know, shows the name, and the reading only if it was already revealed. In Japanese the same Show answer binding can then reveal its reading. It isn't a fail: nothing is removed, the item isn't banned and wrong attempts aren't counted.
 - A pass puts the item at level 1.
 
 ## What the client is told
@@ -87,16 +89,16 @@ The answer menu shows the item's level, and "one attempt left" when a wrong atte
 
 The item's image is centered above the answer field without showing its name. Each player can adjust its size for all items with the [review item size setting](settings.md#client-settings).
 
-The Japanese name and reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client only shows the name and plays the item's [reading clip](display.md#reading-clip), so the server sends the item's id with them.
+The name and optional Japanese reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client shows the name and, in Japanese only, plays the item's [reading clip](display.md#reading-clip), so the server sends the item's id with them.
 
 ## Outcomes
 
 | Outcome | What happens |
 |---|---|
-| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes, the [notification](display.md#notification) shows the Japanese name at the top of the screen, and the [reading clip](display.md#reading-clip) says its reading. |
+| Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes, the [notification](display.md#notification) shows the name at the top of the screen, and in Japanese the [reading clip](display.md#reading-clip) says its reading. Other languages have no sound. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
-| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the Japanese name alone. Show answer reveals its reading below it without another attempt or punishment. Answer or Close closes the menu; only a new press closes it, not a held key's repeat, and not in the first half second. The review is already over, so closing it changes nothing. |
-| Lesson answer shown | The Japanese name is shown, and the lesson goes on. Another Show answer press reveals the reading. |
+| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the name alone. In Japanese only, Show answer reveals its reading below it without another attempt or punishment. Answer or Close closes the menu; only a new press closes it, not a held key's repeat, and not in the first half second. The review is already over, so closing it changes nothing. |
+| Lesson answer shown | The name is shown, and the lesson goes on. In Japanese only, another Show answer press reveals the reading. |
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |
 
@@ -108,7 +110,7 @@ In creative and spectator mode, the client's lock check allows every action, so 
 
 ## What is built when
 
-- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the Japanese name and reading were shown above the hotbar, until milestone 10. Dying cancels the review.
+- Milestone 3b: starting a review from placing, Answer and Close, pass, and "wrong" with no attempt counted, so the review goes on. The trigger is always inventory, so it isn't stored yet. Enter and Esc are fixed keys, and the answer menu shows the item's icon without its name, its level and a hint line. After a pass, the name and reading were shown above the hotbar, until milestone 10. Dying cancels the review.
 - Milestone 4: full answer checking, see [Answers](answers.md).
 - Milestone 6: starting a review from every interaction, the three triggers, the answer menu over an open menu's screen, refusing clicks in the open menu during a review, and cancelling a review whose menu closes.
 - Milestone 8: lessons, Already known, Ignore, right-clicking in the inventory, and keys that can be rebound in the Controls screen.

@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.ReadingClips;
@@ -19,7 +20,7 @@ import net.minecraft.util.RandomSource;
 public class ReadingClipsClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
-        List<String> missing = context.computeOnClient(client -> OboecraftMod.itemMapping().nameList().entries()
+        List<String> missing = context.computeOnClient(client -> OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).nameList().entries()
                 .stream()
                 .map(NameListEntry::id)
                 .filter(item -> ReadingClips.soundEvent(item)

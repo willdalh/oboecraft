@@ -1,6 +1,6 @@
 {
   "oboecraft.answer_menu.title": "解答メニュー",
-  "oboecraft.answer_menu.input": "日本語名",
+  "oboecraft.answer_menu.input": "%sの名前",
   "oboecraft.answer_menu.level": "レベル %s",
   "oboecraft.answer_menu.wrong": "不正解です。残り1回です。",
   "oboecraft.answer_menu.attempt_left": "残り1回",
@@ -73,5 +73,11 @@
   "subtitles.oboecraft.entity.tsukumogami.hurt": "付喪神がダメージを受ける",
   "subtitles.oboecraft.entity.tsukumogami.death": "付喪神が砕け散る",
   "subtitles.oboecraft.entity.tsukumogami.no_effect": "攻撃が効かない",
-  "subtitles.oboecraft.entity.tsukumogami.fade": "風鈴が鳴る"
+  "subtitles.oboecraft.entity.tsukumogami.fade": "風鈴が鳴る",
+  "oboecraft.language.ja_jp": "日本語",
+  "oboecraft.language.de_de": "ドイツ語",
+  "oboecraft.language.no_no": "ノルウェー語（ブークモール）",
+  "oboecraft.language.nl_nl": "オランダ語",
+  "oboecraft.learning_language.next_join": "次に参加したときから%sを学びます。それまでは現在の学習言語で答えてください。",
+  "oboecraft.progress.unsupported_language": "ゲームから送られた学習言語はOboecraftで対応していません。"
 }
