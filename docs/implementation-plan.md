@@ -442,6 +442,14 @@ Where it differs from the plan: the plan only said a release build. The icon cam
 
 What later milestones should know: releases were later moved to a workflow run by hand, which works out the version from the release tags, so merging to `main` never publishes anything. See [Release and licenses](#release-and-licenses). The release runs `./gradlew build`, which includes the game tests on a headless server but not the client game tests, which the Build workflow runs on the same push. The README's guide to playing describes keys and rules, so a change to them updates the README too. The credits file `CREDITS.md` exists since milestone 5, with the name list's license.
 
+### Learning languages — issue #71
+
+**Status:** implemented in the issue #71 PR, awaiting merge
+
+Adds German, Norwegian Bokmål and Dutch beside Japanese, selected by the exact game language on joining. Each language has its own reviewed name list, item grouping and progress folder. Alphabetic answers support the specified keyboard spellings without typo tolerance; plain names have no readings or clips. The mod text ships in five languages. Server settings and Japanese presentation stay shared.
+
+Protocol 10 and the migrated progress layout require a minor release. The old Japanese file becomes a downgrade-blocking stub, and conflicting files are preserved for manual merging. See [ADR: Learning language and progress folders](decisions/20261110-learning-language-and-progress-folders.md). Articles/gender (#72) and spoken clips for the new languages (#73) remain follow-ups.
+
 ## Working on a milestone
 
 A milestone is implemented from this plan, [`idea.md`](idea.md) and the docs, without further instructions. The agent working on it makes the open decisions itself.

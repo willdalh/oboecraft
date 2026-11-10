@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
@@ -200,7 +201,7 @@ public class PunishmentGameTest {
     @GameTest
     public void everyProtectedItemIsInTheNameList(GameTestHelper helper) {
         for (ItemId item : ProtectedItems.IDS) {
-            helper.assertTrue(OboecraftMod.itemMapping().nameList().byId(item).isPresent(), "in the name list: " + item);
+            helper.assertTrue(OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).nameList().byId(item).isPresent(), "in the name list: " + item);
         }
         helper.succeed();
     }

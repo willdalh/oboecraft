@@ -30,6 +30,21 @@ public final class AtomicFiles {
             }
             channel.force(true);
         }
+        replace(temporary, file);
+    }
+
+    /** Copies bytes without decoding them, including a broken file, before replacing an older path. */
+    public static void copy(Path source, Path target) throws IOException {
+        Files.createDirectories(target.getParent());
+        Path temporary = target.resolveSibling(target.getFileName() + ".tmp");
+        Files.copy(source, temporary, StandardCopyOption.REPLACE_EXISTING);
+        try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE)) {
+            channel.force(true);
+        }
+        replace(temporary, target);
+    }
+
+    private static void replace(Path temporary, Path file) throws IOException {
         try {
             Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException e) {

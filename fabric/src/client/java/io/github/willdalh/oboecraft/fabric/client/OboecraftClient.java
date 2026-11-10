@@ -1,6 +1,8 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import io.github.willdalh.oboecraft.fabric.client.display.ClientDisplayHooks;
 import io.github.willdalh.oboecraft.fabric.client.display.PassNotification;
 import io.github.willdalh.oboecraft.fabric.client.mixin.ClientCommonPacketListenerImplAccessor;
@@ -40,6 +42,7 @@ public final class OboecraftClient implements ClientModInitializer {
     private static ReadingClips readingClips;
     private static ClientSettings clientSettings;
     private static ItemIcons itemIcons;
+    private static String lastGameLanguage;
 
     @Override
     public void onInitializeClient() {
@@ -49,9 +52,9 @@ public final class OboecraftClient implements ClientModInitializer {
         clientSettings = ClientSettingsFile.read(ClientSettingsFile.path());
         notification = new PassNotification();
         readingClips = new ReadingClips();
-        itemIcons = new ItemIcons(OboecraftMod.itemMapping());
+        itemIcons = new ItemIcons(OboecraftMod.itemMappings());
         reviews = new ClientReviews(
-                OboecraftMod.itemMapping(), OboecraftMod.locks(), progress, notification, readingClips);
+                OboecraftMod.itemMappings(), OboecraftMod.locks(), progress, notification, readingClips);
         registerReceivers();
         ReviewKeys.register();
         WordListButton.register();
@@ -59,6 +62,16 @@ public final class OboecraftClient implements ClientModInitializer {
         ClientLockHooks.register(reviews);
         ClientDisplayHooks.register();
         registerProgressStoreEvents();
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> lastGameLanguage = client.options.languageCode);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null || !progress.hasProgress(client.player)) return;
+            String code = client.options.languageCode;
+            if (!code.equals(lastGameLanguage)) {
+                lastGameLanguage = code;
+                showMessage(Component.translatable("oboecraft.learning_language.next_join",
+                        Component.translatable("oboecraft.language." + LearningLanguage.fromGameLanguage(code).code())));
+            }
+        });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             progress.clear();
             notification.clear();
@@ -136,11 +149,11 @@ public final class OboecraftClient implements ClientModInitializer {
         ClientConfigurationNetworking.registerGlobalReceiver(ProtocolCheck.TYPE, (payload, context) -> {
         });
         ClientConfigurationNetworking.registerGlobalReceiver(RequestProgress.TYPE, (payload, context) ->
-                progressStore.start(connection(context.packetListener()), context.client().getUser().getProfileId(),
-                        context.responseSender()::sendPacket));
+                context.client().execute(() -> progressStore.start(connection(context.packetListener()), context.client().getUser().getProfileId(),
+                        LearningLanguage.fromGameLanguage(context.client().options.languageCode), context.responseSender()::sendPacket)));
         ClientPlayNetworking.registerGlobalReceiver(ProgressSync.TYPE, (payload, context) -> {
             ClientPacketListener connection = context.player().connection;
-            progress.sync(connection, payload.progress(), payload.settings(), payload.serverTime());
+            progress.sync(connection, payload.language(), payload.progress(), payload.settings(), payload.serverTime());
             progressStore.changed(connection.getConnection(), payload.progress());
         });
         ClientPlayNetworking.registerGlobalReceiver(StateUpdate.TYPE, (payload, context) -> {

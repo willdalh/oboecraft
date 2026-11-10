@@ -1,6 +1,9 @@
 package io.github.willdalh.oboecraft.fabric.network;
 
 import io.github.willdalh.oboecraft.core.srs.Progress;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
+import java.util.Optional;
+import net.minecraft.network.codec.ByteBufCodecs;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.codec.StreamCodec;
@@ -9,7 +12,7 @@ import net.minecraft.network.codec.StreamCodec;
  * Client to server, in answer to {@link RequestProgress}: the player's progress, which the server uses for the
  * session. It can be larger than a normal payload, so Fabric splits it into parts, up to {@link #MAX_SIZE} in all.
  */
-public record UploadProgress(Progress progress) implements ProgressAnswer {
+public record UploadProgress(String languageCode, Progress progress) implements ProgressAnswer {
     /**
      * The most bytes the progress can take. The server sends the same progress back in {@link ProgressSync}, whose
      * largest payload is 1 MiB, so this leaves room for its time and settings, at most a few kilobytes. Real progress
@@ -19,7 +22,12 @@ public record UploadProgress(Progress progress) implements ProgressAnswer {
 
     public static final Type<UploadProgress> TYPE = NetworkCodecs.type("upload_progress");
     public static final StreamCodec<ByteBuf, UploadProgress> STREAM_CODEC =
-            NetworkCodecs.PROGRESS.map(UploadProgress::new, UploadProgress::progress);
+            StreamCodec.composite(
+                    ByteBufCodecs.stringUtf8(16), UploadProgress::languageCode,
+                    NetworkCodecs.PROGRESS, UploadProgress::progress,
+                    UploadProgress::new);
+
+    public Optional<LearningLanguage> language() { return LearningLanguage.fromCode(languageCode); }
 
     /**
      * Whether the progress can be sent: it has at most {@link NetworkCodecs#MAX_STATES} states and takes at most
@@ -31,7 +39,7 @@ public record UploadProgress(Progress progress) implements ProgressAnswer {
         }
         ByteBuf buffer = Unpooled.buffer();
         try {
-            STREAM_CODEC.encode(buffer, new UploadProgress(progress));
+            STREAM_CODEC.encode(buffer, new UploadProgress(LearningLanguage.JAPANESE.code(), progress));
             return buffer.readableBytes() <= MAX_SIZE;
         } finally {
             buffer.release();

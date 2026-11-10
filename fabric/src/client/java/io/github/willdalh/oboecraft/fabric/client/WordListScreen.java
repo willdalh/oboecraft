@@ -153,7 +153,7 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
      */
     private void fillList(WordList list) {
         Instant now = OboecraftClient.progress().now();
-        List<NameListEntry> entries = OboecraftMod.itemMapping().nameList().entries().stream()
+        List<NameListEntry> entries = OboecraftMod.itemMappings().get(OboecraftClient.progress().language()).nameList().entries().stream()
                 .filter(entry -> inGroup(snapshot.state(entry.id())))
                 .sorted(entryOrder(now)).toList();
         empty = entries.isEmpty();
@@ -182,9 +182,9 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
         };
     }
 
-    /** The Learning tab in its chosen order at {@code now}, and the other tabs by Japanese name. */
+    /** The Learning tab in its chosen order at {@code now}, and the other tabs by name in the learning language. */
     private Comparator<NameListEntry> entryOrder(Instant now) {
-        Comparator<NameListEntry> byName = Comparator.comparing(entry -> entry.japaneseName().text());
+        Comparator<NameListEntry> byName = Comparator.comparing(entry -> entry.name().text(), OboecraftClient.progress().language().nameOrder());
         if (group != LEARNING) return byName;
         Comparator<NameListEntry> byState = Comparator.comparing(
                 entry -> (SrsState.Leveled) snapshot.state(entry.id()), learningOrder.comparator(now, layoutSettings));
@@ -300,7 +300,8 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
          */
         Columns columns() {
             int button = ICON_SIZE + ICON_GAP;
-            int name = button + READING_CLIP_BUTTON_SIZE + READING_CLIP_BUTTON_GAP;
+            int name = OboecraftClient.progress().language().hasReadings()
+                    ? button + READING_CLIP_BUTTON_SIZE + READING_CLIP_BUTTON_GAP : button;
             if (group != LEARNING) return new Columns(button, name, getRowWidth(), 0, 0);
             int level = getRowWidth() - font.width(levelText(layoutSettings.topLevel()));
             int timer = level - COLUMN_GAP - TIMER_WIDTH;
@@ -326,9 +327,9 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
             item = entry.id();
             this.locked = locked;
             this.columns = columns;
-            name = fitted(locked ? "???" : entry.japaneseName().text(), columns.nameEnd() - columns.name());
+            name = fitted(locked ? "???" : entry.name().text(), columns.nameEnd() - columns.name());
             level = group == LEARNING ? levelText(((SrsState.Leveled) snapshot.state(item)).level()) : null;
-            readingClip = locked ? null : SpriteIconButton.builder(
+            readingClip = locked || !OboecraftClient.progress().language().hasReadings() ? null : SpriteIconButton.builder(
                             Component.translatable("oboecraft.word_list.play_reading"),
                             ignored -> OboecraftClient.readingClips().play(item), true)
                     .size(READING_CLIP_BUTTON_SIZE, READING_CLIP_BUTTON_SIZE)

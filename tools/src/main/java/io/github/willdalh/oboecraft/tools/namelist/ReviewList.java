@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.tools.namelist;
 
 import io.github.willdalh.oboecraft.core.item.JapaneseName;
+import io.github.willdalh.oboecraft.core.item.Name;
 import io.github.willdalh.oboecraft.core.item.NamePart;
 import io.github.willdalh.oboecraft.core.text.JapaneseText;
 import java.io.IOException;
@@ -49,7 +50,7 @@ final class ReviewList {
 
         text.append("\n## Words to check closely\n");
         for (NameListGenerator.GeneratedEntry entry : toCheck) {
-            text.append("\n- `").append(entry.entry().id()).append("` ").append(describe(entry.entry().japaneseName()))
+            text.append("\n- `").append(entry.entry().id()).append("` ").append(describe(entry.entry().name()))
                     .append('\n');
             entry.notes().forEach(note -> text.append("  - ").append(note).append('\n'));
         }
@@ -57,14 +58,15 @@ final class ReviewList {
         text.append("\n## Generated entries\n\n");
         for (NameListGenerator.GeneratedEntry entry : result.generated()) {
             text.append("- `").append(entry.entry().id()).append("` ")
-                    .append(describe(entry.entry().japaneseName())).append('\n');
+                    .append(describe(entry.entry().name())).append('\n');
         }
         return text.toString();
     }
 
     /** A name with its parts, like {@code オークの原木: オーク | の | 原 げん | 木 ぼく}. */
-    static String describe(JapaneseName name) {
-        return name.text() + ": " + name.parts().stream().map(ReviewList::describe).collect(Collectors.joining(" | "));
+    static String describe(Name name) {
+        if (!(name instanceof JapaneseName japanese)) return name.text();
+        return name.text() + ": " + japanese.parts().stream().map(ReviewList::describe).collect(Collectors.joining(" | "));
     }
 
     private static String describe(NamePart part) {

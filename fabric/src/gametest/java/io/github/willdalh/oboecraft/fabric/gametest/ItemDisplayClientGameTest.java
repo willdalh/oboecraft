@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
@@ -133,12 +134,12 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
                 });
                 check(captured.hasProgress(client.player) && captured.now() == time, "captured view keeps its state and time");
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false);
-                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, Settings.DEFAULTS, NOW);
+                OboecraftClient.progress().sync(client.getConnection(), LearningLanguage.JAPANESE, Progress.EMPTY, Settings.DEFAULTS, NOW);
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), true, false, false);
                 // A snapshot with no connection must never activate this connection's display.
-                OboecraftClient.progress().sync(null, Progress.EMPTY, Settings.DEFAULTS, NOW);
+                OboecraftClient.progress().sync(null, LearningLanguage.JAPANESE, Progress.EMPTY, Settings.DEFAULTS, NOW);
                 checkDisplay(client, new ItemStack(Items.OAK_LOG), false, false, false);
-                OboecraftClient.progress().sync(client.getConnection(), Progress.EMPTY, Settings.DEFAULTS, NOW);
+                OboecraftClient.progress().sync(client.getConnection(), LearningLanguage.JAPANESE, Progress.EMPTY, Settings.DEFAULTS, NOW);
             });
             bundleTooltip(context, singleplayer);
         } finally {
@@ -205,7 +206,7 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
     private static void bundleTooltip(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
         singleplayer.getServer().runOnServer(server -> {
             var player = server.getPlayerList().getPlayers().getFirst();
-            var id = OboecraftMod.itemMapping().entryOf(new ItemStack(Items.BUNDLE)).orElseThrow().id();
+            var id = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(new ItemStack(Items.BUNDLE)).orElseThrow().id();
             OboecraftMod.serverProgress().update(player, id, new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(600))));
         });
         singleplayer.getConnection().waitForClientboundPackets();

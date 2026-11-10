@@ -2,6 +2,7 @@ package io.github.willdalh.oboecraft.core.review;
 
 import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
+import io.github.willdalh.oboecraft.core.item.PlainName;
 import io.github.willdalh.oboecraft.core.text.JapaneseText;
 import io.github.willdalh.oboecraft.core.text.Romaji;
 import java.util.ArrayDeque;
@@ -20,11 +21,14 @@ public final class AnswerChecker {
     }
 
     /**
-     * Whether the typed answer is the item's Japanese name. Both are {@linkplain JapaneseText#normalize normalized}
+     * Whether the typed answer is the item's name. For Japanese, both are {@linkplain JapaneseText#normalize normalized}
      * first, so spaces, case and punctuation don't matter. Then the answer is matched part by part.
      */
     public static boolean isCorrect(NameListEntry entry, String typed) {
-        return new Match(entry.japaneseName(), JapaneseText.normalize(typed)).succeeds();
+        return switch (entry.name()) {
+            case JapaneseName name -> new Match(name, JapaneseText.normalize(typed)).succeeds();
+            case PlainName name -> name.matches(typed);
+        };
     }
 
     /**

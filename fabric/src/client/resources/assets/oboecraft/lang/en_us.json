@@ -1,6 +1,6 @@
 {
   "oboecraft.answer_menu.title": "Answer menu",
-  "oboecraft.answer_menu.input": "Japanese name",
+  "oboecraft.answer_menu.input": "%s name",
   "oboecraft.answer_menu.level": "Level %s",
   "oboecraft.answer_menu.wrong": "Wrong. One attempt left.",
   "oboecraft.answer_menu.attempt_left": "One attempt left",
@@ -73,5 +73,11 @@
   "subtitles.oboecraft.entity.tsukumogami.hurt": "Tsukumogami hurts",
   "subtitles.oboecraft.entity.tsukumogami.death": "Tsukumogami breaks apart",
   "subtitles.oboecraft.entity.tsukumogami.no_effect": "Hit has no effect",
-  "subtitles.oboecraft.entity.tsukumogami.fade": "Wind chime rings"
+  "subtitles.oboecraft.entity.tsukumogami.fade": "Wind chime rings",
+  "oboecraft.language.ja_jp": "Japanese",
+  "oboecraft.language.de_de": "German",
+  "oboecraft.language.no_no": "Norwegian Bokmål",
+  "oboecraft.language.nl_nl": "Dutch",
+  "oboecraft.learning_language.next_join": "You'll learn %s the next time you join. Your answers stay in the current learning language until then.",
+  "oboecraft.progress.unsupported_language": "Your game sent an unsupported Oboecraft learning language."
 }

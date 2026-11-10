@@ -1,8 +1,7 @@
 package io.github.willdalh.oboecraft.fabric;
 
 import io.github.willdalh.oboecraft.core.Oboecraft;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
-import io.github.willdalh.oboecraft.fabric.item.NameListFile;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
 import io.github.willdalh.oboecraft.fabric.lock.ServerLockHooks;
 import io.github.willdalh.oboecraft.fabric.network.ServerNetworking;
@@ -38,7 +37,7 @@ public final class OboecraftMod implements ModInitializer {
     /** The services both sides share. The server's are only used on the server thread. */
     private record Services(
             ModClock clock,
-            ItemMapping itemMapping,
+            ItemMappings itemMappings,
             Locks locks,
             ServerProgress serverProgress,
             ServerReviews serverReviews,
@@ -48,13 +47,13 @@ public final class OboecraftMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModClock clock = new ModClock();
-        ItemMapping itemMapping = new ItemMapping(NameListFile.load());
+        ItemMappings itemMappings = new ItemMappings();
         ProgressUploads progressUploads = new ProgressUploads();
         ServerProgress serverProgress = new ServerProgress(clock);
-        Locks locks = new Locks(itemMapping);
-        ServerTsukumogami serverTsukumogami = new ServerTsukumogami(itemMapping, serverProgress);
-        ServerReviews serverReviews = new ServerReviews(itemMapping, locks, serverProgress, serverTsukumogami);
-        services = new Services(clock, itemMapping, locks, serverProgress, serverReviews, serverTsukumogami);
+        Locks locks = new Locks(itemMappings);
+        ServerTsukumogami serverTsukumogami = new ServerTsukumogami(itemMappings, serverProgress);
+        ServerReviews serverReviews = new ServerReviews(itemMappings, locks, serverProgress, serverTsukumogami);
+        services = new Services(clock, itemMappings, locks, serverProgress, serverReviews, serverTsukumogami);
 
         TsukumogamiType.register();
         ServerNetworking.registerPayloadTypes();
@@ -64,7 +63,7 @@ public final class OboecraftMod implements ModInitializer {
         registerProgressEvents(serverProgress, progressUploads, serverReviews);
         registerTsukumogamiEvents(serverTsukumogami);
 
-        LOGGER.info("Oboecraft initialized with {} items in the name list", itemMapping.nameList().size());
+        LOGGER.info("Oboecraft initialized with all supported learning languages");
     }
 
     private static void registerProgressEvents(
@@ -74,7 +73,7 @@ public final class OboecraftMod implements ModInitializer {
                 serverProgress.useSettings(ServerSettingsFile.load(ServerSettingsFile.path())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 progressUploads.take(handler.player.getUUID(), ProgressUploads.connectionOf(handler))
-                        .ifPresent(progress -> serverProgress.start(handler.player, progress)));
+                        .ifPresent(upload -> serverProgress.start(handler.player, upload.language().orElseThrow(), upload.progress())));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             serverReviews.forget(handler.player.getUUID());
             serverProgress.end(handler);
@@ -114,8 +113,8 @@ public final class OboecraftMod implements ModInitializer {
         return services.clock();
     }
 
-    public static ItemMapping itemMapping() {
-        return services.itemMapping();
+    public static ItemMappings itemMappings() {
+        return services.itemMappings();
     }
 
     public static Locks locks() {

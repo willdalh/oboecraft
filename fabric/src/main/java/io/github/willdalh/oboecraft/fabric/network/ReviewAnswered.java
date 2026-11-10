@@ -12,7 +12,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.ByIdMap;
 
 /**
- * Server to client, after an answer or Don't know in the review {@code reviewId}. The Japanese name and reading are
+ * Server to client, after an answer or Don't know in the review {@code reviewId}. The name and optional Japanese reading are
  * only sent after a pass, a fail or a lesson reveal. After a pass, the client only shows the name and plays the item's
  * reading clip.
  */
@@ -38,11 +38,11 @@ public record ReviewAnswered(Instant serverTime, int reviewId, ReviewOutcome out
     }
 
     /** The correct answer, shown to the player, and the item it is for, whose reading clip a pass plays. */
-    public record Answer(ItemId item, String japaneseName, String reading) {
+    public record Answer(ItemId item, String name, Optional<String> reading) {
         static final StreamCodec<ByteBuf, Answer> STREAM_CODEC = StreamCodec.composite(
                 NetworkCodecs.ITEM_ID, Answer::item,
-                ByteBufCodecs.STRING_UTF8, Answer::japaneseName,
-                ByteBufCodecs.STRING_UTF8, Answer::reading,
+                ByteBufCodecs.STRING_UTF8, Answer::name,
+                ByteBufCodecs.optional(ByteBufCodecs.STRING_UTF8), Answer::reading,
                 Answer::new);
     }
 }

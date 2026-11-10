@@ -34,7 +34,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 ### Items
 
 - `ItemId`: a record around the item id string, like `block.minecraft.oak_log`. Code passes `ItemId`, never a bare string, so it can't be mixed up with a translation key. An id is at most `MAX_LENGTH`, 256 characters, longer than any translation key in the game, so a progress file and a payload hold the same ids.
-- `NameListEntry`: the item id, its translation keys and its `JapaneseName`. It rejects an entry with no translation key, or a blank key.
+- `NameListEntry`: the item id, its translation keys and its `Name` (`JapaneseName` or `PlainName`). It rejects an entry with no translation key, or a blank key.
 - `JapaneseName`: the Japanese name as a list of `NamePart`s, see [Name parts](../design/items.md#name-parts). `text()` is the parts' text joined, like オークの原木, and `reading()` their readings joined, like おーくのげんぼく. For answer checking, a position in the name is a position in its reading: `partAt(position)` is the part there, as a `PlacedPart` with its normalized text and where it starts and ends, and `vowelBefore(position)` is the vowel just before it in the same part, or none at the start of a part. All of this is worked out once when the name is built, since it never changes. It rejects a name with no parts.
 - `NamePart`: a record with a part's text and its reading. It rejects a reading that isn't hiragana and ー, a reading that starts with a small kana, ー or ん, a part in kana with a reading other than its kana, and text with no letter or digit. `NamePart.kana(text)` makes a part in kana, read as it is written, and rejects text that isn't kana.
 - `NameList`: all entries, in order (`entries()`). Looks up an entry by translation key or by item id. It is built from a list of entries and rejects an item id or translation key that belongs to two entries.
@@ -94,7 +94,7 @@ The rules are in [Tsukumogami](../design/tsukumogami.md). Whether a player can b
 
 ### Answer checking
 
-`AnswerChecker` normalizes the typed answer with `JapaneseText.normalize`, then searches for a way to read it as the Japanese name. A step in the search is a position in the name's whole reading together with a position in the answer. From each step it tries:
+`AnswerChecker` dispatches on the name type. `PlainName` caches its expected answer normalized by `AlphabeticText` once; answers normalize case, spacing, punctuation, the specified keyboard stand-ins and optional accents. It compares exactly, with no Japanese matching. For Japanese, it normalizes the typed answer with `JapaneseText.normalize`, then searches for a way to read it as the Japanese name. A step in the search is a position in the name's whole reading together with a position in the answer. From each step it tries:
 
 - at the start of a part, the part's normalized text, like 原, which jumps to the end of the part,
 - at the start of the particle, a part whose normalized text is の, leaving it out,
@@ -132,3 +132,5 @@ Client settings, like clickable buttons, only change what the client shows, so t
 ## Tests
 
 Every rule gets JUnit tests in `core/src/test`, with hand-written name list entries and fixed `Instant` values.
+
+`LearningLanguage` holds the four exact language codes and the game-language fallback. Its strict `fromCode` is used to validate uploads; `fromGameLanguage` alone falls back to Japanese. `nameOrder` returns a caller-owned locale collator for alphabetic lists (never shared between threads); Japanese retains its existing text order.

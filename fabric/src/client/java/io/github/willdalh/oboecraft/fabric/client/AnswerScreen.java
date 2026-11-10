@@ -29,7 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The answer menu of one review: a typing bar for the item's Japanese name. It uses Minecraft's normal text box, so
+ * The answer menu of one review: a typing bar for the item's name in the learning language. It uses Minecraft's normal text box, so
  * the keyboard's kanji conversion works. It only sends what the player does and shows what the server sends, and
  * never decides a pass or fail. The game doesn't pause while it is open.
  *
@@ -38,7 +38,6 @@ import org.jspecify.annotations.Nullable;
  */
 public final class AnswerScreen extends Screen implements OverMenuScreen {
     private static final Component TITLE = Component.translatable("oboecraft.answer_menu.title");
-    private static final Component INPUT_LABEL = Component.translatable("oboecraft.answer_menu.input");
     private static final Component WRONG = Component.translatable("oboecraft.answer_menu.wrong")
             .withStyle(ChatFormatting.RED);
     private static final Component ATTEMPT_LEFT = Component.translatable("oboecraft.answer_menu.attempt_left")
@@ -128,10 +127,16 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         return readingShown;
     }
 
+    private static Component inputLabel() {
+        return Component.translatable("oboecraft.answer_menu.input",
+                Component.translatable("oboecraft.language." + OboecraftClient.progress().language().code()));
+    }
+
     @Override
     protected void init() {
         String typed = input == null ? "" : input.getValue();
-        input = new EditBox(font, (width - INPUT_WIDTH) / 2, height / 2, INPUT_WIDTH, INPUT_HEIGHT, INPUT_LABEL);
+        input = new EditBox(font, (width - INPUT_WIDTH) / 2, height / 2, INPUT_WIDTH, INPUT_HEIGHT, inputLabel());
+        input.setHint(inputLabel());
         input.setMaxLength(SubmitAnswer.MAX_LENGTH);
         input.setValue(typed);
         input.setEditable(!failed);
@@ -153,7 +158,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     private void addActionButtons() {
         List<Button> buttons = new ArrayList<>();
         if (failed) {
-            buttons.add(revealButton());
+            if (OboecraftClient.progress().language().hasReadings() || shownAnswer == null) buttons.add(revealButton());
             buttons.add(actionButton(ReviewKeys.CLOSE, () -> {
                 if (failShownLongEnough()) {
                     onClose();
@@ -165,7 +170,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             buttons.add(actionButton(ReviewKeys.KNOWN, () -> action(ReviewAction.Action.KNOWN)));
             buttons.add(actionButton(ReviewKeys.IGNORE, () -> action(ReviewAction.Action.IGNORE)));
             if (level == 0) {
-                buttons.add(revealButton());
+                if (OboecraftClient.progress().language().hasReadings() || shownAnswer == null) buttons.add(revealButton());
             }
             buttons.add(actionButton(ReviewKeys.CLOSE, this::onClose));
         }
@@ -205,9 +210,9 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
         return button;
     }
 
-    /** What Show answer shows next: the Japanese name, then its reading, or null once both are shown. */
+    /** What Show answer shows next: the name, then the Japanese reading if present, or null when complete. */
     private @Nullable Component showLabel() {
-        if (readingShown) return null;
+        if (readingShown || (shownAnswer != null && shownAnswer.reading().isEmpty())) return null;
         return shownAnswer == null ? Component.translatable(ReviewKeys.SHOW.mapping().getName()) : SHOW_READING;
     }
 
@@ -354,7 +359,7 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
     private void revealAnswer() {
         if (shownAnswer == null) {
             if (level == 0) action(ReviewAction.Action.SHOW_ANSWER);
-        } else if (!readingShown) {
+        } else if (!readingShown && shownAnswer.reading().isPresent()) {
             readingShown = true;
             refreshButtons();
             updateHint();
@@ -403,7 +408,8 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
      * The heights match what {@link #extractRenderState} draws below the typing bar.
      */
     private void placeInput() {
-        int messageLines = shownAnswer != null ? 2 : (wrong || level > 0 && attemptsLeft == 1 ? 1 : 0);
+        int messageLines = shownAnswer != null ? (shownAnswer.reading().isPresent() ? 2 : 1)
+                : (wrong || level > 0 && attemptsLeft == 1 ? 1 : 0);
         if (failed) messageLines++;
         int belowInput = HINT_GAP + hintLines.size() * LINE_HEIGHT
                 + (messageLines == 0 ? 0 : LINE_HEIGHT + messageLines * LINE_HEIGHT);
@@ -486,9 +492,9 @@ public final class AnswerScreen extends Screen implements OverMenuScreen {
             messageY += LINE_HEIGHT;
         }
         if (shownAnswer != null) {
-            graphics.centeredText(font, Component.literal(shownAnswer.japaneseName()), centerX, messageY, -1);
+            graphics.centeredText(font, Component.literal(shownAnswer.name()), centerX, messageY, -1);
             if (readingShown) {
-                graphics.centeredText(font, Component.literal(shownAnswer.reading()), centerX,
+                graphics.centeredText(font, Component.literal(shownAnswer.reading().orElseThrow()), centerX,
                         messageY + LINE_HEIGHT, SECONDARY_TEXT_COLOR);
             }
         }
