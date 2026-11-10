@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "io.github.willdalh.oboecraft.fabric.gametest.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["SoundManagerMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

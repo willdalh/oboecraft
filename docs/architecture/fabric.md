@@ -210,7 +210,7 @@ The answer menu reads the client settings when it builds its widgets. With click
 
 The clip is a `SimpleSoundInstance` in `SoundSource.VOICE`, relative to the listener and with no attenuation, so it isn't placed in the world. Minecraft loads a clip's file the first time it plays, so the clips cost no memory until they are heard. `ReadingClips` keeps the instance that is playing, so a new clip, or disconnecting, stops it first.
 
-`ReadingClipsClientGameTest` checks that every name list entry has a sound event whose file is in the resources. That a pass plays the clip isn't checked by a test, since a test can't hear it, and a client in a virtual display may have no sound device to play it on.
+`ReadingClipsClientGameTest` checks that every name list entry has a sound event whose file is in the resources. `WordListClientGameTest` clicks a speaker button with the real left mouse button in each tab and checks that the item's reading clip reaches `SoundManager.play`, without selecting the row for Revert. A mixin in the test mod observes these requests without changing playback, so the check also works without a sound device. It checks playback requests, not audible output; a pass's playback isn't asserted separately.
 
 ## Anvil renaming
 

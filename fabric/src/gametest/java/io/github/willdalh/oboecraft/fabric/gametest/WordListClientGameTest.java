@@ -7,10 +7,12 @@ import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
+import io.github.willdalh.oboecraft.fabric.client.ReadingClips;
 import io.github.willdalh.oboecraft.fabric.client.ReviewKeys;
 import io.github.willdalh.oboecraft.fabric.client.WordListScreen;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -20,6 +22,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.screens.Screen;
@@ -28,6 +31,7 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -63,6 +67,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> OboecraftClient.progress().hasProgress(client.player));
             buttonFollowsTheRecipeBook(context);
             opensOnTheLearningTab(context, singleplayer);
+            speakerButtonsPlayInEveryTab(context, singleplayer);
             craftingGridSurvivesTheWordList(context, singleplayer);
             inventoryKeyClosesBoth(context, singleplayer);
             inventoryKeyClosesBothWhenCloseSharesIt(context);
@@ -146,6 +151,71 @@ public class WordListClientGameTest implements FabricClientGameTest {
             OboecraftMod.serverProgress().update(player(server), COBBLESTONE, SrsState.Leveled.NEW);
         });
         singleplayer.getConnection().waitForClientboundPackets();
+    }
+
+    /** Real left-clicks reach the reading clip in every tab, without selecting a row for Revert. */
+    private static void speakerButtonsPlayInEveryTab(
+            ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        List<String> failures = new ArrayList<>();
+        openInventory(context);
+        WordListButtons.click(context);
+        context.waitForScreen(WordListScreen.class);
+        try {
+            Instant now = singleplayer.getServer().computeOnServer(server -> OboecraftMod.serverProgress().now());
+            checkSpeakerButton(context, singleplayer, "Learning",
+                    new SrsState.Leveled(2, Optional.of(now.plus(Duration.ofHours(1)))), failures);
+            checkSpeakerButton(context, singleplayer, "Known", new SrsState.Known(), failures);
+            checkSpeakerButton(context, singleplayer, "Ignored", new SrsState.Ignored(), failures);
+            int topLevel = context.computeOnClient(client -> OboecraftClient.progress().settings().topLevel());
+            checkSpeakerButton(context, singleplayer, "Mastered",
+                    new SrsState.Leveled(topLevel, Optional.empty()), failures);
+        } finally {
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitForScreen(InventoryScreen.class);
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitForScreen(null);
+            singleplayer.getServer().runOnServer(server ->
+                    OboecraftMod.serverProgress().update(player(server), STONE, SrsState.Leveled.NEW));
+            singleplayer.getConnection().waitForClientboundPackets();
+        }
+        if (!failures.isEmpty()) throw new AssertionError(String.join("; ", failures));
+    }
+
+    private static void checkSpeakerButton(ClientGameTestContext context, TestSingleplayerContext singleplayer,
+            String tab, SrsState state, List<String> failures) {
+        singleplayer.getServer().runOnServer(server -> OboecraftMod.serverProgress().update(player(server), STONE, state));
+        singleplayer.getConnection().waitForClientboundPackets();
+        context.waitFor(client -> OboecraftClient.progress().state(client.player, STONE).equals(state));
+        context.runOnClient(client -> {
+            Button tabButton = button(client.gui.screen(), tab);
+            if (tabButton.active) tabButton.onPress(new KeyEvent(InputConstants.KEY_RETURN, 0, 0));
+        });
+        // The row positions are assigned when rendered, after the tab or progress has changed.
+        context.waitTicks(2);
+        double[] position = context.computeOnClient(client -> {
+            List<SpriteIconButton> buttons = WordListReadingClipButtons.find(client.gui.screen());
+            if (buttons.size() != 1) throw new AssertionError(tab + " should have one speaker button");
+            PlayedReadingClips.take();
+            return centerInWindow(client, buttons.getFirst());
+        });
+        context.getInput().setCursorPos(position[0], position[1]);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        List<Identifier> played = context.computeOnClient(client -> PlayedReadingClips.take());
+        Identifier expected = ReadingClips.soundEvent(STONE).orElseThrow();
+        System.out.println(tab + " speaker playback requests: " + played);
+        if (!played.equals(List.of(expected))) {
+            failures.add(tab + " speaker should play " + expected + ", got " + played);
+        }
+        if (!tab.equals("Learning") && context.computeOnClient(client ->
+                button(client.gui.screen(), "Revert to level 0").visible)) {
+            failures.add(tab + " speaker click should not select the row for Revert");
+        }
+    }
+
+    private static double[] centerInWindow(Minecraft client, AbstractWidget widget) {
+        double scale = client.getWindow().getGuiScale();
+        return new double[] {(widget.getX() + widget.getWidth() / 2.0) * scale,
+                (widget.getY() + widget.getHeight() / 2.0) * scale};
     }
 
     private static Button button(Screen screen, String message) {
