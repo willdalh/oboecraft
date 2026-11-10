@@ -9,6 +9,7 @@ import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.BlockPos;
@@ -61,16 +62,26 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             assertBlock(singleplayer, target.above(), false, "a locked oak log isn't placed");
             context.takeScreenshot("answer-menu");
 
-            // A wrong lesson answer reveals the name, and the lesson goes on.
+            // A wrong lesson answer reveals only the name, and the lesson goes on.
             context.getInput().typeChars("オーク");
             context.getInput().pressKey(InputConstants.KEY_RETURN);
             context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
             assertStillReviewing(context, singleplayer);
+            assertShowsReading(context, false, "A wrong lesson answer must show only the name");
+
+            // Show answer then shows the reading too, and keeps what is typed.
+            context.getInput().typeChars("オーク");
+            context.getInput().pressKey(InputConstants.KEY_F9);
+            assertShowsReading(context, true, "Show answer after the name must show the reading");
+            if (!context.computeOnClient(client -> client.gui.screen().children().stream()
+                    .anyMatch(child -> child instanceof EditBox box && box.getValue().equals("オーク")))) {
+                throw new AssertionError("Showing the reading must keep the typed text");
+            }
 
             // The typing bar holds a correct answer while the keyboard's kanji conversion still has text that isn't
             // confirmed. The keys belong to the conversion: Esc doesn't close the menu, and the Enter that confirms
             // the conversion doesn't submit the answer, or it would pass here.
-            context.getInput().typeChars("オークの原木");
+            context.getInput().typeChars("の原木");
             context.runOnClient(client -> client.keyboardHandler.textEditing(
                     client.getWindow().handle(), PreeditEvent.fromSdlTextEditing("げん", 2, 0)));
             context.getInput().pressKey(InputConstants.KEY_ESCAPE);
@@ -147,6 +158,13 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             }
             context.runOnClient(client -> client.gui.screen().keyReleased(
                     new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
+            assertShowsReading(context, false, "A fail must show only the name");
+            // Show answer shows the reading, and the menu stays open.
+            context.getInput().pressKey(InputConstants.KEY_F9);
+            assertShowsReading(context, true, "Show answer after a fail must show the reading");
+            if (!context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail())) {
+                throw new AssertionError("Showing the reading after a fail must keep the menu open");
+            }
             context.takeScreenshot("answer-menu-failed");
             int logsLeft = singleplayer.getServer().computeOnServer(server ->
                     server.getPlayerList().getPlayers().getFirst().getMainHandItem().getCount());
@@ -177,6 +195,15 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             context.waitForScreen(AnswerScreen.class);
             singleplayer.getConnection().waitForServerboundPackets();
+            // Show answer is held: the press shows the name, and its repeats must not show the reading too.
+            context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
+                    InputConstants.KEY_F9, 0, 0)));
+            context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsLessonAnswer());
+            context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
+                    InputConstants.KEY_F9, 0, 0)));
+            assertShowsReading(context, false, "A held Show answer's repeat must not show the reading");
+            context.runOnClient(client -> client.gui.screen().keyReleased(new net.minecraft.client.input.KeyEvent(
+                    InputConstants.KEY_F9, 0, 0)));
             context.runOnClient(client -> client.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(
                     InputConstants.KEY_F7, 0, 0)));
             context.waitFor(client -> OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Known
@@ -239,6 +266,13 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
         });
         if (passed) {
             throw new AssertionError("Enter during a kanji conversion submitted the answer");
+        }
+    }
+
+    private static void assertShowsReading(ClientGameTestContext context, boolean shown, String what) {
+        if (context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen screen
+                && screen.showsReading()) != shown) {
+            throw new AssertionError(what);
         }
     }
 
