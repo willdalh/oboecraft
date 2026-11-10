@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.review;
 
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.core.srs.SrsRules;
@@ -12,7 +13,7 @@ import io.github.willdalh.oboecraft.core.review.ReviewOutcome;
 import io.github.willdalh.oboecraft.core.review.ReviewResult;
 import io.github.willdalh.oboecraft.core.review.ReviewRules;
 import io.github.willdalh.oboecraft.core.review.ReviewStart;
-import io.github.willdalh.oboecraft.fabric.item.ItemMapping;
+import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import io.github.willdalh.oboecraft.fabric.lock.CheckedStack;
 import io.github.willdalh.oboecraft.fabric.lock.Locks;
 import io.github.willdalh.oboecraft.fabric.lock.StackLocation;
@@ -44,7 +45,7 @@ public final class ServerReviews {
      */
     private static final Interaction RECHECKED_INTERACTION = Interaction.USE;
 
-    private final ItemMapping itemMapping;
+    private final ItemMappings itemMappings;
     private final Locks locks;
     private final ServerProgress progress;
     private final ReviewListener listener;
@@ -60,8 +61,8 @@ public final class ServerReviews {
     public record ActiveReview(int reviewId, NameListEntry entry, Trigger trigger) {
     }
 
-    public ServerReviews(ItemMapping itemMapping, Locks locks, ServerProgress progress, ReviewListener listener) {
-        this.itemMapping = Objects.requireNonNull(itemMapping, "itemMapping");
+    public ServerReviews(ItemMappings itemMappings, Locks locks, ServerProgress progress, ReviewListener listener) {
+        this.itemMappings = Objects.requireNonNull(itemMappings, "itemMappings");
         this.locks = Objects.requireNonNull(locks, "locks");
         this.progress = Objects.requireNonNull(progress, "progress");
         this.listener = Objects.requireNonNull(listener, "listener");
@@ -91,7 +92,7 @@ public final class ServerReviews {
             return;
         }
         Optional<ItemStack> stack = location.stackIn(player);
-        Optional<NameListEntry> entry = stack.flatMap(itemMapping::entryOf);
+        Optional<NameListEntry> entry = stack.flatMap(itemMappings.get(progress.language(player))::entryOf);
         if (entry.isEmpty()) {
             refuse(player, reviewId, ReviewRefused.Reason.STACK_GONE);
             return;
@@ -103,7 +104,7 @@ public final class ServerReviews {
         }
         switch (ReviewRules.start(progress.state(player, item), progress.now(), progress.settings())) {
             case ReviewStart.Started started -> {
-                Trigger trigger = Trigger.of(player, location, itemMapping);
+                Trigger trigger = Trigger.of(player, location, itemMappings.get(progress.language(player)));
                 active.put(player.getUUID(), new ActiveReview(reviewId, entry.get(), trigger));
                 listener.reviewStarted(player);
                 ServerPlayNetworking.send(player, new ReviewStarted(
@@ -205,7 +206,7 @@ public final class ServerReviews {
      * recipe's ingredients, whatever is in the input slots by now.
      */
     private void punish(ServerPlayer player, ActiveReview review, int level) {
-        CurrentView view = CurrentView.of(player, review.trigger(), itemMapping);
+        CurrentView view = CurrentView.of(player, review.trigger(), itemMappings.get(progress.language(player)));
         Map<ItemId, Integer> inView = view.counts();
         ItemId item = review.entry().id();
         Map<ItemId, Integer> removed = switch (review.trigger()) {
@@ -220,19 +221,20 @@ public final class ServerReviews {
         return count > 0 ? Map.of(item, count) : Map.of();
     }
 
-    /** Tells the client how the answer turned out, with the Japanese name when the client shows it. */
+    /** Tells the client how the answer turned out, with the name when the client shows it. */
     private void sendAnswered(ServerPlayer player, ActiveReview review, ReviewOutcome outcome) {
         Optional<ReviewAnswered.Answer> shownAnswer = outcome == ReviewOutcome.WRONG
                 ? Optional.empty()
                 : Optional.of(new ReviewAnswered.Answer(review.entry().id(),
-                        review.entry().japaneseName().text(), review.entry().japaneseName().reading()));
+                        review.entry().name().text(), review.entry().name() instanceof JapaneseName japanese
+                                ? Optional.of(japanese.reading()) : Optional.empty()));
         ServerPlayNetworking.send(
                 player, new ReviewAnswered(progress.now(), review.reviewId(), outcome, shownAnswer));
     }
 
     /** Only known, ignored and mastered entries belonging to the sender can be reverted. */
     public void revert(ServerPlayer player, ItemId item) {
-        if (!progress.hasSession(player) || isReviewing(player) || itemMapping.nameList().byId(item).isEmpty()) return;
+        if (!progress.hasSession(player) || isReviewing(player) || itemMappings.get(progress.language(player)).nameList().byId(item).isEmpty()) return;
         if (SrsRules.canRevert(progress.state(player, item), progress.settings())) {
             progress.update(player, item, SrsState.Leveled.NEW);
         }

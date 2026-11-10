@@ -2,9 +2,9 @@
 
 Oboecraft's code is under the MIT license, see [`LICENSE`](LICENSE). The mod also ships, and was made with, data and voices from others, under their own terms.
 
-## Japanese names
+## Item names
 
-The Japanese names in the name list (`oboecraft/name_list.json` in the mod jar) are from Minecraft's Japanese translation (`ja_jp.json`), by Mojang Studios. Minecraft is a trademark of Mojang Synergies AB. Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The names in `oboecraft/name_lists/` in the mod jar are from Minecraft's Japanese (`ja_jp`), German (`de_de`), Norwegian Bokmål (`no_no`) and Dutch (`nl_nl`) translations, by Mojang Studios and Minecraft's translation contributors. Minecraft is a trademark of Mojang Synergies AB. Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 ## Readings
 

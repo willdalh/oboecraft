@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -21,7 +22,7 @@ public class ServerProgressGameTest {
     @GameTest
     public void theProgressTheClientSentIsHeldForTheSession(GameTestHelper helper) {
         ServerPlayer player = TestPlayers.join(helper, UUID.randomUUID());
-        OboecraftMod.serverProgress().start(player, Progress.EMPTY.with(OAK_LOG, LEVEL_THREE));
+        OboecraftMod.serverProgress().start(player, LearningLanguage.JAPANESE, Progress.EMPTY.with(OAK_LOG, LEVEL_THREE));
         helper.assertValueEqual(OboecraftMod.serverProgress().state(player, OAK_LOG), LEVEL_THREE, "sent state");
 
         SrsState passed = new SrsState.Leveled(4, Optional.of(Instant.parse("2030-01-02T00:00:00Z")));

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * <p>A position in the name is a position in its whole {@linkplain #reading reading}. Everything about the positions is
  * worked out once, when the name is built, since answer checking asks for it at every step.
  */
-public final class JapaneseName {
+public final class JapaneseName implements Name {
     private final List<NamePart> parts;
     private final String text;
     private final String reading;

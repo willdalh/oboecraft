@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.tools.readingclips;
 
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import java.util.ArrayList;
@@ -43,8 +44,8 @@ record ClipPlan(List<NameListEntry> toMake, List<ReadingClipList.Clip> kept, Set
         for (NameListEntry entry : entries) {
             ReadingClipList.Clip clip = oldClips.get(entry.id());
             boolean unchanged = clip != null
-                    && clip.name().equals(entry.japaneseName().text())
-                    && clip.reading().equals(entry.japaneseName().reading())
+                    && clip.name().equals(entry.name().text())
+                    && clip.reading().equals(((JapaneseName) entry.name()).reading())
                     && clipFiles.contains(entry.id());
             if (unchanged) {
                 kept.add(clip);

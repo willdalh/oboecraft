@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.progress;
 
 import io.github.willdalh.oboecraft.core.Oboecraft;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.network.ProgressUnavailable;
@@ -27,7 +28,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The player's progress on this computer, which the client keeps and sends to every server the player joins. It is one
- * progress file per account in the game folder, see {@code docs/architecture/progress-files.md}.
+ * progress file per account and learning language in the game folder, see {@code docs/architecture/progress-files.md}.
  *
  * <p>A session belongs to one connection, from the server's request for the progress until the player leaves. While it
  * lasts, the file is locked, so another game on the same computer can't use it at the same time, and the server's
@@ -62,12 +63,14 @@ public final class ProgressStore {
     private static final class Session {
         final Connection connection;
         final Path file;
+        final LearningLanguage language;
         final FileChannel lockChannel;
         final FileLock lock;
         boolean saveFailed;
 
-        Session(Connection connection, Path file, FileChannel lockChannel, FileLock lock) {
+        Session(Connection connection, LearningLanguage language, Path file, FileChannel lockChannel, FileLock lock) {
             this.connection = connection;
+            this.language = language;
             this.file = file;
             this.lockChannel = lockChannel;
             this.lock = lock;
@@ -95,6 +98,7 @@ public final class ProgressStore {
         this.saveFailed = Objects.requireNonNull(saveFailed, "saveFailed");
         // When the game stops, the session's end saves the changes, so waiting saves can be dropped.
         fileThread.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        onFileThread(() -> ProgressMigration.migrateAll(folder));
     }
 
     /** The folder of the progress files in a game folder. */
@@ -112,8 +116,8 @@ public final class ProgressStore {
      * @param send sends a payload to the server. Called on the file thread.
      * @return when the answer has been sent
      */
-    public CompletableFuture<Void> start(Connection connection, UUID player, Consumer<CustomPacketPayload> send) {
-        return onFileThread(() -> send.accept(open(connection, player)));
+    public CompletableFuture<Void> start(Connection connection, UUID player, LearningLanguage language, Consumer<CustomPacketPayload> send) {
+        return onFileThread(() -> send.accept(open(connection, player, language)));
     }
 
     /**
@@ -180,14 +184,23 @@ public final class ProgressStore {
     }
 
     /** Opens the connection's session on the file thread, and says what to send the server. */
-    private CustomPacketPayload open(Connection connection, UUID player) {
+    private CustomPacketPayload open(Connection connection, UUID player, LearningLanguage language) {
+        if (session != null && session.connection == connection) language = session.language;
         endSession();
         // Changes that arrived outside a session belong to no file. The server only sends this session's after it.
         unsaved.set(null);
-        Path file = folder.resolve(player + ".json");
+        Path file = folder.resolve(language.code()).resolve(player + ".json");
+        if (language == LearningLanguage.JAPANESE) {
+            try {
+                if (!ProgressMigration.migrate(folder, player)) return new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE);
+            } catch (IOException e) {
+                OboecraftMod.LOGGER.error("Couldn't migrate the Japanese progress for {}", player, e);
+                return new ProgressUnavailable(ProgressUnavailable.Reason.UNREADABLE);
+            }
+        }
         Optional<Session> locked;
         try {
-            locked = lock(connection, file);
+            locked = lock(connection, language, file);
         } catch (IOException e) {
             OboecraftMod.LOGGER.error("Couldn't lock the progress file {}", file, e);
             return new ProgressUnavailable(ProgressUnavailable.Reason.UNREADABLE);
@@ -205,7 +218,7 @@ public final class ProgressStore {
             }
             case ReadResult.Usable usable -> {
                 session = locked.get();
-                yield new UploadProgress(usable.progress());
+                yield new UploadProgress(language.code(), usable.progress());
             }
             case ReadResult.Unusable unusable -> {
                 release(locked.get());
@@ -218,7 +231,7 @@ public final class ProgressStore {
      * Locks the file for this game, with a lock file next to it. Empty if another game holds the lock. Within one game,
      * a lock that is held already counts as another game's, which only tests can cause.
      */
-    private static Optional<Session> lock(Connection connection, Path file) throws IOException {
+    private static Optional<Session> lock(Connection connection, LearningLanguage language, Path file) throws IOException {
         Files.createDirectories(file.getParent());
         FileChannel channel = FileChannel.open(file.resolveSibling(file.getFileName() + ".lock"),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -235,7 +248,7 @@ public final class ProgressStore {
             channel.close();
             return Optional.empty();
         }
-        return Optional.of(new Session(connection, file, channel, lock));
+        return Optional.of(new Session(connection, language, file, channel, lock));
     }
 
     /**
@@ -266,7 +279,7 @@ public final class ProgressStore {
     private ReadResult keepBroken(Path file, String reason) {
         OboecraftMod.LOGGER.error("The progress file {} isn't valid progress: {}", file, reason);
         try {
-            brokenFileKeptAs.set(ProgressFiles.keepBroken(file).getFileName().toString());
+            brokenFileKeptAs.set(folder.relativize(ProgressFiles.keepBroken(file)).toString());
         } catch (IOException e) {
             OboecraftMod.LOGGER.error("Couldn't move the broken progress file {}", file, e);
             return new ReadResult.Unusable(ProgressUnavailable.Reason.UNREADABLE);

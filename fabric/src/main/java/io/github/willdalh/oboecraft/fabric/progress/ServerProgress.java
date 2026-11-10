@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.progress;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
@@ -36,16 +37,16 @@ public final class ServerProgress implements ProgressView {
      * One online player's progress and the connection it belongs to. The connection, not the {@code ServerPlayer},
      * identifies the session, since respawning gives the same connection a new player.
      */
-    private record Session(ServerGamePacketListenerImpl connection, Progress progress) {
+    private record Session(ServerGamePacketListenerImpl connection, LearningLanguage language, Progress progress) {
     }
 
     /**
      * Holds the progress the player's client sent for their session, and sends it back with the server settings. A
      * session of the same player that hasn't ended yet is replaced.
      */
-    public void start(ServerPlayer player, Progress progress) {
-        online.put(player.getUUID(), new Session(player.connection, progress));
-        ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), progress, settings));
+    public void start(ServerPlayer player, LearningLanguage language, Progress progress) {
+        online.put(player.getUUID(), new Session(player.connection, language, progress));
+        ServerPlayNetworking.send(player, new ProgressSync(clock.instant(), language, progress, settings));
     }
 
     /** Forgets the progress of the session on this connection, when the player leaves. */
@@ -76,6 +77,12 @@ public final class ServerProgress implements ProgressView {
     }
 
     @Override
+    public LearningLanguage language(Player player) {
+        Session session = online.get(player.getUUID());
+        return session == null ? LearningLanguage.JAPANESE : session.language();
+    }
+
+    @Override
     public Instant now() {
         return clock.instant();
     }
@@ -94,7 +101,7 @@ public final class ServerProgress implements ProgressView {
         this.settings = Objects.requireNonNull(settings, "settings");
         for (Session session : online.values()) {
             ServerPlayNetworking.send(session.connection().player,
-                    new ProgressSync(clock.instant(), session.progress(), settings));
+                    new ProgressSync(clock.instant(), session.language(), session.progress(), settings));
         }
     }
 
@@ -108,7 +115,7 @@ public final class ServerProgress implements ProgressView {
         if (session == null) {
             throw new IllegalStateException(player.getUUID() + " has no progress");
         }
-        online.put(player.getUUID(), new Session(session.connection(), session.progress().with(item, state)));
+        online.put(player.getUUID(), new Session(session.connection(), session.language(), session.progress().with(item, state)));
         sendState(player, item);
     }
 

@@ -11,7 +11,7 @@ It needs two programs that are installed by hand:
 - **A VOICEVOX engine**, running at `http://localhost:50021`. The engine comes with the [VOICEVOX app](https://voicevox.hiroshiba.jp/), or runs on its own from the Docker image `voicevox/voicevox_engine:cpu-latest`, which starts the engine on that port: `docker run --rm -p 127.0.0.1:50021:50021 voicevox/voicevox_engine:cpu-latest`. Another address is given with `-Pvoicevox=http://host:port`.
 - **FFmpeg** with libvorbis, on the `PATH`.
 
-It reads the name list `fabric/src/main/resources/oboecraft/name_list.json` and writes:
+It reads the name list `fabric/src/main/resources/oboecraft/name_lists/ja_jp.json` and writes:
 
 | File | Contents |
 |---|---|

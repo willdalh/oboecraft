@@ -63,7 +63,7 @@ public class ProgressUploadsGameTest {
     }
 
     /** What the player enters the world with over the connection. */
-    private static Optional<Progress> taken(
+    private static Optional<UploadProgress> taken(
             ProgressUploads uploads, UUID player, ServerConfigurationPacketListenerImpl connection) {
         return uploads.take(player, ProgressUploads.connectionOf(connection));
     }
@@ -87,9 +87,9 @@ public class ProgressUploadsGameTest {
         helper.assertValueEqual(start(task).size(), 1, "requests sent");
         helper.assertFalse(task.tick(), "the task waits for the answer");
 
-        answerFromTheNetwork(uploads, connection, new UploadProgress(LEVEL_THREE));
+        answerFromTheNetwork(uploads, connection, new UploadProgress("ja_jp", LEVEL_THREE));
         helper.assertTrue(task.tick(), "the task finishes on the server's tick");
-        helper.assertValueEqual(taken(uploads, player, connection), Optional.of(LEVEL_THREE), "progress entered with");
+        helper.assertValueEqual(taken(uploads, player, connection), Optional.of(new UploadProgress("ja_jp", LEVEL_THREE)), "progress entered with");
         helper.assertValueEqual(taken(uploads, player, connection), Optional.empty(), "taken once");
         leave(connection);
         helper.succeed();
@@ -101,16 +101,32 @@ public class ProgressUploadsGameTest {
         UUID player = UUID.randomUUID();
         ServerConfigurationPacketListenerImpl connection = configuring(helper, player);
         ConfigurationTask task = uploads.request(connection);
-        answerFromTheNetwork(uploads, connection, new UploadProgress(Progress.EMPTY));
+        answerFromTheNetwork(uploads, connection, new UploadProgress("ja_jp", Progress.EMPTY));
         helper.assertFalse(task.tick(), "an answer before the request doesn't count");
 
         start(task);
-        answerFromTheNetwork(uploads, connection, new UploadProgress(LEVEL_THREE));
+        answerFromTheNetwork(uploads, connection, new UploadProgress("ja_jp", LEVEL_THREE));
         answerFromTheNetwork(uploads, connection, new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE));
         helper.assertTrue(task.tick(), "the task finishes");
         helper.assertTrue(isConnected(connection), "a later answer doesn't disconnect the player");
-        helper.assertValueEqual(taken(uploads, player, connection), Optional.of(LEVEL_THREE), "progress");
+        helper.assertValueEqual(taken(uploads, player, connection), Optional.of(new UploadProgress("ja_jp", LEVEL_THREE)), "progress");
         leave(connection);
+        helper.succeed();
+    }
+
+    @GameTest
+    public void anUnsupportedLanguageIsRefusedBeforeEnteringTheWorld(GameTestHelper helper) {
+        for (String language : java.util.List.of("de_at", "nb_no", "../ja_jp", "")) {
+            ProgressUploads uploads = new ProgressUploads();
+            UUID player = UUID.randomUUID();
+            var connection = configuring(helper, player);
+            var task = uploads.request(connection);
+            start(task);
+            answerFromTheNetwork(uploads, connection, new UploadProgress(language, Progress.EMPTY));
+            helper.assertFalse(task.tick(), "unsupported language doesn't finish configuration");
+            helper.assertFalse(isConnected(connection), "unsupported language disconnects");
+            helper.assertValueEqual(taken(uploads, player, connection), Optional.empty(), "no session admitted");
+        }
         helper.succeed();
     }
 
@@ -158,13 +174,13 @@ public class ProgressUploadsGameTest {
         start(secondTask);
         helper.assertFalse(isConnected(first), "the first connection is disconnected");
 
-        answerFromTheNetwork(uploads, first, new UploadProgress(Progress.EMPTY));
-        answerFromTheNetwork(uploads, second, new UploadProgress(LEVEL_THREE));
+        answerFromTheNetwork(uploads, first, new UploadProgress("ja_jp", Progress.EMPTY));
+        answerFromTheNetwork(uploads, second, new UploadProgress("ja_jp", LEVEL_THREE));
         uploads.disconnected(first);
         helper.assertTrue(secondTask.tick(), "the second connection's task finishes");
         helper.assertValueEqual(taken(uploads, player, first), Optional.empty(),
                 "the first connection enters the world without progress");
-        helper.assertValueEqual(taken(uploads, player, second), Optional.of(LEVEL_THREE),
+        helper.assertValueEqual(taken(uploads, player, second), Optional.of(new UploadProgress("ja_jp", LEVEL_THREE)),
                 "the second connection's progress");
         leave(second);
         helper.succeed();
@@ -177,7 +193,7 @@ public class ProgressUploadsGameTest {
         ServerConfigurationPacketListenerImpl first = configuring(helper, player);
         ConfigurationTask firstTask = uploads.request(first);
         start(firstTask);
-        answerFromTheNetwork(uploads, first, new UploadProgress(Progress.EMPTY));
+        answerFromTheNetwork(uploads, first, new UploadProgress("ja_jp", Progress.EMPTY));
         helper.assertTrue(firstTask.tick(), "the first connection has finished its configuration");
 
         ServerConfigurationPacketListenerImpl second = configuring(helper, player);
@@ -186,9 +202,9 @@ public class ProgressUploadsGameTest {
         helper.assertValueEqual(taken(uploads, player, first), Optional.empty(),
                 "the first connection, joining before its disconnect is handled, has no progress");
 
-        answerFromTheNetwork(uploads, second, new UploadProgress(LEVEL_THREE));
+        answerFromTheNetwork(uploads, second, new UploadProgress("ja_jp", LEVEL_THREE));
         helper.assertTrue(secondTask.tick(), "the second connection's task finishes");
-        helper.assertValueEqual(taken(uploads, player, second), Optional.of(LEVEL_THREE),
+        helper.assertValueEqual(taken(uploads, player, second), Optional.of(new UploadProgress("ja_jp", LEVEL_THREE)),
                 "the second connection's progress");
         leave(second);
         helper.succeed();

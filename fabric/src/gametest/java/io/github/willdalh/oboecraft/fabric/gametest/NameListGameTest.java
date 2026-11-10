@@ -1,5 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.punishment.ProtectedItems;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -28,8 +30,8 @@ import net.minecraft.world.level.storage.loot.LootTable;
 /** The name list that ships with the mod, as the server loaded it from its file. */
 public class NameListGameTest {
     private static Optional<JapaneseName> japaneseNameOf(String id) {
-        NameList nameList = OboecraftMod.itemMapping().nameList();
-        return nameList.byId(new ItemId(id)).map(NameListEntry::japaneseName);
+        NameList nameList = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).nameList();
+        return nameList.byId(new ItemId(id)).map(entry -> (JapaneseName) entry.name());
     }
 
     @GameTest
@@ -58,7 +60,7 @@ public class NameListGameTest {
     public void everyStackTheGameNamesIsInTheNameList(GameTestHelper helper) {
         List<ItemStack> stacks = NamedStacks.all(
                 helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN));
-        ItemMapping mapping = OboecraftMod.itemMapping();
+        ItemMapping mapping = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE);
         List<String> missing = stacks.stream()
                 .filter(stack -> mapping.entryOf(stack).isEmpty())
                 .map(stack -> ItemMapping.translationKeyOf(stack).orElse(stack.toString()))
@@ -83,7 +85,7 @@ public class NameListGameTest {
                         .ifSuccess(json -> collectItemNameKeys(json, keys))
                         .ifError(error -> helper.fail("couldn't encode " + table.key() + ": " + error.message())));
 
-        ItemMapping mapping = OboecraftMod.itemMapping();
+        ItemMapping mapping = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE);
         List<String> missing = keys.stream()
                 .distinct()
                 .filter(key -> mapping.nameList().byTranslationKey(key).isEmpty())
@@ -116,7 +118,7 @@ public class NameListGameTest {
 
     @GameTest
     public void keysWithTheSameJapaneseNameAreOneItem(GameTestHelper helper) {
-        ItemMapping mapping = OboecraftMod.itemMapping();
+        ItemMapping mapping = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE);
         Optional<ItemId> disc13 = mapping.entryOf(new ItemStack(Items.MUSIC_DISC_13)).map(NameListEntry::id);
         Optional<ItemId> discCat = mapping.entryOf(new ItemStack(Items.MUSIC_DISC_CAT)).map(NameListEntry::id);
 
@@ -129,8 +131,21 @@ public class NameListGameTest {
         ItemStack namedHead = new ItemStack(Items.PLAYER_HEAD);
         namedHead.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved("Steve"));
 
-        helper.assertValueEqual(OboecraftMod.itemMapping().entryOf(namedHead).map(NameListEntry::id),
+        helper.assertValueEqual(OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(namedHead).map(NameListEntry::id),
                 Optional.of(new ItemId("block.minecraft.player_head")), "the item of a named player head");
         helper.succeed();
     }
+    @GameTest public void everyLanguageCoversAllJapaneseKeysAndProtectedItems(GameTestHelper helper) {
+        var keys = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE)
+                .nameList().entries().stream().flatMap(entry -> entry.translationKeys().stream()).toList();
+        for (var language : LearningLanguage.values()) {
+            var mapping = OboecraftMod.itemMappings().get(language);
+            for (String key : keys) helper.assertTrue(mapping.nameList().byTranslationKey(key).isPresent(), language + ": " + key);
+            for (var id : ProtectedItems.IDS) {
+                helper.assertTrue(mapping.nameList().byId(id).isPresent(), language + " protects " + id);
+            }
+        }
+        helper.succeed();
+    }
+
 }

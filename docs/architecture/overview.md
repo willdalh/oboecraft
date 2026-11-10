@@ -9,7 +9,7 @@ More detail on each part:
 - [Progress files](progress-files.md): where progress is saved and the file format.
 - [Settings files](settings-files.md): where the server and client settings are saved and their formats.
 - [Name list file](name-list-file.md): the format of the name list that ships with the mod.
-- [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's Japanese names.
+- [Name list tool](name-list-tool.md): the tool that writes the name list from Minecraft's supported language files.
 - [Reading clip tool](reading-clip-tool.md): the tool that makes the reading clips with VOICEVOX.
 
 The parts on those pages were designed in milestone 3a and built in milestone 3b. Milestone 4 added the name list file format and answer checking, milestone 5 the name list tool and the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 10 the notification after a pass, milestone 11 the game mode and anvil rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clips and their tool, progress on the player's computer the client's progress files, see [ADR: Progress kept on the player's computer](../decisions/20261107-progress-on-the-players-computer.md), and [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51) the tsukumogami, a mob made with Minecraft's own models and animations.
@@ -53,7 +53,7 @@ tools/
 fabric/
   src/main/java             Code for both sides, and code that only runs on the server
   src/main/resources        fabric.mod.json, the mixin config, the mod's icon in assets/oboecraft/icon.png, and the
-                            name list in oboecraft/name_list.json
+                            name lists in oboecraft/name_lists/<language>.json
   src/client/java           Code that only runs on the client
   src/client/resources      The client mixin config, the language files in assets/oboecraft/lang, the reading clips in
                             assets/oboecraft/sounds/reading with their sounds.json, which also has the tsukumogami's
@@ -103,7 +103,7 @@ The server sends each player their SRS states when they join and pushes updates 
 
 Locks are checked on both sides. The client checks first, since it knows the SRS states, and opens the answer menu at once, so a placed block doesn't flicker back. The server checks too and has the final say, which stops modified clients.
 
-Answers are checked on the server. The client sends the typed text, and the server replies with a pass or fail. The Japanese name is only sent to the client when it is needed: in lessons and after a fail.
+Answers are checked on the server. The client sends the typed text, and the server replies with a pass or fail. The correct name is only sent to the client when it is needed: in lessons and after a fail.
 
 ## Time
 

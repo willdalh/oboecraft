@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.tools.readingclips;
 
+import io.github.willdalh.oboecraft.core.item.JapaneseName;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -76,7 +77,7 @@ public final class ReadingClipTool {
 
         List<ReviewList.Made> made = new ArrayList<>();
         for (NameListEntry entry : plan.toMake()) {
-            SpokenText spoken = SpokenText.of(entry.japaneseName(), voicevox);
+            SpokenText spoken = SpokenText.of((JapaneseName) entry.name(), voicevox);
             OggEncoder.encode(voicevox.speak(spoken.text()), clipFolder.resolve(entry.id().value() + CLIP_EXTENSION));
             made.add(new ReviewList.Made(entry, spoken));
             if (made.size() % 100 == 0) {
@@ -87,7 +88,7 @@ public final class ReadingClipTool {
         Map<ItemId, ReadingClipList.Clip> clips = Stream.concat(
                         plan.kept().stream(),
                         made.stream().map(clip -> new ReadingClipList.Clip(clip.entry().id(),
-                                clip.entry().japaneseName().text(), clip.entry().japaneseName().reading(),
+                                clip.entry().name().text(), ((JapaneseName) clip.entry().name()).reading(),
                                 clip.spoken().text())))
                 .collect(Collectors.toMap(ReadingClipList.Clip::item, Function.identity()));
         List<ReadingClipList.Clip> inOrder = entries.stream().map(entry -> clips.get(entry.id())).toList();

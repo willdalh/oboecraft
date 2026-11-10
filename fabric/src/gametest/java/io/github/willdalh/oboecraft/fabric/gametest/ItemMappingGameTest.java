@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
@@ -70,7 +71,7 @@ public class ItemMappingGameTest {
     @GameTest
     public void aStackInTheNameListIsThatItem(GameTestHelper helper) {
         Optional<ItemId> item =
-                OboecraftMod.itemMapping().entryOf(new ItemStack(Items.OAK_LOG, 12)).map(NameListEntry::id);
+                OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(new ItemStack(Items.OAK_LOG, 12)).map(NameListEntry::id);
 
         helper.assertValueEqual(item, Optional.of(new ItemId("block.minecraft.oak_log")), "item");
         helper.succeed();
@@ -78,9 +79,9 @@ public class ItemMappingGameTest {
 
     @GameTest
     public void aStackNotInTheNameListIsNotAnItem(GameTestHelper helper) {
-        helper.assertTrue(OboecraftMod.itemMapping().entryOf(OtherModStacks.of(Items.ANDESITE)).isEmpty(),
+        helper.assertTrue(OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(OtherModStacks.of(Items.ANDESITE)).isEmpty(),
                 Component.literal("another mod's item isn't in the name list"));
-        helper.assertTrue(OboecraftMod.itemMapping().entryOf(ItemStack.EMPTY).isEmpty(),
+        helper.assertTrue(OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(ItemStack.EMPTY).isEmpty(),
                 Component.literal("an empty stack isn't an item"));
         helper.succeed();
     }

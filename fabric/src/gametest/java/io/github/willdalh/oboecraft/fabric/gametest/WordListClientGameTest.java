@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.settings.Settings;
@@ -331,7 +332,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
         assertButton(context, false, "without progress");
 
         context.runOnClient(client -> OboecraftClient.progress().sync(
-                client.getConnection(), progress, settings, OboecraftClient.progress().now()));
+                client.getConnection(), LearningLanguage.JAPANESE, progress, settings, OboecraftClient.progress().now()));
         context.waitTicks(2);
         assertButton(context, true, "once progress arrives");
 
@@ -343,7 +344,7 @@ public class WordListClientGameTest implements FabricClientGameTest {
         assertButton(context, false, "after progress goes away");
 
         context.runOnClient(client -> OboecraftClient.progress().sync(
-                client.getConnection(), progress, settings, OboecraftClient.progress().now()));
+                client.getConnection(), LearningLanguage.JAPANESE, progress, settings, OboecraftClient.progress().now()));
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(null);
     }

@@ -1,5 +1,7 @@
 # Lock check
 
+Every item lookup and SRS state uses the player's learning language selected on joining. Settings remain shared across languages.
+
 Every time a player interacts with a stack, or picks one up, one lock check decides what happens. Every interaction, on both the server and the client, goes through it. Rules that change what is allowed, like creative mode, ignored items, bans and the drop setting, are each decided in this one place.
 
 ## Inputs

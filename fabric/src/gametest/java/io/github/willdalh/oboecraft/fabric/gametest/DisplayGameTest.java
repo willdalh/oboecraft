@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.settings.LevelSettings;
@@ -25,6 +26,7 @@ public class DisplayGameTest {
     private static final Instant NOW = Instant.parse("2026-11-06T12:00:00Z");
 
     private record FixedProgress(SrsState state, Settings settings) implements ProgressView {
+        @Override public LearningLanguage language(Player player) { return LearningLanguage.JAPANESE; }
         @Override public boolean hasProgress(Player player) { return true; }
         @Override public SrsState state(Player player, ItemId item) { return state; }
         @Override public Instant now() { return NOW; }

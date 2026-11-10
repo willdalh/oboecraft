@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.json;
 
+import io.github.willdalh.oboecraft.core.item.PlainName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,9 +26,9 @@ class NameListJsonTest {
     private static final String FILE = """
             [
               {"id": "block.minecraft.oak_log", "translationKeys": ["block.minecraft.oak_log"], \
-            "japaneseName": ["オーク", "の", ["原", "げん"], ["木", "ぼく"]]},
+            "name": ["オーク", "の", ["原", "げん"], ["木", "ぼく"]]},
               {"id": "block.minecraft.player_head", "translationKeys": ["block.minecraft.player_head", \
-            "block.minecraft.player_head.named"], "japaneseName": ["プレイヤー", "の", ["頭", "あたま"]]}
+            "block.minecraft.player_head.named"], "name": ["プレイヤー", "の", ["頭", "あたま"]]}
             ]
             """;
 
@@ -39,6 +40,15 @@ class NameListJsonTest {
     @Test
     void readsWhatItWrites() {
         assertEquals(ENTRIES, NameListJson.parse(JsonParser.parseString(FILE)).entries());
+    }
+
+    @Test void plainNamesAndReviewedCorrectionsRoundTrip() {
+        var corrected = new NameListEntry(new ItemId("block.minecraft.oak_log"), List.of("block.minecraft.oak_log"),
+                new PlainName("Eichenstamm", "Broken translation"));
+        String text = NameListJson.format(List.of(corrected));
+        assertEquals(List.of(corrected), NameListJson.parse(JsonParser.parseString(text)).entries());
+        assertTrue(text.contains("\"sourceName\": \"Broken translation\""));
+        assertRefusedNaming("[{'id':'empty','translationKeys':['empty'],'name':''}]", "empty");
     }
 
     @Test
@@ -65,20 +75,20 @@ class NameListJsonTest {
         String oakLog = "{'id': 'block.minecraft.oak_log', 'translationKeys': ['block.minecraft.oak_log'], ";
         String id = "block.minecraft.oak_log";
 
-        assertRefusedNaming("[" + oakLog + "'japaneseName': [['原', 'ゲン']]}]", id);
-        assertRefusedNaming("[" + oakLog + "'japaneseName': [['原']]}]", id);
-        assertRefusedNaming("[" + oakLog + "'japaneseName': []}]", id);
-        assertRefusedNaming("[" + oakLog + "'japaneseName': 'オークの原木'}]", id);
-        assertRefusedNaming("[" + oakLog + "'japaneseName': [{'text': '原'}]}]", id);
+        assertRefusedNaming("[" + oakLog + "'name': [['原', 'ゲン']]}]", id);
+        assertRefusedNaming("[" + oakLog + "'name': [['原']]}]", id);
+        assertRefusedNaming("[" + oakLog + "'name': []}]", id);
+        assertRefusedNaming("[" + oakLog + "'name': 42}]", id);
+        assertRefusedNaming("[" + oakLog + "'name': [{'text': '原'}]}]", id);
         assertRefusedNaming("[" + oakLog + "'reading': 'おーくのげんぼく'}]", id);
         assertRefusedNaming("[{'id': 'block.minecraft.oak_log', 'translationKeys': 'block.minecraft.oak_log', "
-                + "'japaneseName': [['原', 'げん']]}]", id);
+                + "'name': [['原', 'げん']]}]", id);
     }
 
     @Test
     void anEntryWithoutAnIdIsRefusedWithItsPlace() {
         String dirt = "{'id': 'block.minecraft.dirt', 'translationKeys': ['block.minecraft.dirt'], "
-                + "'japaneseName': [['土', 'つち']]}";
+                + "'name': [['土', 'つち']]}";
         String place = "entry 1 without an id";
 
         assertRefusedNaming("[" + dirt + ", {'translationKeys': ['block.minecraft.sand']}]", place);

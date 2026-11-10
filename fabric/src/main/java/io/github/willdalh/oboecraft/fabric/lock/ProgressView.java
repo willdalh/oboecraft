@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.lock;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import java.time.Instant;
@@ -16,6 +17,8 @@ public interface ProgressView {
 
     /** The player's SRS state for the item. */
     SrsState state(Player player, ItemId item);
+
+    LearningLanguage language(Player player);
 
     /** The current time: the clock on the server, and the client's estimate of the server's time on the client. */
     Instant now();

@@ -1,18 +1,26 @@
 # Items
 
-An item is anything in Minecraft with its own Japanese name. It is not the same thing as a Minecraft item, like `minecraft:potion`:
+An item is anything in Minecraft with its own name in a learning language. The Japanese examples below illustrate grouping; every language groups its own keys separately. It is not the same thing as a Minecraft item, like `minecraft:potion`:
 
 - One Minecraft item can be several items. Each potion effect has its own Japanese name, like 治癒のポーション and 暗視のポーション, so each is its own item. The same goes for splash and lingering potions and tipped arrows.
 - Several Minecraft items can be one item. Every music disc is called レコード, so all music discs are one item and share one SRS state.
 - Variants with the same name are one item. Healing I and II are both 治癒のポーション, and every enchanted book is エンチャントの本.
 
-Each player has one SRS state per item. See [ADR: Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md).
+Each player has one SRS state per item and learning language. See [ADR: Items are identified by translation key](../decisions/20261106-items-identified-by-translation-key.md).
+
+## Learning language
+
+The learning language follows the game language: `ja_jp` selects Japanese, `de_de` German, `no_no` Norwegian Bokmål, and `nl_nl` Dutch. Every other code selects Japanese, including `de_at`, `de_ch`, `nn_no`, `nb_no` and `nl_be`. It is selected on joining and stays fixed until the next join. Changing the game language while connected announces the next join's learning language in chat. Minecraft's and the mod's text still follow the game language immediately.
+
+Every supported language is allowed on every server. Players on one server can learn different languages at once. The Japanese style, tsukumogami and **あ** button do not depend on the learning language.
+
+Each language has its own name list, ids and progress. Brick and bricks share one Japanese entry but are separate German, Bokmål and Dutch items; Bokmål and Dutch also split nether brick/bricks and resin brick/bricks. The awkward, mundane and thick tipped arrows share an entry in each new language. The answer is the reviewed Minecraft translation, corrected only if broken. German, Bokmål and Dutch names are plain text with no parts or readings.
 
 ## Translation keys
 
-Minecraft finds an item's name in each language through a translation key. The oak log's key is `block.minecraft.oak_log`, and Japanese turns it into オークの原木. A potion's key depends on its effect: `item.minecraft.potion.effect.healing` for both Healing I and II, `item.minecraft.potion.effect.night_vision` for night vision. Minecraft's `ja_jp.json`, which the name list comes from, is keyed by translation key.
+Minecraft finds an item's name in each language through a translation key. The oak log's key is `block.minecraft.oak_log`, and Japanese turns it into オークの原木. A potion's key depends on its effect: `item.minecraft.potion.effect.healing` for both Healing I and II, `item.minecraft.potion.effect.night_vision` for night vision. Minecraft's language files, which the name lists come from, is keyed by translation key.
 
-So a translation key is what one Japanese name hangs on, and the mod maps stacks to items through it:
+So a translation key is what a name hangs on, and the mod maps stacks to items through it:
 
 1. The server or client takes the stack's item name, which is the name the item has without any custom name. A name given with an anvil or a name tag is ignored, so renaming a stack never changes which item it is.
 2. The item name is a translatable text, and its translation key is looked up in the name list.
@@ -20,7 +28,7 @@ So a translation key is what one Japanese name hangs on, and the mod maps stacks
 
 A few Minecraft items get a different key from their components, so they are several items, like the potions. The game's code names a potion, splash potion, lingering potion or tipped arrow after its potion, like `item.minecraft.potion.effect.healing`, and one with no potion `...effect.empty`, so their default keys, like `item.minecraft.potion`, never name a stack and aren't in the name list. A shield with a base color is named through `item.minecraft.shield.<color>`, like `item.minecraft.shield.red` (赤色の盾), and a lodestone compass through `item.minecraft.lodestone_compass` (ロードストーンコンパス). The game's data can also give a stack its own item name: the maps found in abandoned camps are named after the camp, like `filled_map.swamp_camp_map` (沼地のキャンプの地図), and the ominous banner is named `block.minecraft.ominous_banner` (不吉な旗). The name list gives these keys entries, or adds them to another entry, like any other key. Which keys name stacks is worked out by the [name list tool](../architecture/name-list-tool.md#steps), and a game test checks that every stack the game names is in the name list.
 
-Only the translation key is used, not the arguments filled into the name. Some keys exist only to fill in such arguments. A player head with a player's profile is named through `block.minecraft.player_head.named`, which is `%sの頭` in Japanese. A key whose Japanese text has format arguments, like `%s`, is never its own entry, since `%sの頭` can't be an answer. Instead it is added to the entry of the item it names, so a named player head is still the player head, プレイヤーの頭. If that item has no entry, the key is left out. The name list tool lists these keys for review.
+Only the translation key is used, not the arguments filled into the name. Some keys exist only to fill in such arguments. A player head with a player's profile is named through `block.minecraft.player_head.named`, which is `%sの頭` in Japanese. A key whose text in the learning language has format arguments, like `%s`, is never its own entry, since `%sの頭` can't be an answer. Instead it is added to the entry of the item it names, so a named player head is still the player head, プレイヤーの頭. If that item has no entry, the key is left out. The name list tool lists these keys for review.
 
 ## Name list entries
 
@@ -31,11 +39,11 @@ The name list has one entry per item. Each entry has:
 | Item id | `block.minecraft.oak_log` | The item's id. It is saved in progress and sent between server and client, so it never changes once released. |
 | Translation keys | `block.minecraft.oak_log` | Every translation key that maps to this item. Most items have one. |
 | Former ids | | Item ids of entries that were merged into this one. Usually empty. Added with the first name list update that merges entries. |
-| Japanese name | オーク, の, 原 (げん), 木 (ぼく) | The correct answer, as [name parts](#name-parts) with their readings |
+| Name | Eichenstamm, or オーク, の, 原 (げん), 木 (ぼく) | The correct answer: plain text, or Japanese [name parts](#name-parts) with readings |
 
 The item id is one of the item's translation keys: its only key, or for items with several, the one the name list picks, like `item.minecraft.music_disc_13` for all music discs. It stays the item's id even if Minecraft later drops that key, so saved progress never loses an item.
 
-When Minecraft's Japanese translation gives several keys the same name, they become one entry. Besides the music discs, every smithing template is 鍛冶型 and every banner pattern 旗の模様, and the brick item and the bricks block are both レンガ.
+When Minecraft's translation in one learning language gives several keys the same name, they become one entry. Besides the music discs, every smithing template is 鍛冶型 and every banner pattern 旗の模様, and the brick item and the bricks block are both レンガ.
 
 Translations change between Minecraft versions, so entries can split and merge:
 
@@ -46,7 +54,7 @@ An item id or former id belongs to at most one entry, and is never reused for an
 
 A translation key belongs to at most one entry.
 
-The name list has every item of Minecraft 26.3, 1,738 entries. Milestone 5's [name list tool](../architecture/name-list-tool.md) generated it from `ja_jp.json`, and every entry was reviewed. The first 10, from the first minutes of play, were written by hand in milestone 3b. The file format is in [Name list file](../architecture/name-list-file.md).
+The name lists cover Minecraft 26.3: Japanese has 1,738 entries, German 1,737, and Bokmål and Dutch 1,739 each. Milestone 5's [name list tool](../architecture/name-list-tool.md) generated it from `ja_jp.json`, and every entry was reviewed. The first 10, from the first minutes of play, were written by hand in milestone 3b. The file format is in [Name list file](../architecture/name-list-file.md).
 
 The name list has no merges yet, so former ids and the merge of states on load aren't built yet. They come with the first name list update that merges two entries, before any release that needs them. Until then, the name list tool stops when an update would merge two entries.
 
@@ -75,7 +83,7 @@ The Japanese name is the text of its parts joined, like オークの原木, and 
 
 ## Protected items
 
-Some items are protected and never removed in a punishment: the dragon egg, shulker boxes and bundles. They are still demoted and banned. Which items are protected is a fixed list of item ids in the core, not a setting: `block.minecraft.dragon_egg`, `block.minecraft.shulker_box` and the 16 colored shulker boxes, and `item.minecraft.bundle` and the 16 colored bundles. A game test checks that each is in the name list. See [Punishment](punishment.md#protected-items).
+Some items are protected and never removed in a punishment: the dragon egg, shulker boxes and bundles. They are still demoted and banned. Which items are protected is a fixed list of item ids in the core, not a setting: `block.minecraft.dragon_egg`, `block.minecraft.shulker_box` and the 16 colored shulker boxes, and `item.minecraft.bundle` and the 16 colored bundles. A game test checks that each is in every language’s name list. See [Punishment](punishment.md#protected-items).
 
 ## Renaming
 
