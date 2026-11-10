@@ -1,5 +1,6 @@
 package io.github.willdalh.oboecraft.fabric.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.item.NameListEntry;
@@ -345,7 +346,7 @@ public final class WordListScreen extends Screen implements OverMenuScreen {
 
         /** A right-click on another tab than Learning selects the row, so its Revert button shows. */
         @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-            if (event.button() == 1 && group != LEARNING) {
+            if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && group != LEARNING) {
                 select(item);
                 return true;
             }

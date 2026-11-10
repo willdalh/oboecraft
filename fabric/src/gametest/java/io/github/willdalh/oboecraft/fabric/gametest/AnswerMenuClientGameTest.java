@@ -230,7 +230,7 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 var screen = client.gui.screen();
                 screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(screen.width / 2.0, 62,
-                        new net.minecraft.client.input.MouseButtonInfo(1, 0)), false);
+                        new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_RIGHT, 0)), false);
                 var revert = screen.children().stream()
                         .filter(child -> child instanceof net.minecraft.client.gui.components.Button button
                                 && button.getMessage().getString().equals("Revert to level 0"))
