@@ -5,7 +5,7 @@
 <h1 align="center">Oboecraft</h1>
 
 <p align="center">
-  A Minecraft mod that locks every item until you can name it in Japanese.
+  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese.
 </p>
 
 <p align="center">
