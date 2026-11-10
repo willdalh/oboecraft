@@ -24,8 +24,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The tsukumogami in a real client: it arrives at night for a player with overdue items, everyone is sent its orbiting
- * items, and it is drawn with its model, its glowing eyes, its ring of items, its wind-up and its fade-out. The
- * screenshots show each of them.
+ * items, it winds up and hits its owner, a review stops its attack, and it is drawn with its model, its glowing eyes,
+ * its ring of items and each of its animations. The screenshots show them.
  */
 public class TsukumogamiClientGameTest implements FabricClientGameTest {
     /** The Minecraft items of {@link #OVERDUE_IDS}, in the same order. */
@@ -34,6 +34,13 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
     private static final List<ItemId> OVERDUE_IDS = List.of(new ItemId("block.minecraft.oak_log"),
             new ItemId("block.minecraft.stone"), new ItemId("block.minecraft.torch"), new ItemId("item.minecraft.apple"),
             new ItemId("item.minecraft.iron_ingot"), new ItemId("item.minecraft.bread"));
+
+    /** How far in front of the player it is held for the screenshots, in blocks. */
+    private static final double DISTANCE_IN_FRONT = 3.4;
+    /** The player's pitch that shows all of it from {@link #DISTANCE_IN_FRONT}, in degrees. */
+    private static final float LOOKING_AHEAD = -4;
+    /** The player's pitch that shows its mask when it stands over them to attack, in degrees. */
+    private static final float LOOKING_UP = -30;
 
     @Override
     public void runTest(ClientGameTestContext context) {
@@ -61,11 +68,36 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot("tsukumogami");
 
-            singleplayer.getServer().runOnServer(server -> OboecraftMod.serverTsukumogami().existingOf(player(server))
-                    .ifPresent(tsukumogami -> server.overworld().broadcastEntityEvent(
-                            tsukumogami, Tsukumogami.WIND_UP_EVENT)));
-            context.waitTicks(15);
+            // Let go, it walks up to its owner, who looks up at it, winds up for a second and hits them.
+            singleplayer.getServer().runOnServer(server -> {
+                look(player(server), LOOKING_UP);
+                existing(server).setNoAi(false);
+            });
+            context.waitFor(client -> tsukumogamiOnClient(client)
+                    .filter(tsukumogami -> tsukumogami.motion().attackWeight(1) > 0).isPresent(), 200);
+            context.waitTicks(Tsukumogami.WIND_UP_TICKS - 4);
+            check(context.computeOnClient(client -> client.player.getHealth() == client.player.getMaxHealth()),
+                    "the owner is unhurt during the wind-up");
             context.takeScreenshot("tsukumogami-wind-up");
+            context.waitFor(client -> client.player.getHealth() < client.player.getMaxHealth(), 20);
+            context.takeScreenshot("tsukumogami-hit");
+
+            // A review that starts during the next wind-up stops the attack, and it watches its owner.
+            context.waitFor(client -> tsukumogamiOnClient(client)
+                    .filter(tsukumogami -> tsukumogami.motion().attackSeconds(1) > 0.5F).isPresent(), 200);
+            singleplayer.getServer().runOnServer(server ->
+                    OboecraftMod.serverTsukumogami().reviewStarted(player(server)));
+            context.waitFor(client -> tsukumogamiOnClient(client).filter(Tsukumogami::standsStill).isPresent(), 40);
+            float healthAtReview = context.computeOnClient(client -> client.player.getHealth());
+            context.waitTicks(Tsukumogami.ATTACK_ANIMATION_TICKS);
+            check(context.computeOnClient(client -> tsukumogamiOnClient(client).orElseThrow().motion()
+                    .attackWeight(1) == 0), "the attack's animation stops for a review");
+            check(context.computeOnClient(client -> client.player.getHealth() >= healthAtReview),
+                    "the owner isn't hit during a review");
+            context.takeScreenshot("tsukumogami-watching");
+            singleplayer.getServer().runOnServer(server ->
+                    OboecraftMod.serverTsukumogami().reviewEnded(player(server)));
+            standInFrontOfTheCamera(singleplayer);
 
             // A pass knocks one item out of the ring.
             singleplayer.getServer().runOnServer(server -> OboecraftMod.serverProgress().update(player(server),
@@ -82,11 +114,10 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
                     OboecraftMod.serverProgress().update(player(server), item, new SrsState.Leveled(2, Optional.of(
                             OboecraftMod.clock().instant().plus(Duration.ofHours(1)))));
                 }
-                OboecraftMod.serverTsukumogami().existingOf(player(server)).ifPresent(tsukumogami ->
-                        tsukumogami.setNoAi(false));
+                existing(server).setNoAi(false);
             });
             context.waitFor(client -> tsukumogamiOnClient(client).filter(Tsukumogami::isFading).isPresent(), 40);
-            context.waitTicks(15);
+            context.waitTicks(Tsukumogami.FADE_TICKS / 2);
             context.takeScreenshot("tsukumogami-fading");
             context.waitFor(client -> tsukumogamiOnClient(client).isEmpty(), 100);
         } finally {
@@ -99,6 +130,10 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
         return server.getPlayerList().getPlayers().getFirst();
     }
 
+    private static Tsukumogami existing(MinecraftServer server) {
+        return OboecraftMod.serverTsukumogami().existingOf(player(server)).orElseThrow();
+    }
+
     private static Optional<Tsukumogami> tsukumogamiOnClient(Minecraft client) {
         for (Entity entity : client.level.entitiesForRendering()) {
             if (entity instanceof Tsukumogami tsukumogami) {
@@ -108,22 +143,25 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
         return Optional.empty();
     }
 
-    /** Holds it still four blocks in front of the player, facing them, so the screenshots show it close up. */
+    /** Holds it still a few blocks in front of the player, facing them, so the screenshots show all of it close up. */
     private static void standInFrontOfTheCamera(TestSingleplayerContext singleplayer) {
         singleplayer.getServer().runOnServer(server -> {
             ServerPlayer player = player(server);
-            player.setXRot(10);
-            player.setYRot(0);
-            player.connection.teleport(player.getX(), player.getY(), player.getZ(), 0, 10);
-            Tsukumogami tsukumogami = OboecraftMod.serverTsukumogami().existingOf(player).orElseThrow();
+            look(player, LOOKING_AHEAD);
+            Tsukumogami tsukumogami = existing(server);
             tsukumogami.setNoAi(true);
-            Vec3 front = player.position().add(0, 0, 4);
+            Vec3 front = player.position().add(0, 0, DISTANCE_IN_FRONT);
             tsukumogami.snapTo(front.x, front.y, front.z, 180, 0);
             tsukumogami.setYHeadRot(180);
             tsukumogami.setYBodyRot(180);
             check(tsukumogami.getType() == TsukumogamiType.TYPE, "the type of the tsukumogami");
         });
         singleplayer.getConnection().waitForClientboundPackets();
+    }
+
+    /** Turns the player south, where the tsukumogami is put, looking up or down by {@code pitch} degrees. */
+    private static void look(ServerPlayer player, float pitch) {
+        player.connection.teleport(player.getX(), player.getY(), player.getZ(), 0, pitch);
     }
 
     private static void check(boolean condition, String what) {

@@ -369,6 +369,24 @@ public class TsukumogamiGameTest {
         });
     }
 
+    @GameTest
+    public void itStandsWhereItIsWhileItStraightensUpAfterTheHit(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami tsukumogami = existing(helper, player);
+            tsukumogami.snapTo(player.getX(), player.getY(), player.getZ() + 1, 180, 0);
+            ticks(tsukumogami, 1 + Tsukumogami.WIND_UP_TICKS);
+
+            // Its owner backs away at the hit. It follows only once it has straightened up.
+            player.snapTo(player.getX(), player.getY(), player.getZ() - 5);
+            ticks(tsukumogami, Tsukumogami.RECOVERY_TICKS - 1);
+            helper.assertTrue(tsukumogami.getNavigation().isDone(), "it stands where it is while it straightens up");
+            tsukumogami.tick();
+            helper.assertTrue(tsukumogami.getNavigation().isInProgress(), "it follows its owner again after that");
+        });
+    }
+
     private static void ticks(Tsukumogami tsukumogami, int count) {
         for (int i = 0; i < count; i++) {
             tsukumogami.tick();

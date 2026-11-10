@@ -5,6 +5,7 @@ import com.mojang.math.Axis;
 import io.github.willdalh.oboecraft.core.Oboecraft;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.Tsukumogami;
+import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiMotion;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.TsukumogamiType;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -26,14 +27,29 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Draws the tsukumogami: its model and animations, a dim glow in the mask's eye holes, the ring of its owner's overdue
- * items, and the fade-out, in which it turns see-through and its items fall away.
+ * items, and the fade-out, in which its items fall away and it dissolves from the hem of its kimono up to its mask.
  */
 public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, TsukumogamiRenderState, TsukumogamiModel> {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(id("tsukumogami"), "main");
     public static final ModelLayerLocation EYES_LAYER = new ModelLayerLocation(id("tsukumogami"), "eyes");
     private static final Identifier TEXTURE = id("textures/entity/tsukumogami/tsukumogami.png");
     private static final Identifier EYES_TEXTURE = id("textures/entity/tsukumogami/tsukumogami_eyes.png");
+    /**
+     * When each pixel of {@link #TEXTURE} dissolves as it fades out: the more see-through a pixel is here, the longer
+     * it stays.
+     */
+    private static final Identifier DISSOLVE_TEXTURE = id("textures/entity/tsukumogami/tsukumogami_dissolve.png");
+    private static final RenderType DISSOLVING = RenderTypes.entityCutoutDissolve(TEXTURE, DISSOLVE_TEXTURE);
     private static final float SHADOW_RADIUS = 0.7F;
+    /** How long it takes to let go of what it was doing when it starts to fade out or is killed, in seconds. */
+    private static final float LET_GO_SECONDS = 0.35F;
+    /** How far into the wind-up the eyes glow at their brightest, in seconds. */
+    private static final float EYES_FLARE_SECONDS = 0.8F;
+    /** When the attack hits, in seconds, and how long the eyes take to dim again after it. */
+    private static final float HIT_SECONDS = Tsukumogami.WIND_UP_TICKS / 20.0F;
+    private static final float EYES_DIM_SECONDS = 0.6F;
+    /** How far into the fade-out the eyes start to go out. They are the last of it to go. */
+    private static final float EYES_FADE_START = 0.75F;
 
     /** The ring of each tsukumogami that is drawn, forgotten with the entity. */
     private final Map<Tsukumogami, OrbitingItems> rings = new WeakHashMap<>();
@@ -55,11 +71,22 @@ public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, Tsukumog
         return Identifier.fromNamespaceAndPath(Oboecraft.MOD_ID, path);
     }
 
-    /** A dim glow that flickers slowly, brighter while it winds up, and gone as it fades out. */
+    /**
+     * A dim glow that flickers slowly. It flares up over the attack's wind-up and dims again after the hit, and goes
+     * out last of all as it fades out and at once when it is killed.
+     */
     private static float eyeGlow(TsukumogamiRenderState state, float ageInTicks) {
-        float flicker = 0.55F + 0.15F * Mth.sin(ageInTicks * 0.13F) + 0.05F * Mth.sin(ageInTicks * 0.71F);
-        float glow = state.windUpAnimationState.isStarted() ? Math.min(1, flicker + 0.35F) : flicker;
-        return glow * (1 - state.fadeProgress);
+        float flicker = 0.32F + 0.07F * Mth.sin(ageInTicks * 0.13F) + 0.04F * Mth.sin(ageInTicks * 0.71F);
+        float flare = state.attackWeight * Math.min(1, state.attackSeconds / EYES_FLARE_SECONDS)
+                * (1 - Mth.clamp((state.attackSeconds - HIT_SECONDS) / EYES_DIM_SECONDS, 0, 1));
+        float goingOut = Mth.clamp((state.fadeProgress - EYES_FADE_START) / (1 - EYES_FADE_START), 0, 1);
+        return Mth.lerp(flare, flicker, 1) * (1 - goingOut) * (1 - state.deathWeight);
+    }
+
+    /** How far something that takes {@link #LET_GO_SECONDS} is after {@code seconds}, eased, from 0 to 1. */
+    private static float letGo(float seconds) {
+        float linear = Math.min(1, seconds / LET_GO_SECONDS);
+        return linear * linear * (3 - 2 * linear);
     }
 
     @Override
@@ -75,18 +102,18 @@ public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, Tsukumog
     @Override
     public void extractRenderState(Tsukumogami entity, TsukumogamiRenderState state, float partialTicks) {
         super.extractRenderState(entity, state, partialTicks);
-        state.idleAnimationState.copyFrom(entity.idleAnimationState);
-        state.windUpAnimationState.copyFrom(entity.windUpAnimationState);
-        state.watchAnimationState.copyFrom(entity.watchAnimationState);
-        state.fadeAnimationState.copyFrom(entity.fadeAnimationState);
-        state.standsStill = entity.standsStill();
-        state.fading = entity.isFading();
-        state.fadeProgress = state.fading && entity.fadeAnimationState.isStarted()
-                ? Math.clamp(entity.fadeAnimationState.getTimeInMillis(state.ageInTicks)
-                        / (Tsukumogami.FADE_TICKS * 50.0F), 0, 1)
-                : 0;
+        TsukumogamiMotion motion = entity.motion();
+        state.attackSeconds = motion.attackSeconds(partialTicks);
+        state.attackWeight = motion.attackWeight(partialTicks);
+        state.watchSeconds = motion.watchSeconds(partialTicks);
+        state.watchWeight = motion.watchWeight(partialTicks);
+        state.flinchSeconds = motion.flinchSeconds(partialTicks);
+        state.fadeSeconds = motion.fadeSeconds(partialTicks);
+        state.fadeWeight = letGo(state.fadeSeconds);
+        state.fadeProgress = Math.min(1, state.fadeSeconds * 20 / Tsukumogami.FADE_TICKS);
+        state.deathWeight = letGo(state.deathTime / 20);
         OrbitingItems ring = rings.computeIfAbsent(entity, tsukumogami -> new OrbitingItems());
-        ring.update(entity.orbitingItems(), state.fading, state.ageInTicks);
+        ring.update(entity.orbitingItems(), entity.isFading(), state.ageInTicks);
         state.orbit = ring.place(entity, state.ageInTicks, state.bodyRot, OboecraftClient.itemIcons(),
                 itemModelResolver);
     }
@@ -110,18 +137,33 @@ public final class TsukumogamiRenderer extends MobRenderer<Tsukumogami, Tsukumog
         }
     }
 
-    /** See-through while it fades out, so it dissolves instead of vanishing. */
+    /** While it fades out, its pixels go one by one, as {@link #DISSOLVE_TEXTURE} says. */
     @Override
     protected @Nullable RenderType getRenderType(TsukumogamiRenderState state, boolean isBodyVisible,
             boolean forceTransparent, boolean appearGlowing) {
-        if (state.fading && isBodyVisible) {
-            return RenderTypes.entityTranslucent(getTextureLocation(state));
+        if (state.fadeSeconds > 0 && isBodyVisible) {
+            return DISSOLVING;
         }
         return super.getRenderType(state, isBodyVisible, forceTransparent, appearGlowing);
     }
 
+    /** The dissolve reads how far the fade-out is from the tint's alpha: the pixels left are those above it. */
     @Override
     protected int getModelTint(TsukumogamiRenderState state) {
-        return state.fading ? ARGB.white(1 - state.fadeProgress) : super.getModelTint(state);
+        return state.fadeSeconds > 0 ? ARGB.white(1 - state.fadeProgress) : super.getModelTint(state);
+    }
+
+    /** Its shadow goes with it as it fades out. */
+    @Override
+    protected float getShadowStrength(TsukumogamiRenderState state) {
+        return super.getShadowStrength(state) * (1 - state.fadeProgress);
+    }
+
+    /**
+     * It collapses where it stands when it is killed, see {@link TsukumogamiAnimations#DEATH}, and doesn't fall over.
+     */
+    @Override
+    protected float getFlipDegrees() {
+        return 0;
     }
 }

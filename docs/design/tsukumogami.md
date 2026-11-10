@@ -33,7 +33,7 @@ It follows and attacks only its owner. It ignores other players and mobs, and mo
 |---|---|
 | Moving | It walks slowly and never runs, slower than a player walks. It doesn't break or pass through blocks, open doors, ride anything or use portals, and nobody can push it. |
 | Keeping up | When it is more than 32 blocks from its owner, or has made no progress for 3 seconds, it teleports to a place 16 to 24 blocks behind them. Where there is none, like over open water, it looks again a second later. Horses, boats, elytra and pillaring up don't shake it off. |
-| Attacking | A slow, heavy hit with a visible wind-up of a second, its jaw opening and its hands raised. 4 HP on Normal, scaled by difficulty like vanilla mobs: 3 on Easy and 6 on Hard. |
+| Attacking | A slow, heavy hit with a visible wind-up of a second, its jaw opening and its hands raised. 4 HP on Normal, scaled by difficulty like vanilla mobs: 3 on Easy and 6 on Hard. After the hit it stands where it is for a second while it straightens up, so its owner can back away, and it starts its next attack a second and a half after the hit at the earliest. |
 | Health | 20 HP at the threshold, plus 6 HP for each overdue item above it, up to 100 HP. When the overdue count changes, its max health changes and it keeps the same fraction of its health, so a pass in the middle of a fight weakens it at once. Damage and speed don't change. |
 | Damage it takes | Only damage its owner causes: melee, arrows, tridents, thrown potions and anything else that has the owner as its attacker. Other players, other mobs and the owner's pets do nothing, and neither do lava, fire, falling, drowning, suffocation and cactus. Other players' hits play a dull sound, so nobody thinks it is broken. `/kill` and the void still work, also while it fades out. |
 | During a review | While its owner has any review going, lessons included, it stands still and watches them, for at most the **Tsukumogami review freeze**. After that it moves again even with the answer menu open, so the menu can't be held open through the night. Every new review starts a new freeze, and it stays still for 2 seconds after a review ends, so the owner isn't hit the moment they are back. It can still be hurt while it stands still. With a freeze of 0, it never stands still. |
@@ -62,22 +62,59 @@ It is never saved with the world. Whether it should exist is worked out from its
 
 It is a menreiki (面霊気), a noh mask that came alive:
 
-- Tall and stooped, about 2.8 blocks, in a frayed, faded indigo kimono that drags on the ground, with a red obi.
-- Its face is an old noh mask with cracked, peeling lacquer, painted eyebrows high on the forehead and a dim glow in the eye holes. The mask's jaw opens when it attacks.
-- Its hands are long and thin like old wooden tool handles, and broken things hang from its sash: a snapped comb, a cracked bell and a chipped cup.
+- Tall and stooped, about 2.8 blocks, in a frayed, faded indigo kimono, worn left over right, that drags a torn train on the ground, with a red obi tied in a knot at the back. Its geta show under the hem when it walks.
+- Its face is an old noh mask over long black hair: pale, with a crack down from the forehead through one eyebrow, lacquer peeled off down to the wood at its edges, painted eyebrows high on the forehead, blackened teeth and a dim glow in the narrow eye holes. The mask's jaw is a separate piece, which drops open when it attacks.
+- Its hands are long and thin like old wooden tool handles, with fingers that reach its knees, and broken things hang from its sash: a snapped comb, a cracked bell and a chipped cup.
 - Its owner's overdue items orbit its shoulders slowly, shown as their icons, like a dark halo. Each passed review knocks one out of the ring, and the others close up. At most 12 orbit it, the first overdue items the owner carries.
-- It sways when it stands, walks slowly and heavily, rears back for its attack, leans in and tilts its head to watch its owner during a review, and sinks and turns see-through as it fades out, while its items fall away.
 
-![The tsukumogami at night, with bread, an iron ingot and an apple orbiting it, and its boss bar showing Tsukumogami (5)](../images/tsukumogami.png)
+![The tsukumogami at night: a stooped figure in an indigo kimono with a pale noh mask and glowing eyes, its owner's overdue items orbiting its shoulders](../images/tsukumogami.png)
 
-It is made with Minecraft's own entity models and keyframe animations, with a glowing layer for the eyes and no animation library, so the mod still only needs Fabric API. Improving the model and animations further is [willdalh/oboecraft#53](https://github.com/willdalh/oboecraft/issues/53).
+It moves slowly and heavily, never suddenly except in the hit itself. The heavy parts lead, and its sleeves, its hair, the train and the things on its sash come after them:
+
+| When | How it moves |
+|---|---|
+| It stands | It breathes and sways so slowly that it nearly stands still, and its fingers curl and straighten. The mask stays steadier than the body. |
+| It walks | Two sliding steps for every 2.2 blocks, one for each step that sounds. It leans over the foot that stands, the knee pushes the front of the kimono out as the other foot slides forward, it sinks as the step lands, and the mask stays level and on its owner. |
+| It attacks | Over the wind-up it rears up with both hands raised behind its head, its jaw opening and its eyes flaring up, and holds. Then it brings its hands down fast, so that they are down when the hit lands, and straightens up slowly while its sleeves and hair swing out and settle and its jaw clacks shut. |
+| A review starts | It leans in with its head tilted and its hands half raised, and holds that. Every few seconds it tilts its head the other way, quickly, and holds again. An attack that the review interrupts stops where it is and settles into this: it never finishes a hit that wasn't made. |
+| It is hurt | A short, stiff jolt back from the blow, the mask knocked aside. |
+| It fades out | Its items fall away, its hands and jaw drop and its head sinks. It dissolves from the hem of its kimono upwards, a few pixels at a time, and the mask and the glow in its eyes go last. Its shadow goes with it. |
+| It is killed | The blow knocks it back, the kimono falls in on itself, and the mask tips up and comes down on it last, before it is gone. It doesn't fall over like other mobs. |
+
+Each of these blends into the next over about a third of a second, so it never snaps from one pose to another.
+
+The recordings below are from the game, on a lit stage so that the motion shows. At night it is as dark as in the picture above.
+
+| Walking | Attacking | Attacking, as its owner sees it |
+|---|---|---|
+| ![The tsukumogami walks past with slow, sliding steps, its train dragging behind it](../images/tsukumogami-walk.gif) | ![The tsukumogami rears up with its hands raised, brings them down and straightens up](../images/tsukumogami-attack.gif) | ![The mask looms over its owner with its jaw open and its eyes flaring, the hands come down, and its owner is knocked back](../images/tsukumogami-attack-owner-view.gif) |
+
+| A review starts | It is hurt |
+|---|---|
+| ![The tsukumogami leans in and tilts its head as its owner's review starts](../images/tsukumogami-watch.gif) | ![The tsukumogami jolts back from a blow and stands still again](../images/tsukumogami-flinch.gif) |
+
+| Fading out | Killed |
+|---|---|
+| ![The tsukumogami's items fall away and it dissolves from the hem up, its mask last](../images/tsukumogami-fade.gif) | ![The tsukumogami is knocked back, its kimono falls in on itself and the mask comes down on it](../images/tsukumogami-death.gif) |
+
+And this is what its owner sees of it at night, with its boss bar, in screenshots from the game:
+
+| It stands | The wind-up | The hit |
+|---|---|---|
+| ![The tsukumogami stands a few blocks away at night, its eyes glowing dimly, with bread, a torch and an apple orbiting it](../images/tsukumogami-night-standing.png) | ![The mask looms over its owner with its eyes flaring, its jaw open and its sleeves raised to either side](../images/tsukumogami-night-wind-up.png) | ![The open jaw of the mask fills the view as it comes down over its owner](../images/tsukumogami-night-hit.png) |
+
+| A review starts | A pass knocks an item out | It fades out |
+|---|---|---|
+| ![The mask close to its owner, tilted to one side, watching](../images/tsukumogami-night-watching.png) | ![The tsukumogami with its boss bar now showing Tsukumogami (5), an oak log falling away from its ring](../images/tsukumogami-night-item-knocked-out.png) | ![Only the mask, the head and the shoulders are left, with the kimono below them dissolved](../images/tsukumogami-night-fading.png) |
+
+It is made with Minecraft's own entity models and keyframe animations, with a glowing layer for the eyes, Minecraft's own dissolve for the fade-out and no animation library, so the mod still only needs Fabric API. It was reworked in [willdalh/oboecraft#53](https://github.com/willdalh/oboecraft/issues/53).
 
 ## Sounds
 
 | When | Sound | Heard by |
 |---|---|---|
 | It arrives | A single deep temple bell (梵鐘), from where it arrived | Its owner only |
-| It walks | Slow, heavy geta steps and the drag of its kimono, so it is heard before it is seen | Everyone nearby |
+| It walks | Slow, heavy geta steps and the drag of its kimono, one for every 1.1 blocks it walks, so it is heard before it is seen | Everyone nearby |
 | It is idle | Creaking wood and a low breath through the mask | Everyone nearby |
 | Its attack winds up | The mask's jaw creaking open and clacking | Everyone nearby |
 | It strikes | A heavy thud, at the end of the wind-up, whether it hits or not | Everyone nearby |
