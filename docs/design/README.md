@@ -16,7 +16,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Settings](settings.md) | The values that settings control, their defaults, the settings files and the settings screen |
 | [Display](display.md) | Hidden names, the lock timer, the slot marker, and the notification and reading clip after a pass |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
-| [Tsukumogami](tsukumogami.md) | The mob that follows a player at night while their overdue items pile up |
+| [Tsukumogami](tsukumogami.md) | The mob that follows a player day and night while their overdue items pile up |
 
 ## What is built when
 

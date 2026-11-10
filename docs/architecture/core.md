@@ -29,7 +29,7 @@ Package names are short for `io.github.willdalh.oboecraft.core.item` and so on. 
 | | `DurationText`, `LevelsText` | 12 |
 | `core.text` | `JapaneseText`, `Romaji` | 4 |
 | `core.punishment` | `Punishment`, `Recipe`, `ProtectedItems` | 9 |
-| `core.tsukumogami` | `OverdueItems`, `Night`, `TsukumogamiRules` | [#51](https://github.com/willdalh/oboecraft/issues/51) |
+| `core.tsukumogami` | `OverdueItems`, `TsukumogamiRules` | [#51](https://github.com/willdalh/oboecraft/issues/51) |
 
 ### Items
 
@@ -90,8 +90,7 @@ Every count is `count × part × percent / (whole × 100)`, rounded up, in `long
 The rules are in [Tsukumogami](../design/tsukumogami.md). Whether a player can be followed at all, by game mode, dimension and difficulty, is a Minecraft question, so `fabric` decides it.
 
 - `OverdueItems.isOverdue(state, now, settings)`: whether a state is overdue, locked by `SrsRules.isLocked` at level 1 or higher, banned or not. `OverdueItems.of(carried, states, now, settings)` takes the items of the stacks a player carries, in a stable order and with repeats, and returns each overdue item once, in the order it is first carried. Its size is the overdue count.
-- `Night`: `isNight(dayTime)` is whether a day time in ticks is in the night, from `START` (12,542) up to `END` (23,460) of each `DAY_LENGTH` (24,000), and `nightOf(dayTime)` which night it is, as the number of its day.
-- `TsukumogamiRules`: the fixed numbers, like `BASE_HEALTH`, `HEALTH_PER_ITEM`, `MAX_HEALTH`, `RETURN_DELAY`, `ARRIVAL_DELAY`, `STILL_AFTER_REVIEW` and `MAX_ORBITING_ITEMS`. `isOn(settings)` is whether the threshold is above 0. `shouldExist(overdueCount, dayTime, killedOnNight, now, waitsUntil, settings)` is whether a player's tsukumogami should exist. `maxHealth(overdueCount, settings)` is its max health, and `scaledHealth(health, oldMax, newMax)` its health after the max changes, keeping the same fraction. `standsStill(reviewStartedAt, reviewEndedAt, now, settings)` is whether it stands still for its owner's review.
+- `TsukumogamiRules`: the fixed numbers, like `BASE_HEALTH`, `HEALTH_PER_ITEM`, `MAX_HEALTH`, `KILL_RELIEF_TICKS`, `KILL_RELIEF_TICKS`, `RETURN_DELAY`, `ARRIVAL_DELAY`, `STILL_AFTER_REVIEW` and `MAX_ORBITING_ITEMS`. `isOn(settings)` is whether the threshold is above 0. `shouldExist(overdueCount, gameTime, killedAtTick, now, waitsUntil, settings)` is whether a player's tsukumogami should exist. `maxHealth(overdueCount, settings)` is its max health, and `scaledHealth(health, oldMax, newMax)` its health after the max changes, keeping the same fraction. `standsStill(reviewStartedAt, reviewEndedAt, now, settings)` is whether it stands still for its owner's review.
 
 ### Answer checking
 
