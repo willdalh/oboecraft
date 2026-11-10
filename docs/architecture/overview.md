@@ -124,6 +124,18 @@ Core rules get plain unit tests with JUnit, in `core/src/test`. The `fabric` mod
 
 GitHub Actions runs both on every PR and on every push to `main` (`.github/workflows/build.yml`), and uploads the reports, logs, screenshots and any crash reports.
 
+### Game test pitfalls
+
+- **Test players can't take damage.** No client has loaded the world for a player made by `TestPlayers`, so ordinary damage won't kill them. To exercise death handling, call `player.die(player.damageSources().genericKill())` directly, as `TsukumogamiGameTest` does.
+- **Test players join at the world's origin.** Move them into the test area before anything that needs nearby ground, such as finding a place for a mob to spawn. Use coordinates relative to the test structure, for example `player.snapTo(helper.absoluteVec(new Vec3(1.5, 1, 1.5)))`.
+- **The mod's clock and the world's time are shared by all game tests.** Change them only in a test that completes within one tick, and restore them in `finally`, even if an assertion fails. Don't leave them changed across scheduled ticks. `TsukumogamiGameTest.atMidnight` shows this: it restores the Overworld's previous time through `OverworldTime` and resets `OboecraftMod.clock()` to `InstantSource.system()`.
+
+### Client game test pitfalls
+
+- **Don't create item stacks in static fields.** Test classes load before the game is ready for `ItemStack` construction. Keep `Item` references in static fields and create fresh stacks inside the test, as `TsukumogamiClientGameTest` does.
+- **Wait on what the client sees.** A `context.waitFor` predicate runs on the client thread. Don't call `computeOnServer` or otherwise ask the server for anything inside it. Do server setup through `runOnServer` or `computeOnServer` outside the wait, then wait for the result in client state, such as a synced entity, progress or the current screen.
+- **A run includes every client game test.** The current runner can't select a single client test, and `runClientGameTest` is not a JUnit task that accepts `--tests`. Each run takes a few minutes, so allow time for the whole suite.
+
 ## Decisions
 
 - [Stack](../decisions/20261105-stack.md)
