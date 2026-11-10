@@ -31,9 +31,9 @@ final class OrbitingItems {
     private static final float FALL_TICKS = 25;
     private static final float RADIUS = 1.15F;
     /** The height of the ring above the tsukumogami's feet, at its stooped shoulders. */
-    private static final float HEIGHT = 2.2F;
+    private static final float HEIGHT = 1.75F;
     /** How far in front of its feet the ring is, since it stoops forward. */
-    private static final float FORWARD = 0.3F;
+    private static final float FORWARD = 0.35F;
     /** The size of an item, on top of the size of an item on the ground. */
     private static final float SCALE = 1.1F;
 
