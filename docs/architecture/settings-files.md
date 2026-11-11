@@ -37,7 +37,7 @@ The file written with the defaults has all 8 default levels.
 
 `SettingsJson.parse` throws with a message that says what is wrong and, for a level, which one. `ServerSettingsFile.load` runs in Fabric's `SERVER_STARTING`, before any player joins. It writes the defaults when there is no file, and otherwise reads the file like `read`, which logs a file that can't be read or isn't valid and returns the defaults, leaving the file as it is. Both files are written with `AtomicFiles.write`, which writes a temporary file, flushes it to disk and moves it into place, like the progress files.
 
-A file with another version is refused like an invalid one. A later version that adds settings goes up, so an older mod uses its defaults instead of saving the file again without the new settings. Nothing saves the server file except the settings screen, which writes all fields of the version it knows.
+A file with another version is refused like an invalid one. A later version that adds settings goes up, so an older mod uses its defaults instead of saving the file again without the new settings. Nothing saves the server file except the settings screen, which writes all fields of the version it knows. The screen reads the file with `ServerSettingsFile.readIfValid`, which gives nothing for a file that can't be read or isn't valid, and then shows the defaults read-only and never saves, so neither a typo nor a file of a later version is replaced with the defaults.
 
 Version 2 added `tsukumogamiThreshold` and `tsukumogamiReviewFreeze`, for the [tsukumogami](../design/tsukumogami.md). Version 1, the first, is still read: it has exactly the fields above without those two, and gets their defaults. Reading doesn't write the file again, and the settings screen saves it as version 2.
 
@@ -53,7 +53,7 @@ Version 2 added `tsukumogamiThreshold` and `tsukumogamiReviewFreeze`, for the [t
 
 Version 2 has exactly these fields. `reviewItemScalePercent` is a whole number from 50 to 400. The default 100 preserves the original 16-pixel image in GUI coordinates. The answer menu scales only this item's drawing and keeps it centered above the answer field, limited to the available space.
 
-Version 1, with exactly `version` and `clickableButtons`, is also accepted: its clickable buttons value is kept and the review item size defaults to 100%. Reading does not rewrite the file; the next save writes version 2. Unknown fields, unsupported versions and invalid values are rejected. A missing file means the defaults, and an invalid file is logged and left as it is, and the defaults are used. The client reads it once when the game starts, and the settings screen writes it.
+Version 1, with exactly `version` and `clickableButtons`, is also accepted: its clickable buttons value is kept and the review item size defaults to 100%. Reading does not rewrite the file; the next save writes version 2. Unknown fields, unsupported versions and invalid values are rejected. A missing file means the defaults, and an invalid file is logged and left as it is, and the defaults are used. The client reads it once when the game starts, and the settings screen writes it, only when the player changed the client settings, so Done leaves an invalid file as it is.
 
 ## Settings in the game
 

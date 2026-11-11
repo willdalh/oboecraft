@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.Optional;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
@@ -45,21 +46,29 @@ public final class ServerSettingsFile {
      * settings is logged and left untouched, and the defaults are used, so a typo never loses the owner's file.
      */
     public static Settings read(Path file) {
+        return readIfValid(file).orElse(Settings.DEFAULTS);
+    }
+
+    /**
+     * Reads the server settings, or the defaults if there is no file. A file that can't be read or isn't valid
+     * settings is logged and gives nothing, so the settings screen knows not to save over it.
+     */
+    public static Optional<Settings> readIfValid(Path file) {
         String text;
         try {
             text = Files.readString(file, StandardCharsets.UTF_8);
         } catch (NoSuchFileException e) {
-            return Settings.DEFAULTS;
+            return Optional.of(Settings.DEFAULTS);
         } catch (IOException e) {
             OboecraftMod.LOGGER.error("Couldn't read the settings file {}, so the default settings are used", file, e);
-            return Settings.DEFAULTS;
+            return Optional.empty();
         }
         try {
-            return SettingsJson.parse(JsonParser.parseString(text));
+            return Optional.of(SettingsJson.parse(JsonParser.parseString(text)));
         } catch (JsonParseException | IllegalArgumentException e) {
             OboecraftMod.LOGGER.error("The settings file {} isn't valid, so the default settings are used: {}",
                     file, e.getMessage());
-            return Settings.DEFAULTS;
+            return Optional.empty();
         }
     }
 

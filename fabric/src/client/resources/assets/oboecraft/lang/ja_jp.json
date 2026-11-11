@@ -49,6 +49,7 @@
   "oboecraft.settings.review_item_scale_hint": "解答欄の上にあるすべてのアイテム画像の大きさを変更します。それ以外のアイテム画像の大きさは変わりません。",
   "oboecraft.settings.server": "シングルプレイとLANに公開したワールドの設定",
   "oboecraft.settings.server_remote": "このサーバーの設定（サーバーの管理者だけが変更できます）",
+  "oboecraft.settings.server_invalid": "server.jsonが無効なため、既定の設定を使用中（ゲームログを参照）",
   "oboecraft.settings.intervals": "各レベルの間隔（例: 10m, 1h, 1d）",
   "oboecraft.settings.demotions": "失敗で下がるレベル（レベルごとに1つ）",
   "oboecraft.settings.ban_length": "失敗後の禁止時間",

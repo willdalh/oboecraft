@@ -8,6 +8,7 @@ import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.settings.ServerSettingsFile;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -23,7 +24,8 @@ import org.jspecify.annotations.Nullable;
  * The mod's settings screen, which Mod Menu opens. The client settings are the player's own. The server settings are
  * the ones in this computer's settings file, which singleplayer worlds and worlds opened to LAN use, and can only be
  * changed while the player isn't on another server. On another server, the screen shows that server's settings and
- * can't change them.
+ * can't change them. A settings file that can't be read or isn't valid can't be changed here either, so the screen
+ * never saves the defaults over the owner's file.
  */
 public final class SettingsScreen extends Screen {
     private static final int FIELD_WIDTH = 260;
@@ -39,6 +41,8 @@ public final class SettingsScreen extends Screen {
 
     private final @Nullable Screen parent;
     private final boolean serverEditable;
+    /** The server settings' header, which says whose settings they are or why they can't be changed. */
+    private final Component serverHeader;
     private ClientSettings clientSettings;
     private Settings serverSettings;
     private @Nullable CycleButton<Boolean> clickableButtons;
@@ -56,11 +60,17 @@ public final class SettingsScreen extends Screen {
         super(Component.translatable("oboecraft.settings.title"));
         this.parent = parent;
         var minecraft = net.minecraft.client.Minecraft.getInstance();
-        serverEditable = minecraft.getConnection() == null || minecraft.hasSingleplayerServer();
+        boolean onThisComputer = minecraft.getConnection() == null || minecraft.hasSingleplayerServer();
         clientSettings = OboecraftClient.clientSettings();
-        serverSettings = serverEditable
-                ? ServerSettingsFile.read(ServerSettingsFile.path())
+        Optional<Settings> fileSettings = onThisComputer
+                ? ServerSettingsFile.readIfValid(ServerSettingsFile.path())
+                : Optional.empty();
+        serverEditable = fileSettings.isPresent();
+        serverSettings = onThisComputer
+                ? fileSettings.orElse(Settings.DEFAULTS)
                 : OboecraftClient.progress().settings();
+        serverHeader = Component.translatable(!onThisComputer ? "oboecraft.settings.server_remote"
+                : serverEditable ? "oboecraft.settings.server" : "oboecraft.settings.server_invalid");
     }
 
     @Override
@@ -114,7 +124,8 @@ public final class SettingsScreen extends Screen {
     /**
      * Saves both kinds of settings and closes the screen. Server settings that aren't valid aren't saved: the screen
      * stays open and says what is wrong. Saved server settings are used at once by a singleplayer world or a world
-     * opened to LAN that is running.
+     * opened to LAN that is running. The client settings file is only written when they changed, so an invalid file
+     * the player didn't touch here is left as it is.
      */
     private void save() {
         Settings newServerSettings = serverSettings;
@@ -133,7 +144,9 @@ public final class SettingsScreen extends Screen {
         }
         ClientSettings newClientSettings = new ClientSettings(clickableButtons.getValue(), reviewItemScale.scalePercent());
         try {
-            ClientSettingsFile.write(ClientSettingsFile.path(), newClientSettings);
+            if (!newClientSettings.equals(clientSettings)) {
+                ClientSettingsFile.write(ClientSettingsFile.path(), newClientSettings);
+            }
             if (serverEditable) {
                 ServerSettingsFile.write(ServerSettingsFile.path(), newServerSettings);
             }
@@ -171,8 +184,7 @@ public final class SettingsScreen extends Screen {
         int x = (width - FIELD_WIDTH) / 2;
         graphics.centeredText(font, title, width / 2, 8, -1);
         if (error.getString().isEmpty()) {
-            graphics.text(font, Component.translatable(serverEditable
-                    ? "oboecraft.settings.server" : "oboecraft.settings.server_remote"), x, SERVER_TOP, -1);
+            graphics.text(font, serverHeader, x, SERVER_TOP, -1);
         } else {
             int errorY = SERVER_TOP;
             for (var line : font.split(error, width - 2 * ERROR_MARGIN)) {

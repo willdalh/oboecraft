@@ -69,6 +69,15 @@ public class SettingsGameTest {
     }
 
     @GameTest
+    public void onlyAValidOrMissingSettingsFileCanBeSavedOver(GameTestHelper helper) throws IOException {
+        Path file = temporaryFile();
+        helper.assertValueEqual(ServerSettingsFile.readIfValid(file), Optional.of(Settings.DEFAULTS), "a missing file");
+        Files.writeString(file, "{\"version\": 3}", StandardCharsets.UTF_8);
+        helper.assertValueEqual(ServerSettingsFile.readIfValid(file), Optional.empty(), "a file of a later version");
+        helper.succeed();
+    }
+
+    @GameTest
     public void savedSettingsAreReadBack(GameTestHelper helper) throws IOException {
         Path file = temporaryFile();
         Settings custom = Settings.DEFAULTS.withBanLength(Duration.ofSeconds(30)).withPercentageFactor(10);
