@@ -63,6 +63,12 @@ public class TsukumogamiGameTest {
     /** Thresholds with a gap between them, which the seven items can cross both ways. */
     private static final Settings GAP_SETTINGS = Settings.DEFAULTS.withTsukumogamiThresholds(5, 2);
     private static final StackLocation FIRST_SLOT = new StackLocation.InventorySlot(0);
+    /**
+     * How far from the player a threat stands when only being in range matters. The player stands 1.5 blocks into the
+     * 8×8×8 test structure, so this keeps the threat inside it. The runner loads only the structure's chunks before a
+     * test, and a mob outside them can be missing from the threat check.
+     */
+    private static final double NEARBY_THREAT_DISTANCE = 5;
     /** The Minecraft items of {@link #ITEMS}, in the same order. */
     private static final List<Item> MINECRAFT_ITEMS = List.of(
             Items.OAK_LOG, Items.STONE, Items.TORCH, Items.APPLE, Items.IRON_INGOT, Items.BREAD, Items.DIRT);
@@ -499,7 +505,7 @@ public class TsukumogamiGameTest {
             spirit.tick();
             helper.assertValueEqual(soundsSentTo(player, TsukumogamiSounds.ATTACK).size(), 1, "pending strike");
             float health = player.getHealth();
-            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            Mob threat = threat(player, EntityTypes.ZOMBIE, NEARBY_THREAT_DISTANCE);
             try {
                 ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
                 helper.assertTrue(spirit.waitsForSafety(), "danger suspends attacks");
@@ -583,7 +589,7 @@ public class TsukumogamiGameTest {
             carryOverdue(player, 6);
             tsukumogami().checkPlayers(server);
             Tsukumogami spirit = existing(helper, player);
-            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            Mob threat = threat(player, EntityTypes.ZOMBIE, NEARBY_THREAT_DISTANCE);
             try {
                 spirit.snapTo(player.position().add(50, 0, 0));
                 spirit.tick();
@@ -619,7 +625,7 @@ public class TsukumogamiGameTest {
             Tsukumogami spirit = existing(helper, player);
             spirit.snapTo(player.position().add(0, 0, 1));
             ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
-            Mob threat = threat(player, EntityTypes.ZOMBIE, 10);
+            Mob threat = threat(player, EntityTypes.ZOMBIE, NEARBY_THREAT_DISTANCE);
             try {
                 spirit.snapTo(player.position().add(0, 0, 4));
                 spirit.tick();
