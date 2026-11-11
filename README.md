@@ -83,6 +83,6 @@ The levels, their intervals, the ban length, how much a fail removes, and when t
 
 ## License
 
-The code is under the [MIT license](LICENSE). The item names come from Minecraft, and the readings in the name list are under CC BY-SA 4.0. The spoken names are VOICEVOX:玄野武宏. See [`CREDITS.md`](CREDITS.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The code is under the [MIT license](LICENSE). Not everything in the mod is: the item names come from Minecraft, the readings in the name list are under CC BY-SA 4.0, the spoken names are VOICEVOX:玄野武宏(CV:ガロ) under VOICEVOX's terms, and one of the tsukumogami's sounds is under CC BY 2.1 JP. [`CREDITS.md`](CREDITS.md) says what each part is under and where it comes from. To contribute, see [`CONTRIBUTING.md`](CONTRIBUTING.md). Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 [AGENTS.md](AGENTS.md) has the commands to build and test the mod, and [`docs/`](docs/) describes how it works.

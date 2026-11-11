@@ -79,7 +79,7 @@ Learning language follows only the exact supported game language codes; all othe
 
 ### Reading clips
 
-Every Japanese name list entry has a reading clip in `fabric/src/client/resources/assets/oboecraft/sounds/reading/`, made by the reading clip tool, and `ReadingClipsClientGameTest` fails if one is missing. After a change to the name list, run the tool, which only makes the clips of new and changed entries. The tool rewrites the reading clips in `sounds.json` and keeps the file's other sound events, like the tsukumogami's, which are written by hand. The voice is VOICEVOX:玄野武宏, whose credit is in `CREDITS.md`. A change of voice needs a voice whose terms allow its clips to ship in the published mod, and the credit in `CREDITS.md` changes with it, see `docs/decisions/20261107-reading-clips-with-voicevox.md`.
+Every Japanese name list entry has a reading clip in `fabric/src/client/resources/assets/oboecraft/sounds/reading/`, made by the reading clip tool, and `ReadingClipsClientGameTest` fails if one is missing. After a change to the name list, run the tool, which only makes the clips of new and changed entries. The tool rewrites the reading clips in `sounds.json` and keeps the file's other sound events, like the tsukumogami's, which are written by hand. The voice is VOICEVOX:玄野武宏(CV:ガロ), whose credit is in `CREDITS.md`. A change of voice needs a voice whose terms allow its clips to ship in the published mod, and the credit in `CREDITS.md` and in the clip folder's `NOTICE.md` changes with it, see `docs/decisions/20261107-reading-clips-with-voicevox.md`.
 
 ### Tsukumogami sounds
 
@@ -110,6 +110,7 @@ Docs reflect code. Changes that touch game behavior, architecture, tools, or ter
 | Path | Contents | Kept in sync with code |
 |---|---|---|
 | `README.md` | What the mod does, installing it and a short guide to playing | Yes |
+| `CONTRIBUTING.md` | How to contribute, and the licenses contributions are under | Yes |
 | `docs/idea.md` | Original vision | No, frozen |
 | `docs/design/` | Game behavior as it actually works | Yes |
 | `docs/architecture/` | How the code is structured | Yes |

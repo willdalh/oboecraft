@@ -17,9 +17,9 @@ None of these files ship with the mod. Only the name list tool, which is run by 
 
 ## Reading clips
 
-VOICEVOX:玄野武宏
+VOICEVOX:玄野武宏(CV:ガロ)
 
-The reading clips (`assets/oboecraft/sounds/reading/` in the mod jar), which say each item's reading after a pass, were made with [VOICEVOX](https://voicevox.hiroshiba.jp/) in the voice of [玄野武宏](https://www.virvoxproject.com/), and are used under the [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/) and the [terms of use of 玄野武宏, by the VirVox Project](https://www.virvoxproject.com/voicevoxの利用規約), which allow commercial and non-commercial use with the credit above. Anyone who uses the clips outside the mod must follow those terms too, and give the same credit. The clips are not under the MIT license or CC BY-SA 4.0. See [ADR: Reading clips are made ahead of time with VOICEVOX's 玄野武宏](docs/decisions/20261107-reading-clips-with-voicevox.md).
+The reading clips (`assets/oboecraft/sounds/reading/` in the mod jar), which say each item's reading after a pass, were made with [VOICEVOX](https://voicevox.hiroshiba.jp/) in the voice of [玄野武宏](https://www.virvoxproject.com/), and are used under the [VOICEVOX terms of use](https://voicevox.hiroshiba.jp/term/) and the [terms of use of 玄野武宏, by the VirVox Project](https://www.virvoxproject.com/voicevoxの利用規約), which allow commercial and non-commercial use with the credit above. Anyone who uses the clips outside the mod must follow those terms too, and give the same credit. They forbid, among other things, training a voice model on the clips. The folder's [`NOTICE.md`](fabric/src/client/resources/assets/oboecraft/sounds/reading/NOTICE.md) says the same beside the clips. The clips are not under the MIT license or CC BY-SA 4.0. See [ADR: Reading clips are made ahead of time with VOICEVOX's 玄野武宏](docs/decisions/20261107-reading-clips-with-voicevox.md).
 
 VOICEVOX itself doesn't ship with the mod. Only the reading clip tool, which is run by hand to make the clips, uses it.
 
@@ -39,3 +39,7 @@ The other sounds were made from these recordings, all under [CC0 1.0](https://cr
 - The strike (`hit.ogg`): [Thwack Sounds](https://opengameart.org/content/thwack-sounds) by AntumDeluge and [75 CC0 breaking / falling / hit sfx](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck.
 - Hurt (`hurt1.ogg`, `hurt2.ogg`): 100 CC0 metal and wood SFX by rubberduck and the cloth steps by HaelDB.
 - Death (`death.ogg`): 100 CC0 metal and wood SFX and 75 CC0 breaking / falling / hit sfx by rubberduck, and the cloth steps by HaelDB.
+
+## Textures and icons
+
+The tsukumogami's textures (`assets/oboecraft/textures/entity/tsukumogami/` in the mod jar), the mod's icon (`assets/oboecraft/icon.png`) and the reading clip button's icon (`assets/oboecraft/textures/gui/sprites/icon/`) were made for the mod with Claude Code, an AI coding agent, and are under the MIT license, like the code.
