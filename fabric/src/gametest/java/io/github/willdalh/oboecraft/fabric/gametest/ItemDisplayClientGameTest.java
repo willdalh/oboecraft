@@ -4,6 +4,8 @@ import io.github.willdalh.oboecraft.core.item.LearningLanguage;
 import io.github.willdalh.oboecraft.core.item.ItemId;
 import io.github.willdalh.oboecraft.core.srs.Progress;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
+import io.github.willdalh.oboecraft.core.srs.SlotMarker;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
@@ -142,6 +144,7 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
                 OboecraftClient.progress().sync(client.getConnection(), LearningLanguage.JAPANESE, Progress.EMPTY, Settings.DEFAULTS, NOW);
             });
             bundleTooltip(context, singleplayer);
+            markerScreenshots(context, singleplayer);
         } finally {
             OboecraftMod.clock().setSource(InstantSource.system());
         }
@@ -184,6 +187,13 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         check(decorations.fills.stream().anyMatch(fill -> fill.color == ClientDisplayHooks.WARNING_COLOR
                 && fill.width == 3 && fill.height == 3) == marked, "slot marker presence");
 
+        SlotMarker expectedMarker = marked ? SlotMarker.NEAR_LOCK : !hidden ? SlotMarker.NONE
+                : OboecraftClient.progress().state(client.player, OAK_LOG) instanceof SrsState.Leveled leveled
+                        && leveled.level() == 0 ? SlotMarker.NEW : SlotMarker.OVERDUE;
+        check(decorations.sprites.equals(expectedMarker == SlotMarker.NEW ? List.of(ClientDisplayHooks.NEW_SPRITE)
+                : expectedMarker == SlotMarker.OVERDUE ? List.of(ClientDisplayHooks.OVERDUE_SPRITE) : List.of()),
+                "slot sprite matches " + expectedMarker);
+
         // A separate HUD observes the held stack and renders the real selected-item label hook.
         ItemStack held = client.player.getInventory().getSelectedItem();
         client.player.getInventory().setItem(client.player.getInventory().getSelectedSlot(), stack);
@@ -201,6 +211,61 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
         } finally {
             client.player.getInventory().setItem(client.player.getInventory().getSelectedSlot(), held);
         }
+    }
+
+    private static void markerScreenshots(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        int originalScale = context.computeOnClient(client -> client.options.guiScale().get());
+        var items = List.of(Items.OAK_LOG, Items.STONE, Items.DIRT, Items.DIAMOND, Items.APPLE,
+                Items.STICK, Items.COAL, Items.IRON_INGOT);
+        var states = List.of(SrsState.Leveled.NEW,
+                new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(30))),
+                new SrsState.Leveled(1, Optional.of(NOW)),
+                new SrsState.Leveled(1, Optional.of(NOW), true, 0, Optional.of(NOW.plusSeconds(600))),
+                new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(600))),
+                new SrsState.Known(), new SrsState.Ignored(),
+                new SrsState.Leveled(Settings.DEFAULTS.topLevel(), Optional.empty()));
+        singleplayer.getServer().runOnServer(server -> {
+            OboecraftMod.clock().setSource(InstantSource.fixed(NOW));
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            for (int i = 0; i < items.size(); i++) {
+                var stack = new ItemStack(items.get(i));
+                var id = OboecraftMod.itemMappings().get(LearningLanguage.JAPANESE).entryOf(stack).orElseThrow().id();
+                OboecraftMod.serverProgress().update(player, id, states.get(i));
+                player.getInventory().setItem(i, stack);
+                player.getInventory().setItem(i + 9, stack.copy());
+            }
+            player.containerMenu.broadcastChanges();
+        });
+        singleplayer.getConnection().waitForClientboundPackets();
+        context.runOnClient(client -> {
+            client.gui.setScreen(null);
+            client.options.guiScale().set(3);
+            client.resizeGui();
+            var expected = List.of(SlotMarker.NEW, SlotMarker.NEAR_LOCK, SlotMarker.OVERDUE, SlotMarker.OVERDUE,
+                    SlotMarker.NONE, SlotMarker.NONE, SlotMarker.NONE, SlotMarker.NONE);
+            for (int i = 0; i < items.size(); i++) {
+                for (int slot : new int[] {i, i + 9}) {
+                    ItemStack stack = client.player.getInventory().getItem(slot);
+                    check(ItemDisplay.slotMarker(stack) == expected.get(i), "marker for slot " + slot);
+                    RecordingGraphics graphics = new RecordingGraphics(client);
+                    graphics.itemDecorations(client.font, stack, 10, 10);
+                    check(graphics.sprites.equals(expected.get(i) == SlotMarker.NEW ? List.of(ClientDisplayHooks.NEW_SPRITE)
+                            : expected.get(i) == SlotMarker.OVERDUE ? List.of(ClientDisplayHooks.OVERDUE_SPRITE) : List.of()),
+                            "drawn sprite for slot " + slot);
+                    check(graphics.fills.stream().anyMatch(fill -> fill.color == ClientDisplayHooks.WARNING_COLOR)
+                            == (expected.get(i) == SlotMarker.NEAR_LOCK), "drawn square for slot " + slot);
+                }
+            }
+        });
+        context.takeScreenshot("slot-markers-hotbar");
+        context.runOnClient(client -> client.gui.setScreen(new InventoryScreen(client.player)));
+        context.takeScreenshot("slot-markers-inventory");
+        context.runOnClient(client -> {
+            client.gui.setScreen(null);
+            client.options.guiScale().set(originalScale);
+            client.resizeGui();
+        });
     }
 
     private static void bundleTooltip(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
@@ -344,6 +409,7 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
     }
 
     private static final class RecordingGraphics extends GuiGraphicsExtractor {
+        final List<Identifier> sprites = new ArrayList<>();
         final List<String> texts = new ArrayList<>();
         final List<Fill> fills = new ArrayList<>();
         List<ClientTooltipComponent> components = List.of();
@@ -361,6 +427,15 @@ public class ItemDisplayClientGameTest implements FabricClientGameTest {
             });
             texts.add(value.toString());
             super.text(font, text, x, y, color, shadow);
+        }
+
+        @Override
+        public void blitSprite(RenderPipeline pipeline, Identifier sprite, int x, int y, int width, int height) {
+            if (sprite.equals(ClientDisplayHooks.NEW_SPRITE) || sprite.equals(ClientDisplayHooks.OVERDUE_SPRITE)) {
+                check(width == 5 && height == 7, "marker sprite dimensions");
+                sprites.add(sprite);
+            }
+            super.blitSprite(pipeline, sprite, x, y, width, height);
         }
 
         @Override

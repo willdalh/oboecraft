@@ -17,7 +17,7 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **Any way of writing it counts.** サクラの原木, さくらのげんぼく and `sakura no genboku` all pass. The sound must be right, and so must the kanji: 元木 has the same sound and still fails.
 - **Mistakes cost items.** You get two attempts. A fail removes up to half of that item from your inventory, moves it down a level and bans it for five minutes, so it can't be answered until the ban ends. Words you have known for longer lose less.
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
-- **Names stay hidden.** A locked item is called `???` until you answer.
+- **Names stay hidden.** A locked item is called `???` until you answer. A `?` in its slot means new; a `!` means overdue for review. An amber square warns that an unlocked item is near locking.
 - **Hear every Japanese word.** After a correct answer, and after a fail, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
 - **Don't let your reviews pile up.** If you carry ten or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It suspends attacks while another mob within 32 blocks targets you and for five safe seconds afterward. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry to be down to five. It stays through sunrise; killing it gives 12,000 game ticks of relief (about 10 minutes at 20 ticks per second).
 

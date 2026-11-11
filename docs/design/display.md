@@ -18,9 +18,15 @@ The bar shows the remaining fraction of the item's level interval. It starts ful
 
 ## Slot marker
 
-During the final 10% of the interval, including the boundary, the bar turns amber and a small amber square with a dark border appears at the top left of the item's slot. It leaves the stack count and durability bar clear. The marker appears wherever Minecraft draws item decorations, including inventory and container slots, the hotbar and offhand.
+Slot markers distinguish item states without revealing names or levels, added in [#79](https://github.com/willdalh/oboecraft/issues/79):
 
-The marker disappears when the item locks; its name is then hidden instead. Locked, mastered and untracked items have no marker. With the default level 1 interval of ten minutes, the marker starts with one minute left.
+- **New marker:** a light grey `?` for leveled items at level 0.
+- **Near-lock marker:** an amber 5?5 square with a dark border for unlocked items in the final 10% of their interval, including the boundary. The timer bar also turns amber. With the default level 1 interval, this starts with one minute left.
+- **Overdue marker:** a red `!` for locked items at level 1 or higher, banned or not.
+
+The `?` and `!` are 5?7 GUI-pixel PNG sprites with a 3?5 glyph and a one-pixel dark border. Shape distinguishes the states; color supports it. Each slot has at most one marker, at its top left, leaving stack count and durability clear. Known, ignored, mastered and untracked items have none. Current settings apply: items above the top level count as mastered; formerly mastered items without a locks-at time become overdue when below the new top level.
+
+Markers appear wherever Minecraft draws item decorations, including inventory and container slots, hotbar and offhand, under the same lock-check conditions as names. They do not appear in word list rows, on orbiting items or on dropped items. Names remain only `???` in tooltips and the selected-item label for both new and overdue items, without an extra line or level. There is no marker setting.
 
 ## Notification
 
@@ -42,4 +48,4 @@ It plays after every pass and every fail, also when the answer menu was closed b
 
 ## Later milestones
 
-Known and ignored items show their normal names, without timers or near-lock markers. A banned item is locked, so its name stays hidden during the ban. Since milestone 12, the displays use the server settings the server sent, the same ones as the client's lock check, so the timer uses the server's intervals.
+Known and ignored items show their normal names, without timers or slot markers. A banned item is locked, so its name stays hidden during the ban. Since milestone 12, the displays use the server settings the server sent, the same ones as the client's lock check, so the timer uses the server's intervals.

@@ -16,7 +16,7 @@ class WordListRulesTest {
         for (SrsState state : new SrsState[] {new SrsState.Known(), new SrsState.Ignored()}) {
             assertEquals(new ReviewStart.NotLocked(), ReviewRules.start(state, NOW, SETTINGS));
             assertEquals(DisplayState.Normal.INSTANCE, DisplayRules.of(state, NOW, SETTINGS));
-            assertFalse(DisplayRules.closeToLocking(state, NOW, SETTINGS));
+            assertEquals(SlotMarker.NONE, DisplayRules.slotMarker(state, NOW, SETTINGS));
             assertTrue(SrsRules.canRevert(state, SETTINGS));
         }
     }

@@ -59,8 +59,17 @@ The remaining time before an unlocked item locks, shown as a time label and drai
 _Avoid_: cooldown
 
 **Slot marker**:
-The small amber mark on a stack during the final tenth of its interval. It disappears when the item locks.
+A small mark at the top left of a stack in its slot, showing one of three states.
 _Avoid_: badge, warning icon
+
+**New marker**:
+A light grey `?` for a leveled item at level 0.
+
+**Near-lock marker**:
+An amber square for an unlocked item in the final tenth of its interval, including the boundary.
+
+**Overdue marker**:
+A red `!` for a locked item at level 1 or higher, banned or not.
 
 **Notification**:
 The item's name in the learning language, shown at the top of the screen for a few seconds after a pass.

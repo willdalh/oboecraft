@@ -49,10 +49,30 @@ class DisplayRulesTest {
                 for (Instant time : List.of(NOW.minusSeconds(1), NOW, warning.minusNanos(1), warning,
                         end.minusNanos(1), end, end.plusNanos(1))) {
                     DisplayState display = DisplayRules.of(state, time, settings);
-                    boolean expected = display instanceof DisplayState.Timed timed && timed.timer().closeToLocking();
-                    assertEquals(expected, DisplayRules.closeToLocking(state, time, settings));
+                    SlotMarker expected = state instanceof SrsState.Leveled leveled && leveled.level() == 0
+                            ? SlotMarker.NEW : display instanceof DisplayState.Hidden ? SlotMarker.OVERDUE
+                            : display instanceof DisplayState.Timed timed && timed.timer().closeToLocking()
+                            ? SlotMarker.NEAR_LOCK : SlotMarker.NONE;
+                    assertEquals(expected, DisplayRules.slotMarker(state, time, settings));
                 }
             }
         }
+    }
+    @Test
+    void markerCoversBansAndChangedLevelSettings() {
+        Settings settings = Settings.DEFAULTS;
+        for (SrsState state : List.of(new SrsState.Known(), new SrsState.Ignored(),
+                new SrsState.Leveled(settings.topLevel(), Optional.empty()),
+                new SrsState.Leveled(settings.topLevel() + 1, Optional.of(NOW)))) {
+            assertEquals(SlotMarker.NONE, DisplayRules.slotMarker(state, NOW, settings));
+        }
+        var banned = new SrsState.Leveled(1, Optional.of(NOW), true, 0, Optional.of(NOW.plusSeconds(60)));
+        assertEquals(SlotMarker.OVERDUE, DisplayRules.slotMarker(banned, NOW, settings));
+        var formerlyMastered = new SrsState.Leveled(2, Optional.empty());
+        Settings shortLevels = settings.withLevels(List.of(new LevelSettings(Duration.ofMinutes(1), 1)));
+        assertEquals(SlotMarker.NONE, DisplayRules.slotMarker(formerlyMastered, NOW, shortLevels));
+        assertEquals(SlotMarker.OVERDUE, DisplayRules.slotMarker(formerlyMastered, NOW, settings));
+        assertEquals(SlotMarker.NEW, DisplayRules.slotMarker(
+                new SrsState.Leveled(0, Optional.of(NOW.plusSeconds(600))), NOW, settings));
     }
 }
