@@ -531,7 +531,8 @@ public class TsukumogamiGameTest {
         });
     }
 
-    @GameTest
+    // Keep every threat position inside the structure, whose chunks the runner loads before starting the test.
+    @GameTest(structure = "oboecraft-gametest:threat_range")
     public void onlyLivingMobsTargetingTheOwnerWithinThirtyTwoBlocksCount(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             carryOverdue(player, 5);

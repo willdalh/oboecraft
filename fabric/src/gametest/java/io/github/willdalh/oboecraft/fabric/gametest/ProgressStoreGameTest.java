@@ -195,7 +195,12 @@ public class ProgressStoreGameTest {
         ProgressStore firstGame = store(folder, NO_SAVE_BEFORE_THE_END);
         ProgressStore secondGame = store(folder, NO_SAVE_BEFORE_THE_END);
         try {
-            start(firstGame, firstConnection, player);
+            // Both stores migrate files on a background thread at startup. Finish that work before either session
+            // takes its lock, so a migration in the other store cannot temporarily hold it during the first start.
+            firstGame.end(firstConnection).join();
+            secondGame.end(connection()).join();
+            helper.assertValueEqual(start(firstGame, firstConnection, player), new UploadProgress("ja_jp", Progress.EMPTY),
+                    "sent by the first game");
             helper.assertValueEqual(start(secondGame, connection(), player),
                     new ProgressUnavailable(ProgressUnavailable.Reason.IN_USE), "sent by the second game");
             helper.assertValueEqual(start(secondGame, connection(), UUID.randomUUID()),
