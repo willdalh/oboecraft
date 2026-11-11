@@ -10,8 +10,11 @@ import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettings;
 import io.github.willdalh.oboecraft.fabric.client.settings.ClientSettingsFile;
 import io.github.willdalh.oboecraft.fabric.client.settings.SettingsScreen;
 import io.github.willdalh.oboecraft.fabric.settings.ServerSettingsFile;
+import io.github.willdalh.oboecraft.json.SettingsJson;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -30,7 +33,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * The settings screen in singleplayer: invalid server settings aren't saved, saved ones reach the built-in server and
+ * The settings screen in singleplayer: files it can't read are never saved over, invalid server settings aren't saved, saved ones reach the built-in server and
  * come back to the client with the player's progress, and the clickable buttons setting adds buttons to the answer
  * menu. The default settings are saved again at the end, so the other client game tests use them.
  */
@@ -47,6 +50,7 @@ public class SettingsClientGameTest implements FabricClientGameTest {
                 .create()) {
             singleplayer.getConnection().waitForChunksRender();
             context.waitFor(client -> OboecraftClient.progress().hasProgress(client.player));
+            filesThatCantBeReadAreKept(context);
             changingTheSettings(context, singleplayer);
             clickingTheAnswerMenusButtons(context, singleplayer);
         } finally {
@@ -57,6 +61,41 @@ public class SettingsClientGameTest implements FabricClientGameTest {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        }
+    }
+
+    /**
+     * A server settings file with a typo makes the server settings read-only, and a client settings file from a newer
+     * Oboecraft is only replaced if the player changes the client settings, so Done leaves both files as they are.
+     */
+    private static void filesThatCantBeReadAreKept(ClientGameTestContext context) {
+        String server = SettingsJson.format(Settings.DEFAULTS).replace("\"banLength\"", "\"banLenght\"");
+        String client = "{\"version\": 3, \"clickableButtons\": true, \"reviewItemScalePercent\": 100}";
+        try {
+            Files.writeString(ServerSettingsFile.path(), server, StandardCharsets.UTF_8);
+            Files.writeString(ClientSettingsFile.path(), client, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        // What the client reads from a file it can't use.
+        context.runOnClient(minecraft -> OboecraftClient.useClientSettings(ClientSettings.DEFAULTS));
+        context.runOnClient(minecraft -> minecraft.gui.setScreen(new SettingsScreen(null)));
+        context.waitForScreen(SettingsScreen.class);
+        context.runOnClient(minecraft -> {
+            // The drop toggle is the only toggle of the server settings, which turn read-only together.
+            check(minecraft.gui.screen().children().stream().filter(CycleButton.class::isInstance)
+                            .map(CycleButton.class::cast).filter(toggle -> !toggle.active).count() == 1,
+                    "the server settings of an invalid file should be read-only");
+            pressButton(minecraft, "gui.done");
+        });
+        context.waitForScreen(null);
+        try {
+            check(Files.readString(ServerSettingsFile.path()).equals(server), "the invalid server settings file, kept");
+            check(Files.readString(ClientSettingsFile.path()).equals(client), "the newer client settings file, kept");
+            ServerSettingsFile.write(ServerSettingsFile.path(), Settings.DEFAULTS);
+            ClientSettingsFile.write(ClientSettingsFile.path(), ClientSettings.DEFAULTS);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

@@ -49,6 +49,7 @@
   "oboecraft.settings.review_item_scale_hint": "Endrer bildet over svarfeltet for alle gjenstander. Andre gjenstandsbilder beholder vanlig størrelse.",
   "oboecraft.settings.server": "Innstillinger for enspiller og verdener åpnet for LAN",
   "oboecraft.settings.server_remote": "Serverens innstillinger, som bare eieren kan endre",
+  "oboecraft.settings.server_invalid": "Ugyldig server.json: standardverdier brukes. Se spilloggen",
   "oboecraft.settings.intervals": "Intervaller mellom nivåene, som 10m, 1h, 1d",
   "oboecraft.settings.demotions": "Nivåer ned ved feil svar, én verdi per nivå",
   "oboecraft.settings.ban_length": "Sperretid etter feil svar",
