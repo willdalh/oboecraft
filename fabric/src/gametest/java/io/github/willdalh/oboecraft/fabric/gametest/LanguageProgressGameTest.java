@@ -96,6 +96,61 @@ public class LanguageProgressGameTest {
         helper.succeed();
     }
 
+    @GameTest public void austrianGermanKeepsSeparateProgressFromGerman(GameTestHelper helper) throws Exception {
+        Path folder = Files.createTempDirectory("oboecraft-austrian-german");
+        UUID player = UUID.randomUUID();
+        ProgressStore german = new ProgressStore(folder, Duration.ofHours(1), () -> { });
+        ProgressStore austrian = new ProgressStore(folder, Duration.ofHours(1), () -> { });
+        var first = new Connection(PacketFlow.CLIENTBOUND);
+        var second = new Connection(PacketFlow.CLIENTBOUND);
+        try {
+            german.end(first).join();
+            austrian.end(second).join();
+            List<CustomPacketPayload> sent = new ArrayList<>();
+            german.start(first, player, LearningLanguage.GERMAN, sent::add).join();
+            austrian.start(second, player, LearningLanguage.AUSTRIAN_GERMAN, sent::add).join();
+            helper.assertValueEqual(sent, List.of(new UploadProgress("de_de", Progress.EMPTY),
+                    new UploadProgress("de_at", Progress.EMPTY)), "German variants have independent locks and uploads");
+            german.changed(first, KNOWN);
+            austrian.changed(second, IGNORED);
+            german.end(first).join();
+            austrian.end(second).join();
+            helper.assertValueEqual(ProgressFiles.read(folder.resolve("de_de/" + player + ".json")),
+                    new ProgressFiles.ReadResult.Loaded(KNOWN), "German progress stays separate");
+            helper.assertValueEqual(ProgressFiles.read(folder.resolve("de_at/" + player + ".json")),
+                    new ProgressFiles.ReadResult.Loaded(IGNORED), "Austrian German progress stays separate");
+            austrian.start(new Connection(PacketFlow.CLIENTBOUND), player, LearningLanguage.AUSTRIAN_GERMAN, sent::add).join();
+            helper.assertValueEqual(sent.getLast(), new UploadProgress("de_at", IGNORED), "Austrian progress reloads");
+            helper.assertFalse(Files.exists(folder.resolve("ja_jp/" + player + ".json")), "Japanese is untouched");
+        } finally { german.close(); austrian.close(); }
+        helper.succeed();
+    }
+
+    @GameTest public void austrianGermanUsesItsOwnNamesAndGermanAnswerRules(GameTestHelper helper) {
+        var austrian = TestPlayers.join(helper, UUID.randomUUID());
+        var progress = OboecraftMod.serverProgress();
+        var reviews = OboecraftMod.serverReviews();
+        try {
+            progress.start(austrian, LearningLanguage.AUSTRIAN_GERMAN, Progress.EMPTY);
+            austrian.getInventory().setItem(0, new ItemStack(Items.OAK_LOG, 4));
+            reviews.start(austrian, 1, new StackLocation.InventorySlot(0));
+            reviews.answer(austrian, 1, "Eichenstamm");
+            helper.assertTrue(reviews.isReviewing(austrian), "standard German doesn't answer an Austrian name");
+            reviews.answer(austrian, 1, " OACHN-STOMM! ");
+            helper.assertFalse(reviews.isReviewing(austrian), "Austrian name ignores case, spacing and punctuation");
+            austrian.getInventory().setItem(1, new ItemStack(Items.BED.green()));
+            reviews.start(austrian, 2, new StackLocation.InventorySlot(1));
+            reviews.answer(austrian, 2, "Gruns Bett");
+            helper.assertTrue(reviews.isReviewing(austrian), "plain u doesn't replace an umlaut");
+            reviews.answer(austrian, 2, "Gruens Bett");
+            helper.assertFalse(reviews.isReviewing(austrian), "ue replaces an umlaut");
+            var mapping = OboecraftMod.itemMappings().get(LearningLanguage.AUSTRIAN_GERMAN);
+            helper.assertValueEqual(mapping.entryOf(new ItemStack(Items.BRICK)).orElseThrow().id(),
+                    mapping.entryOf(new ItemStack(Items.BRICKS)).orElseThrow().id(), "Austrian brick grouping follows its translation");
+        } finally { TestPlayers.leave(austrian); }
+        helper.succeed();
+    }
+
     @GameTest public void migrationPreservesTheOriginalAndBrokenFilesAndBlocksDowngrades(GameTestHelper helper) throws Exception {
         Path folder = Files.createTempDirectory("oboecraft-migration");
         UUID player = UUID.randomUUID();

@@ -9,6 +9,7 @@ import java.util.Optional;
 public enum LearningLanguage {
     JAPANESE("ja_jp", Locale.JAPANESE),
     GERMAN("de_de", Locale.GERMAN),
+    AUSTRIAN_GERMAN("de_at", Locale.forLanguageTag("de-AT")),
     NORWEGIAN("no_no", Locale.forLanguageTag("nb-NO")),
     DUTCH("nl_nl", Locale.forLanguageTag("nl-NL"));
 

@@ -10,11 +10,13 @@ Each player has one SRS state per item and learning language. See [ADR: Items ar
 
 ## Learning language
 
-The learning language follows the game language: `ja_jp` selects Japanese, `de_de` German, `no_no` Norwegian Bokmål, and `nl_nl` Dutch. Every other code selects Japanese, including `de_at`, `de_ch`, `nn_no`, `nb_no` and `nl_be`. It is selected on joining and stays fixed until the next join. Changing the game language while connected announces the next join's learning language in chat. Minecraft's and the mod's text still follow the game language immediately.
+The learning language follows the game language: `ja_jp` selects Japanese, `de_de` German, `de_at` Austrian German, `no_no` Norwegian Bokmål, and `nl_nl` Dutch. Every other code selects Japanese, including `de_ch`, `nn_no`, `nb_no` and `nl_be`. It is selected on joining and stays fixed until the next join. Changing the game language while connected announces the next join's learning language in chat. Minecraft's and the mod's text still follow the game language immediately.
 
 Every supported language is allowed on every server. Players on one server can learn different languages at once. The Japanese style, tsukumogami and **あ** button do not depend on the learning language.
 
-Each language has its own name list, ids and progress. Brick and bricks share one Japanese entry but are separate German, Bokmål and Dutch items; Bokmål and Dutch also split nether brick/bricks and resin brick/bricks. The awkward, mundane and thick tipped arrows share an entry in each new language. The answer is the reviewed Minecraft translation, corrected only if broken. German, Bokmål and Dutch names are plain text with no parts or readings.
+Each language has its own name list, ids and progress. Brick and bricks share one Japanese and one Austrian German entry but are separate German, Bokmål and Dutch items; Bokmål and Dutch also split nether brick/bricks and resin brick/bricks. The awkward, mundane and thick tipped arrows share an entry in German, Bokmål and Dutch. Austrian German groups awkward and thick arrows; mundane arrows have a separate entry, even though review corrected their spelling to the same name. The answer is the reviewed Minecraft translation, corrected only if broken. German, Austrian German, Bokmål and Dutch names are plain text with no parts or readings.
+
+Austrian German currently preserves three incorrect groupings from Minecraft's source translation: copper chain and copper chest share `Kupfakistn`, mossy cobblestone wall and mossy stone brick wall share `Bemooste Bruchstoamaua`, and guardian and warden spawn eggs share `Wächta-Spawn-Ei`. These are reviewed upstream limitations, not additional accepted answers. A correction to one entry's name would still name one of its items incorrectly. Splitting these groups needs generator support for retaining reviewed splits when the source names remain identical; the current tool would reject them as a merge on regeneration. Until that is supported, these items share names and progress within Austrian German. Other learning languages remain independent.
 
 ## Translation keys
 
@@ -54,7 +56,7 @@ An item id or former id belongs to at most one entry, and is never reused for an
 
 A translation key belongs to at most one entry.
 
-The name lists cover Minecraft 26.3: Japanese has 1,738 entries, German 1,737, and Bokmål and Dutch 1,739 each. Milestone 5's [name list tool](../architecture/name-list-tool.md) generated it from `ja_jp.json`, and every entry was reviewed. The first 10, from the first minutes of play, were written by hand in milestone 3b. The file format is in [Name list file](../architecture/name-list-file.md).
+The name lists cover Minecraft 26.3: Japanese has 1,738 entries, German and Austrian German 1,737 each, and Bokmål and Dutch 1,739 each. Milestone 5's [name list tool](../architecture/name-list-tool.md) generated it from `ja_jp.json`, and every entry was reviewed. The first 10, from the first minutes of play, were written by hand in milestone 3b. The file format is in [Name list file](../architecture/name-list-file.md).
 
 The name list has no merges yet, so former ids and the merge of states on load aren't built yet. They come with the first name list update that merges two entries, before any release that needs them. Until then, the name list tool stops when an update would merge two entries.
 

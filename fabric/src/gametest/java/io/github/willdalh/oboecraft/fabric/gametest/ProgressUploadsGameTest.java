@@ -115,8 +115,24 @@ public class ProgressUploadsGameTest {
     }
 
     @GameTest
+    public void austrianGermanProgressIsAcceptedBeforeEnteringTheWorld(GameTestHelper helper) {
+        ProgressUploads uploads = new ProgressUploads();
+        UUID player = UUID.randomUUID();
+        var connection = configuring(helper, player);
+        var task = uploads.request(connection);
+        start(task);
+        answerFromTheNetwork(uploads, connection, new UploadProgress("de_at", LEVEL_THREE));
+        helper.assertTrue(task.tick(), "Austrian German finishes configuration");
+        helper.assertTrue(isConnected(connection), "Austrian German stays connected");
+        helper.assertValueEqual(taken(uploads, player, connection), Optional.of(new UploadProgress("de_at", LEVEL_THREE)),
+                "Austrian German progress enters the world");
+        leave(connection);
+        helper.succeed();
+    }
+
+    @GameTest
     public void anUnsupportedLanguageIsRefusedBeforeEnteringTheWorld(GameTestHelper helper) {
-        for (String language : java.util.List.of("de_at", "nb_no", "../ja_jp", "")) {
+        for (String language : java.util.List.of("de_ch", "de_li", "de_lu", "DE_AT", "de-AT", "nb_no", "../ja_jp", "")) {
             ProgressUploads uploads = new ProgressUploads();
             UUID player = UUID.randomUUID();
             var connection = configuring(helper, player);
