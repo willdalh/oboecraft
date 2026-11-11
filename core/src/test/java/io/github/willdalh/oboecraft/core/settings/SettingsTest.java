@@ -95,17 +95,35 @@ class SettingsTest {
     }
 
     @Test
-    void theTsukumogamiAppearsAtFiveAndStandsStillForAMinuteByDefault() {
-        assertEquals(5, Settings.DEFAULTS.tsukumogamiThreshold());
+    void theTsukumogamiAppearsAtTenFadesAtFiveAndStandsStillForAMinuteByDefault() {
+        assertEquals(10, Settings.DEFAULTS.tsukumogamiAppearThreshold());
+        assertEquals(5, Settings.DEFAULTS.tsukumogamiFadeThreshold());
         assertEquals(Duration.ofSeconds(60), Settings.DEFAULTS.tsukumogamiReviewFreeze());
     }
 
     @Test
-    void theTsukumogamiThresholdIsFromZeroToOneThousand() {
-        assertEquals(0, Settings.DEFAULTS.withTsukumogamiThreshold(0).tsukumogamiThreshold());
-        assertEquals(1_000, Settings.DEFAULTS.withTsukumogamiThreshold(1_000).tsukumogamiThreshold());
-        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThreshold(-1));
-        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThreshold(1_001));
+    void theTsukumogamiAppearThresholdIsFromZeroToOneThousand() {
+        assertEquals(0, Settings.DEFAULTS.withTsukumogamiThresholds(0, 0).tsukumogamiAppearThreshold());
+        assertEquals(1_000, Settings.DEFAULTS.withTsukumogamiThresholds(1_000, 5).tsukumogamiAppearThreshold());
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(-1, 0));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(1_001, 5));
+    }
+
+    @Test
+    void theTsukumogamiFadeThresholdIsBelowTheAppearThreshold() {
+        assertEquals(9, Settings.DEFAULTS.withTsukumogamiThresholds(10, 9).tsukumogamiFadeThreshold());
+        assertEquals(0, Settings.DEFAULTS.withTsukumogamiThresholds(1, 0).tsukumogamiFadeThreshold());
+        assertEquals(999, Settings.DEFAULTS.withTsukumogamiThresholds(1_000, 999).tsukumogamiFadeThreshold());
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(10, 10));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(10, 11));
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(10, -1));
+    }
+
+    @Test
+    void theTsukumogamiFadeThresholdIsKeptWhileItIsTurnedOff() {
+        assertEquals(7, Settings.DEFAULTS.withTsukumogamiThresholds(0, 7).tsukumogamiFadeThreshold());
+        assertEquals(999, Settings.DEFAULTS.withTsukumogamiThresholds(0, 999).tsukumogamiFadeThreshold());
+        assertThrows(IllegalArgumentException.class, () -> Settings.DEFAULTS.withTsukumogamiThresholds(0, 1_000));
     }
 
     @Test

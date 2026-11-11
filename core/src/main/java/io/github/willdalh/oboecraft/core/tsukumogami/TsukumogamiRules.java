@@ -8,16 +8,16 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 /**
- * The rules of the tsukumogami: when a player's tsukumogami should exist, its health, its review pause and its wait
- * for safety. Whether a player can be followed at all, by game mode, dimension and difficulty, is a Minecraft question,
- * so the adapter decides it. These numbers are fixed rules, not settings.
+ * The rules of the tsukumogami: when a player is haunted and their tsukumogami should exist, its health, its review
+ * pause and its wait for safety. Whether a player can be followed at all, by game mode, dimension and difficulty, is a
+ * Minecraft question, so the adapter decides it. These numbers are fixed rules, not settings.
  */
 public final class TsukumogamiRules {
     /** Half a Minecraft day of elapsed game ticks after a kill. */
     public static final long KILL_RELIEF_TICKS = 12_000;
-    /** Its health at the threshold. */
+    /** Its health at the appear threshold and below. */
     public static final int BASE_HEALTH = 20;
-    /** The health it gains for each overdue item above the threshold. */
+    /** The health it gains for each overdue item above the appear threshold. */
     public static final int HEALTH_PER_ITEM = 6;
     /** The most health it can have. */
     public static final int MAX_HEALTH = 100;
@@ -40,35 +40,49 @@ public final class TsukumogamiRules {
     private TsukumogamiRules() {
     }
 
-    /** Whether the tsukumogami is turned on. A threshold of 0 turns it off. */
+    /** Whether the tsukumogami is turned on. An appear threshold of 0 turns it off. */
     public static boolean isOn(Settings settings) {
-        return settings.tsukumogamiThreshold() > 0;
+        return settings.tsukumogamiAppearThreshold() > 0;
     }
 
     /**
-     * Whether a player's tsukumogami should exist, for a player it can follow. It does while the overdue
-     * count is at the threshold or above, unless kill relief is active or it is waiting.
+     * Whether a player is haunted now. A player becomes haunted when the overdue count reaches the appear threshold,
+     * and stays haunted until reviews bring it down to the fade threshold or below, so the tsukumogami doesn't appear
+     * and fade around a single count. Nobody is haunted while the tsukumogami is turned off.
      *
-     * @param overdueCount  the player's overdue count
+     * @param wasHaunted   whether the player was haunted at the last check
+     * @param overdueCount the player's overdue count
+     */
+    public static boolean isHaunted(boolean wasHaunted, int overdueCount, Settings settings) {
+        return isOn(settings) && (wasHaunted
+                ? overdueCount > settings.tsukumogamiFadeThreshold()
+                : overdueCount >= settings.tsukumogamiAppearThreshold());
+    }
+
+    /**
+     * Whether a player's tsukumogami should exist, for a player it can follow. It does while the player is haunted,
+     * unless kill relief is active or it is waiting.
+     *
+     * @param haunted       whether the player is haunted, see {@link #isHaunted}
      * @param gameTime      the Overworld's elapsed game time, in ticks
      * @param killedAtTick  the game tick it was last killed at, if it was
      * @param waitsUntil    when it may appear again after being reviewed away or after its owner arrived
      */
-    public static boolean shouldExist(int overdueCount, long gameTime, OptionalLong killedAtTick, Instant now,
-            Instant waitsUntil, Settings settings) {
+    public static boolean shouldExist(boolean haunted, long gameTime, OptionalLong killedAtTick, Instant now,
+            Instant waitsUntil) {
         Objects.requireNonNull(killedAtTick, "killedAtTick");
-        return isOn(settings)
-                && overdueCount >= settings.tsukumogamiThreshold()
+        return haunted
                 && !(killedAtTick.isPresent() && gameTime - killedAtTick.getAsLong() < KILL_RELIEF_TICKS)
                 && !now.isBefore(waitsUntil);
     }
 
     /**
-     * Its max health for an overdue count: {@link #BASE_HEALTH} at the threshold, plus {@link #HEALTH_PER_ITEM} for
-     * each overdue item above it, up to {@link #MAX_HEALTH}. A count below the threshold gives the base health.
+     * Its max health for an overdue count: {@link #BASE_HEALTH} at the appear threshold, plus {@link #HEALTH_PER_ITEM}
+     * for each overdue item above it, up to {@link #MAX_HEALTH}. A count below the appear threshold, while the player
+     * is still haunted, gives the base health.
      */
     public static int maxHealth(int overdueCount, Settings settings) {
-        long above = Math.max(0, (long) overdueCount - settings.tsukumogamiThreshold());
+        long above = Math.max(0, (long) overdueCount - settings.tsukumogamiAppearThreshold());
         return (int) Math.min(MAX_HEALTH, BASE_HEALTH + above * HEALTH_PER_ITEM);
     }
 

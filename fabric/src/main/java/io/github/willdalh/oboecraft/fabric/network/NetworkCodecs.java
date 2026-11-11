@@ -62,7 +62,8 @@ public final class NetworkCodecs {
             DURATION, Settings::banLength,
             ByteBufCodecs.VAR_INT, Settings::percentageFactor,
             ByteBufCodecs.BOOL, Settings::dropCountsAsInteraction,
-            ByteBufCodecs.VAR_INT, Settings::tsukumogamiThreshold,
+            ByteBufCodecs.VAR_INT, Settings::tsukumogamiAppearThreshold,
+            ByteBufCodecs.VAR_INT, Settings::tsukumogamiFadeThreshold,
             DURATION, Settings::tsukumogamiReviewFreeze,
             Settings::new);
 

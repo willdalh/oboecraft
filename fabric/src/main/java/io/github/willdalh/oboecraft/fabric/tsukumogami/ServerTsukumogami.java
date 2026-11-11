@@ -32,7 +32,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Each player's tsukumogami: when it appears, what it shows and when it leaves, from the rules of core
  * {@link TsukumogamiRules}. It is never saved: whether it should exist is worked out again from the player's progress
- * and the world, and the tick it was killed at is only remembered while the server runs. Only used on the server
+ * and the world, and whether its owner is haunted and the tick it was killed at are only remembered while the server
+ * runs. Only used on the server
  * thread.
  *
  * <p>It checks the players once a second while the tsukumogami is turned on, and a
@@ -50,6 +51,8 @@ public final class ServerTsukumogami implements ReviewListener {
 
     /** What is known about one player, as the owner of their tsukumogami. */
     private static final class OwnerState {
+        /** Whether the player is haunted, see {@link TsukumogamiRules#isHaunted}. */
+        private boolean haunted;
         /** When it may appear, after it was reviewed away or the player arrived. */
         private Instant waitsUntil = Instant.MIN;
         private OptionalLong killedAtTick = OptionalLong.empty();
@@ -80,6 +83,7 @@ public final class ServerTsukumogami implements ReviewListener {
             if (!existing.isEmpty()) {
                 List.copyOf(existing.values()).forEach(this::fadeOut);
             }
+            owners.values().forEach(owner -> owner.haunted = false);
             return;
         }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -101,16 +105,16 @@ public final class ServerTsukumogami implements ReviewListener {
         Instant now = progress.now();
         OwnerState owner = owner(player);
         List<ItemId> overdue = overdueItems(player, now, settings);
+        owner.haunted = TsukumogamiRules.isHaunted(owner.haunted, overdue.size(), settings);
         if (tsukumogami.isPresent()) {
             // A wait only holds back one that doesn't exist yet.
-            if (TsukumogamiRules.shouldExist(overdue.size(), gameTime, owner.killedAtTick, now, Instant.MIN, settings)) {
+            if (TsukumogamiRules.shouldExist(owner.haunted, gameTime, owner.killedAtTick, now, Instant.MIN)) {
                 tsukumogami.get().showOverdue(overdue, TsukumogamiRules.maxHealth(overdue.size(), settings));
             } else {
                 fadeOut(tsukumogami.get());
                 owner.waitsUntil = now.plus(TsukumogamiRules.RETURN_DELAY);
             }
-        } else if (TsukumogamiRules.shouldExist(
-                overdue.size(), gameTime, owner.killedAtTick, now, owner.waitsUntil, settings)) {
+        } else if (TsukumogamiRules.shouldExist(owner.haunted, gameTime, owner.killedAtTick, now, owner.waitsUntil)) {
             appear(player, overdue, TsukumogamiRules.maxHealth(overdue.size(), settings));
         }
     }
@@ -229,7 +233,7 @@ public final class ServerTsukumogami implements ReviewListener {
         owner(player).reviewStartedAt = Optional.of(progress.now());
     }
 
-    /** Checks the player at once, so a pass that drops the count below the threshold makes it fade out. */
+    /** Checks the player at once, so a pass that drops the count to the fade threshold makes it fade out. */
     @Override
     public void reviewEnded(ServerPlayer player) {
         OwnerState owner = owner(player);
@@ -271,9 +275,9 @@ public final class ServerTsukumogami implements ReviewListener {
     }
 
     /**
-     * The player left or died, so their tsukumogami is removed. The tick it was killed at, and a wait after it was
-     * reviewed away, are kept, so leaving and joining again never brings it back early or sooner. A player with
-     * neither is forgotten.
+     * The player left or died, so their tsukumogami is removed. Whether they are haunted, the tick it was killed at,
+     * and a wait after it was reviewed away are kept, so leaving and joining again never gets rid of it or brings it
+     * back sooner. A player with none of them is forgotten.
      */
     public void left(ServerPlayer player) {
         existingOf(player).ifPresent(this::discard);
@@ -281,7 +285,7 @@ public final class ServerTsukumogami implements ReviewListener {
         owner.reviewStartedAt = Optional.empty();
         owner.reviewEndedAt = Optional.empty();
         owner.lastThreatAt = Optional.empty();
-        if (owner.killedAtTick.isEmpty() && !owner.waitsUntil.isAfter(progress.now())) {
+        if (!owner.haunted && owner.killedAtTick.isEmpty() && !owner.waitsUntil.isAfter(progress.now())) {
             owners.remove(player.getUUID());
         }
     }
@@ -294,11 +298,16 @@ public final class ServerTsukumogami implements ReviewListener {
         if (existingOf(player).isPresent()) {
             return true;
         }
+        if (!canBeFollowed(player)) {
+            return false;
+        }
         long gameTime = player.level().getServer().overworld().getGameTime();
         Settings settings = progress.settings();
         Instant now = progress.now();
-        return canBeFollowed(player) && TsukumogamiRules.shouldExist(overdueItems(player, now, settings).size(),
-                gameTime, owner(player).killedAtTick, now, Instant.MIN, settings);
+        OwnerState owner = owner(player);
+        int overdueCount = overdueItems(player, now, settings).size();
+        boolean haunted = TsukumogamiRules.isHaunted(owner.haunted, overdueCount, settings);
+        return TsukumogamiRules.shouldExist(haunted, gameTime, owner.killedAtTick, now, Instant.MIN);
     }
 
     /** Forgets everything when the server stops, so another world in the same game starts afresh. */

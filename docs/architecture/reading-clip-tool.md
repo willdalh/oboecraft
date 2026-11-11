@@ -1,6 +1,6 @@
 # Reading clip tool
 
-The reading clip tool makes the [reading clips](../design/display.md#reading-clip) with VOICEVOX: one sound file per name list entry that says the entry's reading, which the mod plays after a pass. It was built for [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
+The reading clip tool makes the [reading clips](../design/display.md#reading-clip) with VOICEVOX: one sound file per name list entry that says the entry's reading, which the mod plays after a pass or a fail. It was built for [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25).
 
 ```
 ./gradlew :tools:generateReadingClips

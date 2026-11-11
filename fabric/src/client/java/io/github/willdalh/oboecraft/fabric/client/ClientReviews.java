@@ -152,16 +152,16 @@ public final class ClientReviews {
     }
 
     /**
-     * The server checked an answer. A pass closes the menu, shows the name in the notification and, for Japanese, plays the
-     * item's reading clip. After a fail, the menu stays open and shows the name, and its Japanese reading once the player
-     * asks for it, until the player closes it.
+     * The server checked an answer. A pass closes the menu, shows the name in the notification and, for Japanese, plays
+     * the item's reading clip. A fail, for Japanese, plays the clip too, and the menu stays open and shows the name, and
+     * its Japanese reading once the player asks for it, until the player closes it.
      */
     void reviewAnswered(int reviewId, ReviewOutcome outcome, Optional<ReviewAnswered.Answer> answer) {
-        // The server passed the item even if the player closed the menu before the reply came, so the name is shown
-        // and said.
-        if (outcome == ReviewOutcome.PASS) {
+        // The server passed or failed the item even if the player closed the menu before the reply came, so the name
+        // is said, and after a pass shown.
+        if (outcome == ReviewOutcome.PASS || outcome == ReviewOutcome.FAIL) {
             answer.ifPresent(shown -> {
-                notification.show(shown.name());
+                if (outcome == ReviewOutcome.PASS) notification.show(shown.name());
                 if (shown.reading().isPresent()) readingClips.play(shown.item());
             });
         }

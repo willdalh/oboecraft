@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.gametest;
 
 import io.github.willdalh.oboecraft.core.item.ItemId;
+import io.github.willdalh.oboecraft.core.settings.Settings;
 import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.tsukumogami.Tsukumogami;
@@ -37,6 +38,9 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             new ItemId("block.minecraft.stone"), new ItemId("block.minecraft.torch"), new ItemId("item.minecraft.apple"),
             new ItemId("item.minecraft.iron_ingot"), new ItemId("item.minecraft.bread"));
 
+    /** Thresholds the six overdue items are above, so a pass and then two more bring them down to the fade one. */
+    private static final Settings SETTINGS = Settings.DEFAULTS.withTsukumogamiThresholds(5, 3);
+
     /** How far in front of the player it is held for the screenshots, in blocks. */
     private static final double DISTANCE_IN_FRONT = 3.4;
     /** The player's pitch that shows all of it from {@link #DISTANCE_IN_FRONT}, in degrees. */
@@ -55,6 +59,7 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             OboecraftMod.clock().setSource(InstantSource.offset(InstantSource.system(), Duration.ofMinutes(1)));
             singleplayer.getServer().runCommand("time set midnight");
             singleplayer.getServer().runOnServer(server -> {
+                OboecraftMod.serverProgress().useSettings(SETTINGS);
                 ServerPlayer player = player(server);
                 for (int i = 0; i < OVERDUE.size(); i++) {
                     player.getInventory().setItem(i, new ItemStack(OVERDUE.get(i)));
@@ -140,7 +145,7 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             context.waitTicks(8);
             context.takeScreenshot("tsukumogami-item-knocked-out");
 
-            // Below the threshold, it fades out on the spot.
+            // Down to the fade threshold, it fades out on the spot.
             singleplayer.getServer().runOnServer(server -> {
                 for (ItemId item : OVERDUE_IDS.subList(1, 3)) {
                     OboecraftMod.serverProgress().update(player(server), item, new SrsState.Leveled(2, Optional.of(
@@ -154,6 +159,7 @@ public class TsukumogamiClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> tsukumogamiOnClient(client).isEmpty(), 100);
         } finally {
             OboecraftMod.clock().setSource(InstantSource.system());
+            OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS);
             ProgressFolder.delete();
         }
     }

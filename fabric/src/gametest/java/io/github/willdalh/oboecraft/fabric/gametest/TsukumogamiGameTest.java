@@ -55,6 +55,13 @@ public class TsukumogamiGameTest {
     private static final Instant ARRIVED = START.plus(TsukumogamiRules.ARRIVAL_DELAY);
     private static final long MIDNIGHT = 18_000;
     private static final long NOON = 6_000;
+    /**
+     * The settings most tests use: it appears at 5 overdue items and fades at 4, so the threshold is one count. The
+     * gap between the two thresholds has tests of its own.
+     */
+    private static final Settings SETTINGS = Settings.DEFAULTS.withTsukumogamiThresholds(5, 4);
+    /** Thresholds with a gap between them, which the seven items can cross both ways. */
+    private static final Settings GAP_SETTINGS = Settings.DEFAULTS.withTsukumogamiThresholds(5, 2);
     private static final StackLocation FIRST_SLOT = new StackLocation.InventorySlot(0);
     /** The Minecraft items of {@link #ITEMS}, in the same order. */
     private static final List<Item> MINECRAFT_ITEMS = List.of(
@@ -64,7 +71,10 @@ public class TsukumogamiGameTest {
             new ItemId("item.minecraft.apple"), new ItemId("item.minecraft.iron_ingot"),
             new ItemId("item.minecraft.bread"), new ItemId("block.minecraft.dirt"));
 
-    /** A test at midnight, with the clock past the wait after joining, that puts both back when it is done. */
+    /**
+     * A test at midnight with {@link #SETTINGS}, with the clock past the wait after joining, that puts the clock, the
+     * time and the settings back when it is done.
+     */
     private interface Scene {
         void run(ServerPlayer player, MinecraftServer server);
     }
@@ -72,6 +82,7 @@ public class TsukumogamiGameTest {
     private static void atMidnight(GameTestHelper helper, Scene scene) {
         MinecraftServer server = helper.getLevel().getServer();
         OboecraftMod.clock().setSource(InstantSource.fixed(START));
+        OboecraftMod.serverProgress().useSettings(SETTINGS);
         long timeBefore = OverworldTime.set(server, MIDNIGHT);
         ServerPlayer player = TestPlayers.join(helper, UUID.randomUUID());
         try {
@@ -173,9 +184,9 @@ public class TsukumogamiGameTest {
             tsukumogami().checkPlayers(server);
             helper.assertValueEqual(existing(helper, player), daytime, "one tsukumogami during the day");
 
-            OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS.withTsukumogamiThreshold(0));
+            OboecraftMod.serverProgress().useSettings(SETTINGS.withTsukumogamiThresholds(0, 0));
             tsukumogami().checkPlayers(server);
-            assertNone(helper, player, "with the threshold at 0");
+            assertNone(helper, player, "with the appear threshold at 0");
         });
     }
 
@@ -217,7 +228,7 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
-    public void aPassBelowTheThresholdMakesItFadeOutAndWait(GameTestHelper helper) {
+    public void aPassDownToTheFadeThresholdMakesItFadeOutAndWait(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             OverworldTime.set(server, NOON);
             carryOverdue(player, 5);
@@ -239,6 +250,58 @@ public class TsukumogamiGameTest {
             tsukumogami().checkPlayers(server);
             assertNone(helper, player, "an arrival's wait after it faded");
             later(TsukumogamiRules.RETURN_DELAY.minus(TsukumogamiRules.ARRIVAL_DELAY));
+            tsukumogami().checkPlayers(server);
+            existing(helper, player);
+        });
+    }
+
+    @GameTest
+    public void itStaysUntilReviewsBringTheCountDownToTheFadeThreshold(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            OboecraftMod.serverProgress().useSettings(GAP_SETTINGS);
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami tsukumogami = existing(helper, player);
+
+            // Below the appear threshold but above the fade threshold, it stays, at its base health.
+            unlock(player, ITEMS.get(4));
+            unlock(player, ITEMS.get(3));
+            tsukumogami().checkPlayers(server);
+            helper.assertValueEqual(existing(helper, player), tsukumogami, "the same tsukumogami with 3 overdue items");
+            helper.assertTrue(!tsukumogami.isFading(), "it shouldn't fade out above the fade threshold");
+            helper.assertValueEqual(tsukumogami.getMaxHealth(), 20.0F, "max health below the appear threshold");
+
+            unlock(player, ITEMS.get(2));
+            tsukumogami().checkPlayers(server);
+            helper.assertTrue(tsukumogami.isFading(), "it should fade out at the fade threshold");
+            assertNone(helper, player, "at the fade threshold");
+
+            // Once it has faded, it needs the appear threshold again, not only a count above the fade threshold.
+            carryOverdue(player, 4);
+            later(TsukumogamiRules.RETURN_DELAY);
+            tsukumogami().checkPlayers(server);
+            assertNone(helper, player, "with 4 overdue items after it faded");
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            existing(helper, player);
+        });
+    }
+
+    @GameTest
+    public void aHauntedPlayerBelowTheAppearThresholdIsFollowedAgainAfterCreativeMode(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            OboecraftMod.serverProgress().useSettings(GAP_SETTINGS);
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami first = existing(helper, player);
+            unlock(player, ITEMS.get(4));
+            tsukumogami().checkPlayers(server);
+            player.setGameMode(GameType.CREATIVE);
+            helper.assertTrue(first.isRemoved(), "creative mode should remove it");
+
+            // Only reviews get rid of it, so it comes back with 4 overdue items, below the appear threshold.
+            player.setGameMode(GameType.SURVIVAL);
+            later(TsukumogamiRules.ARRIVAL_DELAY);
             tsukumogami().checkPlayers(server);
             existing(helper, player);
         });
@@ -529,10 +592,10 @@ public class TsukumogamiGameTest {
                 OboecraftMod.serverReviews().start(player, 1, FIRST_SLOT);
                 spirit.tick();
                 helper.assertTrue(spirit.standsStill(), "a review still freezes movement");
-                later(Settings.DEFAULTS.tsukumogamiReviewFreeze());
+                later(SETTINGS.tsukumogamiReviewFreeze());
                 spirit.tick();
                 helper.assertTrue(spirit.waitsForSafety() && !spirit.standsStill(), "danger outlasts the review freeze");
-                OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO));
+                OboecraftMod.serverProgress().useSettings(SETTINGS.withTsukumogamiReviewFreeze(Duration.ZERO));
                 spirit.snapTo(player.position().add(0, 0, 1));
                 float health = player.getHealth();
                 ticks(spirit, Tsukumogami.WIND_UP_TICKS + 1);
@@ -613,7 +676,7 @@ public class TsukumogamiGameTest {
             later(TsukumogamiRules.STILL_AFTER_REVIEW);
             helper.assertTrue(!tsukumogami().standsStill(player), "it moves again 2 seconds after the review");
 
-            OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO));
+            OboecraftMod.serverProgress().useSettings(SETTINGS.withTsukumogamiReviewFreeze(Duration.ZERO));
             OboecraftMod.serverReviews().start(player, 3, FIRST_SLOT);
             helper.assertTrue(!tsukumogami().standsStill(player), "a freeze of 0 never stands still");
         });
@@ -700,6 +763,7 @@ public class TsukumogamiGameTest {
         MinecraftServer server = helper.getLevel().getServer();
         UUID id = UUID.randomUUID();
         OboecraftMod.clock().setSource(InstantSource.fixed(START));
+        OboecraftMod.serverProgress().useSettings(SETTINGS);
         long timeBefore = OverworldTime.set(server, MIDNIGHT);
         try {
             ServerPlayer player = TestPlayers.join(helper, id);
@@ -724,6 +788,7 @@ public class TsukumogamiGameTest {
         } finally {
             OverworldTime.set(server, timeBefore);
             OboecraftMod.clock().setSource(InstantSource.system());
+            OboecraftMod.serverProgress().useSettings(Settings.DEFAULTS);
         }
         helper.succeed();
     }

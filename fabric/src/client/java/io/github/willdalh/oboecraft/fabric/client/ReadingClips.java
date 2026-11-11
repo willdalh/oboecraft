@@ -12,9 +12,9 @@ import net.minecraft.sounds.SoundSource;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Plays an item's reading clip, after a pass and from the word list: the item's reading, said by VOICEVOX. Each clip is
- * its own sound event, {@code oboecraft:reading.<item id>}, listed in the mod's {@code sounds.json}, which the reading
- * clip tool writes. It plays in Minecraft's Voice/Speech category, so the player sets its volume there, and it isn't
+ * Plays an item's reading clip, after a pass or a fail and from the word list: the item's reading, said by VOICEVOX.
+ * Each clip is its own sound event, {@code oboecraft:reading.<item id>}, listed in the mod's {@code sounds.json}, which
+ * the reading clip tool writes. It plays in Minecraft's Voice/Speech category, so the player sets its volume there, and it isn't
  * placed in the world. A new clip stops the clip that is playing. Only used on the client thread.
  */
 public final class ReadingClips {

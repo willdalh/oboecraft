@@ -14,9 +14,11 @@ An item is **overdue** when it is [locked](srs-state.md) at level 1 or higher. T
 
 ## When it appears
 
+A player becomes **haunted** when their overdue count reaches the **Tsukumogami appear threshold**, and stays haunted until reviews bring the count down to the **Tsukumogami fade threshold** or below. The fade threshold is below the appear threshold, so the tsukumogami doesn't appear and fade around a single count. With the defaults, it appears at 10 overdue items and fades at 5. An appear threshold of 0 turns it off, see [Settings](settings.md). This was added in [willdalh/oboecraft#81](https://github.com/willdalh/oboecraft/issues/81).
+
 A player's tsukumogami appears when all of these hold:
 
-- The overdue count is at the **Tsukumogami threshold** or above. A threshold of 0 turns it off, see [Settings](settings.md).
+- The player is haunted.
 - The player is alive in the Overworld, in survival or adventure mode, with their progress loaded, and the difficulty isn't Peaceful.
 - It has no active 12,000-game-tick kill cooldown, and it isn't waiting (see below).
 
@@ -35,7 +37,7 @@ It follows and attacks only its owner. It ignores other players and mobs, and mo
 | Moving | It walks slowly and never runs, slower than a player walks. It doesn't break or pass through blocks, open doors, ride anything or use portals, and nobody can push it. |
 | Keeping up | When it is more than 32 blocks from its owner, or has made no progress for 3 seconds, it teleports to a place 16 to 24 blocks behind them. Where there is none, like over open water, it looks again a second later. Horses, boats, elytra and pillaring up don't shake it off. |
 | Attacking | A slow, heavy hit with a visible wind-up of a second, its jaw opening and its hands raised. 4 HP on Normal, scaled by difficulty like vanilla mobs: 3 on Easy and 6 on Hard. After the hit it stands where it is for a second while it straightens up, so its owner can back away, and it starts its next attack a second and a half after the hit at the earliest. |
-| Health | 20 HP at the threshold, plus 6 HP for each overdue item above it, up to 100 HP. When the overdue count changes, its max health changes and it keeps the same fraction of its health, so a pass in the middle of a fight weakens it at once. Damage and speed don't change. |
+| Health | 20 HP at the appear threshold and below it, plus 6 HP for each overdue item above it, up to 100 HP. When the overdue count changes, its max health changes and it keeps the same fraction of its health, so a pass in the middle of a fight weakens it at once. Damage and speed don't change. |
 | Damage it takes | Only damage its owner causes: melee, arrows, tridents, thrown potions and anything else that has the owner as its attacker. Other players, other mobs and the owner's pets do nothing, and neither do lava, fire, falling, drowning, suffocation and cactus. Other players' hits play a dull sound, so nobody thinks it is broken. `/kill` and the void still work, also while it fades out. |
 | During a review | While its owner has any review going, lessons included, it stands still and watches them, for at most the **Tsukumogami review freeze**. After that it moves again even with the answer menu open, so the menu can't be held open through the night. Every new review starts a new freeze, and it stays still for 2 seconds after a review ends, so the owner isn't hit the moment they are back. It can still be hurt while it stands still. With a freeze of 0, it never stands still. |
 | During danger | Another living mob within 32 blocks targeting its owner suspends attacks, including an angered neutral mob. Sight and a path are not required, so a trapped targeting mob still counts. It cancels a pending strike and keeps following, then waits five continuous seconds without a threat before starting a fresh attack. A new threat restarts the wait. This works even when the review freeze expires or is 0, and reviews remain available. Idle mobs, mobs targeting someone else, environmental hazards and PvP do not count. |
@@ -45,19 +47,19 @@ In multiplayer, an owner who can't sleep holds up the night for everyone, unless
 
 ## How it leaves
 
-- **Reviewing:** when the overdue count drops below the threshold, its orbiting items fall away and it fades out on the spot, with a wind chime. If the count rises to the threshold again, it comes back after 30 seconds. The server checks right after each review, so this happens at once.
-- **Killing:** it is gone for 12,000 elapsed game ticks from the kill: half a Minecraft day, about 10 minutes at 20 ticks per second. Skipping or changing sky time does not consume this relief. Afterward it may return if the usual eligibility and delay rules allow it.
+- **Reviewing:** when the overdue count drops to the fade threshold or below, its owner is no longer haunted, its orbiting items fall away and it fades out on the spot, with a wind chime. Only when the count rises to the appear threshold again does it come back, and not sooner than 30 seconds after it faded. The server checks right after each review, so this happens at once.
+- **Killing:** it is gone for 12,000 elapsed game ticks from the kill: half a Minecraft day, about 10 minutes at 20 ticks per second. Skipping or changing sky time does not consume this relief. Its owner stays haunted, and afterward it may return if the usual eligibility and delay rules allow it.
 - Sunrise does not make it fade or disappear.
-- Its owner dying, logging out, leaving the Overworld or changing to creative or spectator mode removes it, and so does Peaceful. After that the normal rules apply again, 10 seconds after the owner respawns, joins, returns to the Overworld or returns to survival or adventure mode, or later if it was reviewed away less than 30 seconds before. Changing between survival and adventure mode changes nothing. Logging out never gets rid of it for good.
+- Its owner dying, logging out, leaving the Overworld or changing to creative or spectator mode removes it, and so does Peaceful. After that the normal rules apply again, 10 seconds after the owner respawns, joins, returns to the Overworld or returns to survival or adventure mode, or later if it was reviewed away less than 30 seconds before. Its owner stays haunted meanwhile, so it comes back even if the count is below the appear threshold by then, as long as it is above the fade threshold. Changing between survival and adventure mode changes nothing. Logging out never gets rid of it for good.
 
 It drops nothing, neither items nor experience, whether it is killed or reviewed away, so it never pays to call it.
 
-It is never saved with the world. Whether it should exist is worked out from its owner's progress and the world, and its kill cooldown is only remembered while the server runs, so a restart forgets it. See [ADR: The tsukumogami is never saved with the world](../decisions/20261109-tsukumogami-never-saved.md).
+It is never saved with the world. Whether it should exist is worked out from its owner's progress and the world, and whether its owner is haunted and its kill cooldown are only remembered while the server runs, so a restart forgets them: after a restart, it needs the appear threshold again. See [ADR: The tsukumogami is never saved with the world](../decisions/20261109-tsukumogami-never-saved.md).
 
 ## What the owner sees
 
 - The message above the hotbar each time it appears.
-- A boss bar, only for its owner, with its name and the overdue count, like 付喪神 (7), which shows its health. The threshold isn't shown, so the goal is "review until it leaves", not "do the minimum".
+- A boss bar, only for its owner, with its name and the overdue count, like 付喪神 (7), which shows its health. The thresholds aren't shown, so the goal is "review until it leaves", not "do the minimum".
 - During danger and the five-second grace period, the boss bar adds “Waiting until you’re safe” alongside the overdue count.
 - Its name is 付喪神 in Japanese and Tsukumogami in English, following the game language like the rest of the mod's text.
 
@@ -134,13 +136,14 @@ It never speaks, and never says the names of the overdue items, since that would
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Tsukumogami threshold | 5 | The overdue count it appears at, from 0 to 1,000. 0 turns it off |
+| Tsukumogami appear threshold | 10 | The overdue count it appears at, from 0 to 1,000. 0 turns it off |
+| Tsukumogami fade threshold | 5 | The overdue count reviews must bring it down to for it to fade out, from 0 to 999 and below the appear threshold |
 | Tsukumogami review freeze | 60s | How long it stands still during one review, from 0 to 1 hour. 0 means it never stands still |
 
-Both are [server settings](settings.md). The other numbers on this page are fixed rules.
+All three are [server settings](settings.md). The other numbers on this page are fixed rules.
 
 ## Performance
 
-The server checks players with the threshold above 0, once a second throughout day and night, and a player right after each of their reviews ends, so the fade-out and the boss bar react at once.
+The server checks players with the appear threshold above 0, once a second throughout day and night, and a player right after each of their reviews ends, so the fade-out and the boss bar react at once.
 
 Each existing tsukumogami checks nearby mobs targeting its owner on every AI tick, before a strike can land. The search is limited to the 32-block area around its owner.

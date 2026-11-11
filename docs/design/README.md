@@ -14,7 +14,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | [Answers](answers.md) | Which typed answers are correct: kanji, kana and romaji, long vowels, ん and the optional の |
 | [Progress](progress.md) | Where a player's progress is kept, how it reaches the server and what stops a player from joining |
 | [Settings](settings.md) | The values that settings control, their defaults, the settings files and the settings screen |
-| [Display](display.md) | Hidden names, the lock timer, the slot marker, and the notification and reading clip after a pass |
+| [Display](display.md) | Hidden names, the lock timer, the slot marker, the notification after a pass and the reading clip after a pass or fail |
 | [Time](time.md) | Where the current time comes from, on the server, on the client and in tests |
 | [Tsukumogami](tsukumogami.md) | The mob that follows a player day and night while their overdue items pile up |
 
@@ -39,5 +39,7 @@ The foundations were designed in milestone 3a, before any game code, with the wh
 | Progress kept on the player's computer and sent to every server | After the milestones |
 | The tsukumogami | [#51](https://github.com/willdalh/oboecraft/issues/51) |
 | The tsukumogami's own sounds | [#52](https://github.com/willdalh/oboecraft/issues/52) |
+| The reading clip after a fail | [#80](https://github.com/willdalh/oboecraft/issues/80) |
+| Separate thresholds for the tsukumogami appearing and fading | [#81](https://github.com/willdalh/oboecraft/issues/81) |
 
 - [Word list](word-list.md): learning, known, ignored and mastered items, and Revert.

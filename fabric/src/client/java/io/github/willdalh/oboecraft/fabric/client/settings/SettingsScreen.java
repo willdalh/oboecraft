@@ -51,7 +51,8 @@ public final class SettingsScreen extends Screen {
     private @Nullable EditBox demotions;
     private @Nullable EditBox banLength;
     private @Nullable EditBox percentageFactor;
-    private @Nullable EditBox tsukumogamiThreshold;
+    private @Nullable EditBox tsukumogamiAppearThreshold;
+    private @Nullable EditBox tsukumogamiFadeThreshold;
     private @Nullable EditBox tsukumogamiReviewFreeze;
     private @Nullable CycleButton<Boolean> dropCountsAsInteraction;
     private Component error = Component.empty();
@@ -93,11 +94,19 @@ public final class SettingsScreen extends Screen {
         percentageFactor = field(x + halfWidth + GAP, y, halfWidth, Integer.toString(serverSettings.percentageFactor()),
                 "oboecraft.settings.percentage_factor");
         y += ROW_HEIGHT;
-        tsukumogamiThreshold = field(x, y, halfWidth, Integer.toString(serverSettings.tsukumogamiThreshold()),
-                "oboecraft.settings.tsukumogami_threshold");
-        tsukumogamiThreshold.setTooltip(
-                Tooltip.create(Component.translatable("oboecraft.settings.tsukumogami_threshold.tooltip")));
-        tsukumogamiReviewFreeze = field(x + halfWidth + GAP, y, halfWidth,
+        // The tsukumogami's three settings share a row, so the screen still fits the smallest window.
+        int thirdWidth = (FIELD_WIDTH - 2 * GAP) / 3;
+        tsukumogamiAppearThreshold = field(x, y, thirdWidth,
+                Integer.toString(serverSettings.tsukumogamiAppearThreshold()),
+                "oboecraft.settings.tsukumogami_appear_threshold");
+        tsukumogamiAppearThreshold.setTooltip(
+                Tooltip.create(Component.translatable("oboecraft.settings.tsukumogami_appear_threshold.tooltip")));
+        tsukumogamiFadeThreshold = field(x + thirdWidth + GAP, y, thirdWidth,
+                Integer.toString(serverSettings.tsukumogamiFadeThreshold()),
+                "oboecraft.settings.tsukumogami_fade_threshold");
+        tsukumogamiFadeThreshold.setTooltip(
+                Tooltip.create(Component.translatable("oboecraft.settings.tsukumogami_fade_threshold.tooltip")));
+        tsukumogamiReviewFreeze = field(x + 2 * (thirdWidth + GAP), y, thirdWidth,
                 DurationText.format(serverSettings.tsukumogamiReviewFreeze()),
                 "oboecraft.settings.tsukumogami_review_freeze");
         tsukumogamiReviewFreeze.setTooltip(
@@ -135,7 +144,8 @@ public final class SettingsScreen extends Screen {
                         DurationText.parse(banLength.getValue()),
                         parseWholeNumber(percentageFactor.getValue(), "percentage points"),
                         dropCountsAsInteraction.getValue(),
-                        parseWholeNumber(tsukumogamiThreshold.getValue(), "overdue items"),
+                        parseWholeNumber(tsukumogamiAppearThreshold.getValue(), "overdue items"),
+                        parseWholeNumber(tsukumogamiFadeThreshold.getValue(), "overdue items"),
                         DurationText.parse(tsukumogamiReviewFreeze.getValue()));
             } catch (IllegalArgumentException e) {
                 error = Component.literal(e.getMessage()).withStyle(ChatFormatting.RED);
@@ -192,8 +202,8 @@ public final class SettingsScreen extends Screen {
                 errorY += 10;
             }
         }
-        for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze)) {
+        for (EditBox box : List.of(intervals, demotions, banLength, percentageFactor,
+                tsukumogamiAppearThreshold, tsukumogamiFadeThreshold, tsukumogamiReviewFreeze)) {
             graphics.text(font, box.getMessage(), box.getX(), box.getY() - 10, LABEL_COLOR);
         }
     }
