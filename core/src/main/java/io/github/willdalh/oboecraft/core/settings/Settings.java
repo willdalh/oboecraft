@@ -7,25 +7,26 @@ import java.util.Objects;
 /**
  * The server settings. Rules that depend on a setting take this as a parameter.
  *
- * @param levels                  the settings for levels 1 and up, in order. Level 0 has no interval, and the top
- *                                level, mastered, is one more than the number of levels here.
- * @param banLength               how long a fail bans the item from being reviewed
- * @param percentageFactor        how many percentage points the removal rate drops for each level above 1
- * @param dropCountsAsInteraction whether dropping a stack out of the inventory is an interaction, so a locked item
- *                                can't be dropped
- * @param tsukumogamiThreshold    the overdue count the tsukumogami appears at, 0 to turn it off
- * @param tsukumogamiReviewFreeze how long the tsukumogami stands still during one review, 0 so it never does
+ * @param levels                     the settings for levels 1 and up, in order. Level 0 has no interval, and the top
+ *                                   level, mastered, is one more than the number of levels here.
+ * @param banLength                  how long a fail bans the item from being reviewed
+ * @param percentageFactor           how many percentage points the removal rate drops for each level above 1
+ * @param dropCountsAsInteraction    whether dropping a stack out of the inventory is an interaction, so a locked item
+ *                                   can't be dropped
+ * @param tsukumogamiAppearThreshold the overdue count the tsukumogami appears at, 0 to turn it off
+ * @param tsukumogamiFadeThreshold   the overdue count it fades out at, below the appear threshold
+ * @param tsukumogamiReviewFreeze    how long the tsukumogami stands still during one review, 0 so it never does
  */
 public record Settings(
         List<LevelSettings> levels, Duration banLength, int percentageFactor, boolean dropCountsAsInteraction,
-        int tsukumogamiThreshold, Duration tsukumogamiReviewFreeze) {
+        int tsukumogamiAppearThreshold, int tsukumogamiFadeThreshold, Duration tsukumogamiReviewFreeze) {
     /** The most levels there can be. */
     public static final int MAX_LEVELS = 100;
     /** The longest interval or ban there can be, so the times worked out from them never overflow. */
     public static final Duration MAX_DURATION = Duration.ofDays(1_000_000);
     /** The highest percentage factor there can be. Above 50, the removal rate is 0 from level 2 anyway. */
     public static final int MAX_PERCENTAGE_FACTOR = 100;
-    /** The highest tsukumogami threshold there can be. */
+    /** The highest tsukumogami appear threshold there can be. The fade threshold is always below it. */
     public static final int MAX_TSUKUMOGAMI_THRESHOLD = 1_000;
     /** The longest review freeze there can be, so the answer menu can't keep the tsukumogami still all night. */
     public static final Duration MAX_TSUKUMOGAMI_REVIEW_FREEZE = Duration.ofHours(1);
@@ -43,6 +44,7 @@ public record Settings(
             Duration.ofMinutes(5),
             5,
             false,
+            10,
             5,
             Duration.ofSeconds(60));
 
@@ -64,9 +66,18 @@ public record Settings(
             throw new IllegalArgumentException("The percentage factor must be from 0 to " + MAX_PERCENTAGE_FACTOR
                     + ", not " + percentageFactor);
         }
-        if (tsukumogamiThreshold < 0 || tsukumogamiThreshold > MAX_TSUKUMOGAMI_THRESHOLD) {
-            throw new IllegalArgumentException("The tsukumogami threshold must be from 0 to "
-                    + MAX_TSUKUMOGAMI_THRESHOLD + ", not " + tsukumogamiThreshold);
+        if (tsukumogamiAppearThreshold < 0 || tsukumogamiAppearThreshold > MAX_TSUKUMOGAMI_THRESHOLD) {
+            throw new IllegalArgumentException("The tsukumogami appear threshold must be from 0 to "
+                    + MAX_TSUKUMOGAMI_THRESHOLD + ", not " + tsukumogamiAppearThreshold);
+        }
+        if (tsukumogamiFadeThreshold < 0 || tsukumogamiFadeThreshold >= MAX_TSUKUMOGAMI_THRESHOLD) {
+            throw new IllegalArgumentException("The tsukumogami fade threshold must be from 0 to "
+                    + (MAX_TSUKUMOGAMI_THRESHOLD - 1) + ", not " + tsukumogamiFadeThreshold);
+        }
+        // With the tsukumogami turned off, the fade threshold is kept for when it is turned on again.
+        if (tsukumogamiAppearThreshold > 0 && tsukumogamiFadeThreshold >= tsukumogamiAppearThreshold) {
+            throw new IllegalArgumentException("The tsukumogami fade threshold must be below the appear threshold, "
+                    + tsukumogamiAppearThreshold + ", not " + tsukumogamiFadeThreshold);
         }
         if (tsukumogamiReviewFreeze.isNegative()
                 || tsukumogamiReviewFreeze.compareTo(MAX_TSUKUMOGAMI_REVIEW_FREEZE) > 0) {
@@ -77,38 +88,38 @@ public record Settings(
 
     /** These settings with the levels replaced. */
     public Settings withLevels(List<LevelSettings> levels) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
     /** These settings with the ban length replaced. */
     public Settings withBanLength(Duration banLength) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
     /** These settings with the percentage factor replaced. */
     public Settings withPercentageFactor(int percentageFactor) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
     /** These settings with the drop setting replaced. */
     public Settings withDropCountsAsInteraction(boolean dropCountsAsInteraction) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
-    /** These settings with the tsukumogami threshold replaced. */
-    public Settings withTsukumogamiThreshold(int tsukumogamiThreshold) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+    /** These settings with the tsukumogami's appear and fade thresholds replaced. */
+    public Settings withTsukumogamiThresholds(int tsukumogamiAppearThreshold, int tsukumogamiFadeThreshold) {
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
     /** These settings with the tsukumogami review freeze replaced. */
     public Settings withTsukumogamiReviewFreeze(Duration tsukumogamiReviewFreeze) {
-        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiThreshold,
-                tsukumogamiReviewFreeze);
+        return new Settings(levels, banLength, percentageFactor, dropCountsAsInteraction, tsukumogamiAppearThreshold,
+                tsukumogamiFadeThreshold, tsukumogamiReviewFreeze);
     }
 
     /** The top level, mastered. */

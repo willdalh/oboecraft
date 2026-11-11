@@ -89,7 +89,7 @@ The answer menu shows the item's level, and "one attempt left" when a wrong atte
 
 The item's image is centered above the answer field without showing its name. Each player can adjust its size for all items with the [review item size setting](settings.md#client-settings).
 
-The name and optional Japanese reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client shows the name and, in Japanese only, plays the item's [reading clip](display.md#reading-clip), so the server sends the item's id with them.
+The name and optional Japanese reading are only sent to the client once the player has passed or is shown the answer: after a pass, after a fail, and in a lesson when the answer is shown. After a pass, the client shows the name and, in Japanese only, plays the item's [reading clip](display.md#reading-clip), and after a fail it plays the clip too, so the server sends the item's id with them.
 
 ## Outcomes
 
@@ -97,7 +97,7 @@ The name and optional Japanese reading are only sent to the client once the play
 |---|---|
 | Pass | The item is unlocked, see [Pass](srs-state.md#pass). The answer menu closes, the [notification](display.md#notification) shows the name at the top of the screen, and in Japanese the [reading clip](display.md#reading-clip) says its reading. Other languages have no sound. |
 | Wrong, one attempt left | The menu stays open with one attempt left. |
-| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the name alone. In Japanese only, Show answer reveals its reading below it without another attempt or punishment. Answer or Close closes the menu; only a new press closes it, not a held key's repeat, and not in the first half second. The review is already over, so closing it changes nothing. |
+| Fail | [Punishment](punishment.md): part of the current view is removed, the item is demoted and banned, see [Fail](srs-state.md#fail). Then the answer menu shows the name alone, and in Japanese the [reading clip](display.md#reading-clip) says its reading. In Japanese only, Show answer reveals its reading below it without another attempt or punishment. Answer or Close closes the menu; only a new press closes it, not a held key's repeat, and not in the first half second. The review is already over, so closing it changes nothing. |
 | Lesson answer shown | The name is shown, and the lesson goes on. In Japanese only, another Show answer press reveals the reading. |
 | Known or ignored | The item's SRS state changes, see [Kinds of state](srs-state.md#kinds-of-state). Ignored stacks are dropped from the inventory. |
 | Cancelled | Nothing changes. Wrong attempts so far are kept. |

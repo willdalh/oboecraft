@@ -14,10 +14,25 @@ import org.junit.jupiter.api.Test;
 class SettingsJsonTest {
     private static final String CUSTOM = """
             {
-              "version": 2,
+              "version": 3,
               "levels": [
                 {"interval": "1h 30m", "demotion": 1},
                 {"interval": "2d", "demotion": 0}
+              ],
+              "banLength": "30s",
+              "percentageFactor": 10,
+              "dropCountsAsInteraction": true,
+              "tsukumogamiAppearThreshold": 8,
+              "tsukumogamiFadeThreshold": 3,
+              "tsukumogamiReviewFreeze": "1m 30s"
+            }
+            """;
+    /** A file from before the fade threshold, with one tsukumogami threshold. */
+    private static final String VERSION_2 = """
+            {
+              "version": 2,
+              "levels": [
+                {"interval": "1h 30m", "demotion": 1}
               ],
               "banLength": "30s",
               "percentageFactor": 10,
@@ -52,8 +67,34 @@ class SettingsJsonTest {
         assertEquals(Duration.ofSeconds(30), settings.banLength());
         assertEquals(10, settings.percentageFactor());
         assertTrue(settings.dropCountsAsInteraction());
-        assertEquals(8, settings.tsukumogamiThreshold());
+        assertEquals(8, settings.tsukumogamiAppearThreshold());
+        assertEquals(3, settings.tsukumogamiFadeThreshold());
         assertEquals(Duration.ofSeconds(90), settings.tsukumogamiReviewFreeze());
+    }
+
+    @Test
+    void readsAVersion2FilesThresholdAsTheAppearThresholdWithTheDefaultFadeThreshold() {
+        Settings settings = parse(VERSION_2);
+
+        assertEquals(8, settings.tsukumogamiAppearThreshold());
+        assertEquals(Settings.DEFAULTS.tsukumogamiFadeThreshold(), settings.tsukumogamiFadeThreshold());
+        assertEquals(Duration.ofSeconds(90), settings.tsukumogamiReviewFreeze());
+    }
+
+    @Test
+    void aVersion2FileWithAThresholdNotAboveTheDefaultFadeThresholdFadesOneBelowIt() {
+        Settings settings = parse(VERSION_2.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": 5"));
+
+        assertEquals(5, settings.tsukumogamiAppearThreshold());
+        assertEquals(4, settings.tsukumogamiFadeThreshold());
+    }
+
+    @Test
+    void aVersion2FileWithTheTsukumogamiTurnedOffKeepsItOff() {
+        Settings settings = parse(VERSION_2.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": 0"));
+
+        assertEquals(0, settings.tsukumogamiAppearThreshold());
+        assertEquals(0, settings.tsukumogamiFadeThreshold());
     }
 
     @Test
@@ -62,16 +103,18 @@ class SettingsJsonTest {
 
         assertEquals(List.of(new LevelSettings(Duration.ofMinutes(90), 1)), settings.levels());
         assertTrue(settings.dropCountsAsInteraction());
-        assertEquals(Settings.DEFAULTS.tsukumogamiThreshold(), settings.tsukumogamiThreshold());
+        assertEquals(Settings.DEFAULTS.tsukumogamiAppearThreshold(), settings.tsukumogamiAppearThreshold());
+        assertEquals(Settings.DEFAULTS.tsukumogamiFadeThreshold(), settings.tsukumogamiFadeThreshold());
         assertEquals(Settings.DEFAULTS.tsukumogamiReviewFreeze(), settings.tsukumogamiReviewFreeze());
     }
 
     @Test
-    void writesVersion2() {
+    void writesVersion3() {
         String text = SettingsJson.format(Settings.DEFAULTS.withTsukumogamiReviewFreeze(Duration.ZERO));
 
-        assertTrue(text.contains("\"version\": 2"), text);
-        assertTrue(text.contains("\"tsukumogamiThreshold\": 5"), text);
+        assertTrue(text.contains("\"version\": 3"), text);
+        assertTrue(text.contains("\"tsukumogamiAppearThreshold\": 10"), text);
+        assertTrue(text.contains("\"tsukumogamiFadeThreshold\": 5"), text);
         assertTrue(text.contains("\"tsukumogamiReviewFreeze\": \"0s\""), text);
     }
 
@@ -90,13 +133,21 @@ class SettingsJsonTest {
     void rejectsAFileThatIsntValidSettings() {
         String[] invalid = {
                 "[]",
-                CUSTOM.replace("\"version\": 2", "\"version\": 3"),
-                CUSTOM.replace("\"version\": 2", "\"version\": 1"),
+                CUSTOM.replace("\"version\": 3", "\"version\": 4"),
+                CUSTOM.replace("\"version\": 3", "\"version\": 0"),
+                CUSTOM.replace("\"version\": 3", "\"version\": 2"),
+                CUSTOM.replace("\"version\": 3", "\"version\": 1"),
                 VERSION_1.replace("\"version\": 1", "\"version\": 2"),
-                CUSTOM.replace("\"version\": 2,", ""),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8,", ""),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": -1"),
-                CUSTOM.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": 1001"),
+                VERSION_2.replace("\"version\": 2", "\"version\": 3"),
+                CUSTOM.replace("\"version\": 3,", ""),
+                CUSTOM.replace("\"tsukumogamiAppearThreshold\": 8,", ""),
+                CUSTOM.replace("\"tsukumogamiFadeThreshold\": 3,", ""),
+                CUSTOM.replace("\"tsukumogamiAppearThreshold\": 8", "\"tsukumogamiAppearThreshold\": -1"),
+                CUSTOM.replace("\"tsukumogamiAppearThreshold\": 8", "\"tsukumogamiAppearThreshold\": 1001"),
+                CUSTOM.replace("\"tsukumogamiFadeThreshold\": 3", "\"tsukumogamiFadeThreshold\": 8"),
+                CUSTOM.replace("\"tsukumogamiFadeThreshold\": 3", "\"tsukumogamiFadeThreshold\": -1"),
+                VERSION_2.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": -1"),
+                VERSION_2.replace("\"tsukumogamiThreshold\": 8", "\"tsukumogamiThreshold\": 1001"),
                 CUSTOM.replace("\"1m 30s\"", "\"2h\""),
                 CUSTOM.replace("\"1m 30s\"", "90"),
                 CUSTOM.replace("\"banLength\": \"30s\",", ""),

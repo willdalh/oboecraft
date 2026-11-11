@@ -6,6 +6,7 @@ import io.github.willdalh.oboecraft.core.srs.SrsState;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.AnswerScreen;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
+import io.github.willdalh.oboecraft.fabric.client.ReadingClips;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -13,7 +14,9 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Blocks;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -148,8 +151,14 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             // Enter is still held, as when it sent the answer that failed, so its repeats must not close the menu.
             context.runOnClient(client -> client.gui.screen().keyPressed(
                     new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
+            context.runOnClient(client -> PlayedReadingClips.take());
             context.getInput().pressKey(InputConstants.KEY_DELETE);
             context.waitFor(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail());
+            // The fail says the reading of the failed item.
+            List<Identifier> failClips = context.computeOnClient(client -> PlayedReadingClips.take());
+            if (!failClips.equals(List.of(ReadingClips.soundEvent(OAK_LOG).orElseThrow()))) {
+                throw new AssertionError("A fail should play the oak log's reading clip, not " + failClips);
+            }
             context.waitTicks(12);
             context.runOnClient(client -> client.gui.screen().keyPressed(
                     new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN, 0, 0)));
@@ -162,6 +171,9 @@ public class AnswerMenuClientGameTest implements FabricClientGameTest {
             // Show answer shows the reading, and the menu stays open.
             context.getInput().pressKey(InputConstants.KEY_F9);
             assertShowsReading(context, true, "Show answer after a fail must show the reading");
+            if (!context.computeOnClient(client -> PlayedReadingClips.take()).isEmpty()) {
+                throw new AssertionError("Show answer after a fail must not play the reading clip again");
+            }
             if (!context.computeOnClient(client -> client.gui.screen() instanceof AnswerScreen screen && screen.showsFail())) {
                 throw new AssertionError("Showing the reading after a fail must keep the menu open");
             }

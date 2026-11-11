@@ -12,7 +12,8 @@ On a dedicated server, the server owner controls these. In singleplayer and in a
 | Ban length | 5 minutes | Fail |
 | `percentageFactor` | 5, in whole percentage points | Removal rate, see [Punishment](punishment.md) |
 | Dropping counts as an interaction | Off | Lock check |
-| Tsukumogami threshold | 5 | The overdue count the [tsukumogami](tsukumogami.md) appears at. 0 turns it off |
+| Tsukumogami appear threshold | 10 | The overdue count the [tsukumogami](tsukumogami.md) appears at. 0 turns it off |
+| Tsukumogami fade threshold | 5 | The overdue count reviews must bring it down to for the tsukumogami to fade out |
 | Tsukumogami review freeze | 60 seconds | How long the tsukumogami stands still during one review. 0 means it never does |
 
 The removal rate on a fail at level `L` is `50% - (L - 1) × percentageFactor%`, and never below 0%. Since `percentageFactor` can't be negative, the rate is never above 50%.
@@ -28,7 +29,8 @@ Settings are checked as a whole when they are read, from the file, from the scre
 - The ban length must be from 0 up.
 - Intervals and the ban length can be at most 1,000,000 days, so the times worked out from them never overflow.
 - `percentageFactor` must be from 0 to 100. Above 50, the removal rate is 0 from level 2 anyway.
-- The tsukumogami threshold must be from 0 to 1,000.
+- The tsukumogami appear threshold must be from 0 to 1,000.
+- The tsukumogami fade threshold must be from 0 to 999 and below the appear threshold. While the appear threshold is 0, it can be any of those, and is kept for when the tsukumogami is turned on again.
 - The tsukumogami review freeze must be from 0 to 1 hour, so the answer menu can't keep the tsukumogami still all night.
 
 ### The settings file
@@ -63,7 +65,7 @@ Screenshots show the [default 100% size](../images/review-item-size/default.png)
 
 The mod has its own settings screen. [Mod Menu](https://modrinth.com/mod/modmenu), an optional mod, opens it from the mod list. Without Mod Menu, the settings are changed in the files.
 
-The screen shows the clickable buttons setting, a review item size slider, and the server settings, the tsukumogami's threshold and review freeze included, each with a tooltip that says what 0 does. Done saves and applies the client settings; Cancel leaves them unchanged. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
+The screen shows the clickable buttons setting, a review item size slider, and the server settings, the tsukumogami's appear and fade thresholds and review freeze included, each with a tooltip that says what 0 does. Done saves and applies the client settings; Cancel leaves them unchanged. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
 
 - Away from a server, or in singleplayer or a world opened to LAN that the player runs, the server settings are this computer's settings file, and can be changed. Saving checks them first. Invalid settings aren't saved, and the screen stays open and says what is wrong, in place of the server settings' heading. A running world uses saved settings at once and sends them to its players.
 - If this computer's server settings file can't be read or isn't valid, the screen shows the defaults that are used instead, read-only, and says that the file isn't valid. It never saves over the file, so the owner can fix the typo by hand.

@@ -18,19 +18,24 @@ import java.util.stream.Stream;
 /**
  * The server settings file format, see {@code docs/architecture/settings-files.md}. Durations are written as
  * {@link DurationText}, like {@code "10m"} or {@code "1d 12h"}. Version 1, from before the tsukumogami, is still read,
- * with the default tsukumogami settings.
+ * with the default tsukumogami settings, and so is version 2, from before the fade threshold.
  */
 public final class SettingsJson {
     /** The format version this code reads and writes. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
+    /** The version with one tsukumogami threshold, before the fade threshold, which is still read. */
+    private static final int VERSION_WITH_ONE_THRESHOLD = 2;
     /** The version before the tsukumogami settings, which is still read. */
     private static final int VERSION_WITHOUT_TSUKUMOGAMI = 1;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final Set<String> FIELDS_WITHOUT_TSUKUMOGAMI =
             Set.of("version", "levels", "banLength", "percentageFactor", "dropCountsAsInteraction");
-    private static final Set<String> FIELDS = Stream.concat(FIELDS_WITHOUT_TSUKUMOGAMI.stream(),
+    private static final Set<String> FIELDS_WITH_ONE_THRESHOLD = Stream.concat(FIELDS_WITHOUT_TSUKUMOGAMI.stream(),
             Stream.of("tsukumogamiThreshold", "tsukumogamiReviewFreeze")).collect(Collectors.toUnmodifiableSet());
+    private static final Set<String> FIELDS = Stream.concat(FIELDS_WITHOUT_TSUKUMOGAMI.stream(),
+            Stream.of("tsukumogamiAppearThreshold", "tsukumogamiFadeThreshold", "tsukumogamiReviewFreeze"))
+            .collect(Collectors.toUnmodifiableSet());
     private static final Set<String> LEVEL_FIELDS = Set.of("interval", "demotion");
 
     private SettingsJson() {
@@ -38,7 +43,9 @@ public final class SettingsJson {
 
     /**
      * Parses a settings file. Every field of its version must be there, with no others, and the values must pass the
-     * checks of {@link Settings}. A version 1 file has no tsukumogami settings, so it gets their defaults.
+     * checks of {@link Settings}. A version 1 file has no tsukumogami settings, so it gets their defaults. A version 2
+     * file's threshold is the appear threshold, and its fade threshold is the default, or one below the appear
+     * threshold when the default isn't below it, as it faded before.
      *
      * @throws IllegalArgumentException if the file isn't valid settings of a version this code reads, saying what is
      *                                  wrong
@@ -49,12 +56,15 @@ public final class SettingsJson {
             throw new IllegalArgumentException("The settings have no version");
         }
         int version = requireInt(object.get("version"), "version");
-        if (version != VERSION && version != VERSION_WITHOUT_TSUKUMOGAMI) {
+        if (version < VERSION_WITHOUT_TSUKUMOGAMI || version > VERSION) {
             throw new IllegalArgumentException("The settings are version " + version + ", but this version of "
-                    + "Oboecraft reads versions " + VERSION_WITHOUT_TSUKUMOGAMI + " and " + VERSION);
+                    + "Oboecraft reads versions " + VERSION_WITHOUT_TSUKUMOGAMI + " to " + VERSION);
         }
-        boolean hasTsukumogami = version == VERSION;
-        requireFields(object, hasTsukumogami ? FIELDS : FIELDS_WITHOUT_TSUKUMOGAMI, "The settings");
+        requireFields(object, switch (version) {
+            case VERSION_WITHOUT_TSUKUMOGAMI -> FIELDS_WITHOUT_TSUKUMOGAMI;
+            case VERSION_WITH_ONE_THRESHOLD -> FIELDS_WITH_ONE_THRESHOLD;
+            default -> FIELDS;
+        }, "The settings");
         JsonElement levelsJson = object.get("levels");
         if (!levelsJson.isJsonArray()) {
             throw new IllegalArgumentException("levels must be an array");
@@ -76,15 +86,32 @@ public final class SettingsJson {
                 throw new IllegalArgumentException(name + " is invalid: " + e.getMessage(), e);
             }
         }
+        int appearThreshold = switch (version) {
+            case VERSION_WITHOUT_TSUKUMOGAMI -> Settings.DEFAULTS.tsukumogamiAppearThreshold();
+            case VERSION_WITH_ONE_THRESHOLD -> requireInt(object.get("tsukumogamiThreshold"), "tsukumogamiThreshold");
+            default -> requireInt(object.get("tsukumogamiAppearThreshold"), "tsukumogamiAppearThreshold");
+        };
+        int fadeThreshold = switch (version) {
+            case VERSION_WITHOUT_TSUKUMOGAMI -> Settings.DEFAULTS.tsukumogamiFadeThreshold();
+            case VERSION_WITH_ONE_THRESHOLD -> fadeThresholdFor(appearThreshold);
+            default -> requireInt(object.get("tsukumogamiFadeThreshold"), "tsukumogamiFadeThreshold");
+        };
         return new Settings(levels, requireDuration(object.get("banLength"), "banLength"),
                 requireInt(object.get("percentageFactor"), "percentageFactor"),
                 requireBoolean(object.get("dropCountsAsInteraction"), "dropCountsAsInteraction"),
-                hasTsukumogami
-                        ? requireInt(object.get("tsukumogamiThreshold"), "tsukumogamiThreshold")
-                        : Settings.DEFAULTS.tsukumogamiThreshold(),
-                hasTsukumogami
-                        ? requireDuration(object.get("tsukumogamiReviewFreeze"), "tsukumogamiReviewFreeze")
-                        : Settings.DEFAULTS.tsukumogamiReviewFreeze());
+                appearThreshold, fadeThreshold,
+                version == VERSION_WITHOUT_TSUKUMOGAMI
+                        ? Settings.DEFAULTS.tsukumogamiReviewFreeze()
+                        : requireDuration(object.get("tsukumogamiReviewFreeze"), "tsukumogamiReviewFreeze"));
+    }
+
+    /**
+     * The fade threshold for a version 2 file's single threshold: the default, unless it isn't below the threshold.
+     * Then it is one below, where it used to fade, or 0 for a threshold of 0, which turns the tsukumogami off.
+     */
+    private static int fadeThresholdFor(int appearThreshold) {
+        int fadeThreshold = Settings.DEFAULTS.tsukumogamiFadeThreshold();
+        return fadeThreshold < appearThreshold ? fadeThreshold : Math.max(0, appearThreshold - 1);
     }
 
     /** The file's text, with every field and the current version. */
@@ -102,7 +129,8 @@ public final class SettingsJson {
         json.addProperty("banLength", DurationText.format(settings.banLength()));
         json.addProperty("percentageFactor", settings.percentageFactor());
         json.addProperty("dropCountsAsInteraction", settings.dropCountsAsInteraction());
-        json.addProperty("tsukumogamiThreshold", settings.tsukumogamiThreshold());
+        json.addProperty("tsukumogamiAppearThreshold", settings.tsukumogamiAppearThreshold());
+        json.addProperty("tsukumogamiFadeThreshold", settings.tsukumogamiFadeThreshold());
         json.addProperty("tsukumogamiReviewFreeze", DurationText.format(settings.tsukumogamiReviewFreeze()));
         return GSON.toJson(json) + "\n";
     }

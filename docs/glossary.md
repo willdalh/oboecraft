@@ -231,7 +231,7 @@ _Avoid_: formula, pattern
 ### Tsukumogami
 
 **Tsukumogami**:
-The mob that follows a player day and night while their overdue count is at the threshold or above, and leaves when they review. Each player has at most one, and it follows only that player, its owner. See [Tsukumogami](design/tsukumogami.md).
+The mob that follows a player day and night while they are haunted, and leaves when they review. Each player has at most one, and it follows only that player, its owner. See [Tsukumogami](design/tsukumogami.md).
 _Avoid_: yokai (a category of creatures, not this mob), ghost, boss, follower
 
 **Overdue**:
@@ -242,6 +242,14 @@ _Avoid_: due, late, expired
 The number of different overdue items a player carries, in the inventory, the hotbar, the offhand and on the cursor. Stack size doesn't matter.
 _Avoid_: backlog, debt, due count
 
+**Haunted**:
+A player is haunted from when their overdue count reaches the appear threshold until reviews bring it down to the fade threshold or below. Their tsukumogami exists only while they are haunted.
+_Avoid_: active, cursed
+
+**Appear threshold** and **fade threshold**:
+The overdue counts, server settings, at which a player becomes haunted and stops being haunted. The fade threshold is below the appear threshold, and an appear threshold of 0 turns the tsukumogami off.
+_Avoid_: threshold on its own, limit
+
 **Review freeze**:
 How long the tsukumogami stands still and watches its owner during one review, a server setting.
 _Avoid_: pause, grace period
@@ -249,7 +257,7 @@ _Avoid_: pause, grace period
 ### Settings
 
 **Server settings**:
-The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor`, whether dropping counts as an interaction, and the tsukumogami's threshold and review freeze. In singleplayer, the built-in server's.
+The settings that the server decides and every player on it shares: the levels and their intervals and demotions, the ban length, `percentageFactor`, whether dropping counts as an interaction, and the tsukumogami's appear and fade thresholds and review freeze. In singleplayer, the built-in server's.
 _Avoid_: config, options, game rules
 
 **Client settings**:

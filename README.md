@@ -18,8 +18,8 @@ Punch a tree and you get a log you can't use. To place it, craft with it or put 
 - **Mistakes cost items.** You get two attempts. A fail removes up to half of that item from your inventory, moves it down a level and bans it for five minutes, so it can't be answered until the ban ends. Words you have known for longer lose less.
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer.
-- **Hear every Japanese word.** After a correct answer, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
-- **Don't let your reviews pile up.** If you carry five or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It suspends attacks while another mob within 32 blocks targets you and for five safe seconds afterward. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry. It stays through sunrise; killing it gives 12,000 game ticks of relief (about 10 minutes at 20 ticks per second).
+- **Hear every Japanese word.** After a correct answer, and after a fail, a voice says the name, so you learn how it sounds. Its volume is the Voice/Speech slider under Options → Music & Sounds.
+- **Don't let your reviews pile up.** If you carry ten or more items you have learned that are locked again, a 付喪神 (tsukumogami) follows you: a noh mask that came alive, with your overdue items circling its shoulders. The more items are overdue, the harder it is to kill. It suspends attacks while another mob within 32 blocks targets you and for five safe seconds afterward. It stands still while you answer, you can't sleep while it follows you, and it fades away once you review enough of what you carry to be down to five. It stays through sunrise; killing it gives 12,000 game ticks of relief (about 10 minutes at 20 ticks per second).
 
 <table>
   <tr>
@@ -79,7 +79,7 @@ The あ button in your inventory, right of the recipe book, opens the word list.
 
 ## Settings
 
-The levels, their intervals, the ban length, how much a fail removes, and when the tsukumogami appears, if at all, and how long it stands still while you answer can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. Each player can also choose clickable buttons and the size of the item image above the answer field (50–400%) in Mod Menu or `config/oboecraft/client.json`. The image size applies to all reviews and leaves other item displays unchanged.
+The levels, their intervals, the ban length, how much a fail removes, when the tsukumogami appears, if at all, and fades, and how long it stands still while you answer can be changed with [Mod Menu](https://modrinth.com/mod/modmenu) or in `config/oboecraft/server.json`. On a server, only the server's owner can change them. Each player can also choose clickable buttons and the size of the item image above the answer field (50–400%) in Mod Menu or `config/oboecraft/client.json`. The image size applies to all reviews and leaves other item displays unchanged.
 
 ## License
 

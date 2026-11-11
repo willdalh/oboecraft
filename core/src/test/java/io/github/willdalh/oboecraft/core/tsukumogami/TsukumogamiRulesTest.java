@@ -18,67 +18,86 @@ class TsukumogamiRulesTest {
     private static final long EARLIER_GAME_TICK = 3 * 24_000 + 6_000;
     private static final Instant NOT_WAITING = NOW.minusSeconds(1);
 
-    private static boolean shouldExist(int overdueCount, long gameTime, OptionalLong killedAtTick, Instant waitsUntil,
-            Settings settings) {
-        return TsukumogamiRules.shouldExist(overdueCount, gameTime, killedAtTick, NOW, waitsUntil, settings);
+    private static boolean shouldExist(long gameTime, OptionalLong killedAtTick, Instant waitsUntil) {
+        return TsukumogamiRules.shouldExist(true, gameTime, killedAtTick, NOW, waitsUntil);
     }
 
     @Test
-    void itAppearsFromTheThreshold() {
-        assertFalse(shouldExist(4, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(5, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(40, GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
+    void aPlayerBecomesHauntedAtTheAppearThreshold() {
+        assertFalse(TsukumogamiRules.isHaunted(false, 9, SETTINGS));
+        assertTrue(TsukumogamiRules.isHaunted(false, 10, SETTINGS));
+        assertTrue(TsukumogamiRules.isHaunted(false, 40, SETTINGS));
+    }
+
+    @Test
+    void aHauntedPlayerStaysHauntedUntilTheFadeThreshold() {
+        assertTrue(TsukumogamiRules.isHaunted(true, 9, SETTINGS));
+        assertTrue(TsukumogamiRules.isHaunted(true, 6, SETTINGS));
+        assertFalse(TsukumogamiRules.isHaunted(true, 5, SETTINGS));
+        assertFalse(TsukumogamiRules.isHaunted(true, 0, SETTINGS));
+    }
+
+    @Test
+    void betweenTheThresholdsAPlayerWhoIsNotHauntedStaysSo() {
+        assertFalse(TsukumogamiRules.isHaunted(false, 6, SETTINGS));
+        assertFalse(TsukumogamiRules.isHaunted(false, 5, SETTINGS));
+    }
+
+    @Test
+    void anAppearThresholdOfZeroTurnsItOff() {
+        Settings off = SETTINGS.withTsukumogamiThresholds(0, 0);
+
+        assertFalse(TsukumogamiRules.isOn(off));
+        assertTrue(TsukumogamiRules.isOn(SETTINGS));
+        assertFalse(TsukumogamiRules.isHaunted(false, 0, off));
+        assertFalse(TsukumogamiRules.isHaunted(false, 40, off));
+        assertFalse(TsukumogamiRules.isHaunted(true, 40, off));
+    }
+
+    @Test
+    void itExistsOnlyWhileItsOwnerIsHaunted() {
+        assertTrue(TsukumogamiRules.shouldExist(true, GAME_TICK, OptionalLong.empty(), NOW, NOT_WAITING));
+        assertFalse(TsukumogamiRules.shouldExist(false, GAME_TICK, OptionalLong.empty(), NOW, NOT_WAITING));
     }
 
     @Test
     void itAppearsAtAnyGameTime() {
-        assertTrue(shouldExist(40, EARLIER_GAME_TICK, OptionalLong.empty(), NOT_WAITING, SETTINGS));
-    }
-
-    @Test
-    void aThresholdOfZeroTurnsItOff() {
-        Settings off = SETTINGS.withTsukumogamiThreshold(0);
-
-        assertFalse(TsukumogamiRules.isOn(off));
-        assertTrue(TsukumogamiRules.isOn(SETTINGS));
-        assertFalse(shouldExist(0, GAME_TICK, OptionalLong.empty(), NOT_WAITING, off));
-        assertFalse(shouldExist(40, GAME_TICK, OptionalLong.empty(), NOT_WAITING, off));
+        assertTrue(shouldExist(EARLIER_GAME_TICK, OptionalLong.empty(), NOT_WAITING));
     }
 
     @Test
     void killReliefLastsExactlyHalfADay() {
         OptionalLong killedAtTick = OptionalLong.of(GAME_TICK);
 
-        assertFalse(shouldExist(10, GAME_TICK, killedAtTick, NOT_WAITING, SETTINGS));
-        assertFalse(shouldExist(10, GAME_TICK + 11_999, killedAtTick, NOT_WAITING, SETTINGS));
-        assertTrue(shouldExist(10, GAME_TICK + 12_000, killedAtTick, NOT_WAITING, SETTINGS));
-        assertFalse(shouldExist(4, GAME_TICK + 12_000, killedAtTick, NOT_WAITING, SETTINGS));
-        assertFalse(shouldExist(10, GAME_TICK + 12_000, killedAtTick, NOW.plusSeconds(1), SETTINGS));
+        assertFalse(shouldExist(GAME_TICK, killedAtTick, NOT_WAITING));
+        assertFalse(shouldExist(GAME_TICK + 11_999, killedAtTick, NOT_WAITING));
+        assertTrue(shouldExist(GAME_TICK + 12_000, killedAtTick, NOT_WAITING));
+        assertFalse(shouldExist(GAME_TICK + 12_000, killedAtTick, NOW.plusSeconds(1)));
     }
 
     @Test
     void itWaitsUntilItsDelayIsOver() {
-        assertFalse(shouldExist(10, GAME_TICK, OptionalLong.empty(), NOW.plusMillis(1), SETTINGS));
-        assertTrue(shouldExist(10, GAME_TICK, OptionalLong.empty(), NOW, SETTINGS));
+        assertFalse(shouldExist(GAME_TICK, OptionalLong.empty(), NOW.plusMillis(1)));
+        assertTrue(shouldExist(GAME_TICK, OptionalLong.empty(), NOW));
     }
 
     @Test
     void itsHealthGrowsWithTheOverdueCountUpToTheCap() {
-        assertEquals(20, TsukumogamiRules.maxHealth(5, SETTINGS));
-        assertEquals(26, TsukumogamiRules.maxHealth(6, SETTINGS));
-        assertEquals(62, TsukumogamiRules.maxHealth(12, SETTINGS));
-        assertEquals(98, TsukumogamiRules.maxHealth(18, SETTINGS));
-        assertEquals(100, TsukumogamiRules.maxHealth(19, SETTINGS));
+        assertEquals(20, TsukumogamiRules.maxHealth(10, SETTINGS));
+        assertEquals(26, TsukumogamiRules.maxHealth(11, SETTINGS));
+        assertEquals(62, TsukumogamiRules.maxHealth(17, SETTINGS));
+        assertEquals(98, TsukumogamiRules.maxHealth(23, SETTINGS));
+        assertEquals(100, TsukumogamiRules.maxHealth(24, SETTINGS));
         assertEquals(100, TsukumogamiRules.maxHealth(Integer.MAX_VALUE, SETTINGS));
     }
 
     @Test
-    void itsHealthCountsFromTheThreshold() {
-        Settings threshold10 = SETTINGS.withTsukumogamiThreshold(10);
+    void itsHealthCountsFromTheAppearThreshold() {
+        Settings appearAt5 = SETTINGS.withTsukumogamiThresholds(5, 2);
 
-        assertEquals(20, TsukumogamiRules.maxHealth(10, threshold10));
-        assertEquals(32, TsukumogamiRules.maxHealth(12, threshold10));
-        assertEquals(20, TsukumogamiRules.maxHealth(3, threshold10));
+        assertEquals(20, TsukumogamiRules.maxHealth(5, appearAt5));
+        assertEquals(32, TsukumogamiRules.maxHealth(7, appearAt5));
+        assertEquals(20, TsukumogamiRules.maxHealth(3, appearAt5));
     }
 
     @Test
