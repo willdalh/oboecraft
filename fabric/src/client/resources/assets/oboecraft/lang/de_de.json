@@ -49,6 +49,7 @@
   "oboecraft.settings.review_item_scale_hint": "Ändert die Größe des Gegenstandsbildes über dem Antwortfeld für alle Gegenstände. Andere Bilder behalten ihre normale Größe.",
   "oboecraft.settings.server": "Einstellungen für Einzelspieler und LAN-Welten",
   "oboecraft.settings.server_remote": "Servereinstellungen, die nur der Besitzer ändern kann",
+  "oboecraft.settings.server_invalid": "Ungültige server.json: Standardwerte aktiv. Siehe Spielprotokoll",
   "oboecraft.settings.intervals": "Zeitabstände der Stufen, z. B. 10m, 1h, 1d",
   "oboecraft.settings.demotions": "Abstieg bei falscher Antwort, je ein Wert pro Stufe",
   "oboecraft.settings.ban_length": "Sperre nach falscher Antwort",

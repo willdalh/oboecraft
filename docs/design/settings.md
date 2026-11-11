@@ -66,7 +66,9 @@ The mod has its own settings screen. [Mod Menu](https://modrinth.com/mod/modmenu
 The screen shows the clickable buttons setting, a review item size slider, and the server settings, the tsukumogami's threshold and review freeze included, each with a tooltip that says what 0 does. Done saves and applies the client settings; Cancel leaves them unchanged. The levels are two lists separated by commas: the intervals, like `10m, 1h, 4h`, and the demotions, like `1, 1, 2`, one of each per level.
 
 - Away from a server, or in singleplayer or a world opened to LAN that the player runs, the server settings are this computer's settings file, and can be changed. Saving checks them first. Invalid settings aren't saved, and the screen stays open and says what is wrong, in place of the server settings' heading. A running world uses saved settings at once and sends them to its players.
+- If this computer's server settings file can't be read or isn't valid, the screen shows the defaults that are used instead, read-only, and says that the file isn't valid. It never saves over the file, so the owner can fix the typo by hand.
 - On another server, the screen shows that server's settings and can't change them, since only the server owner can.
+- The client settings file is only written when the client settings were changed.
 
 ## Not settings
 

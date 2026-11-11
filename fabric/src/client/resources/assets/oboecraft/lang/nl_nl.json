@@ -49,6 +49,7 @@
   "oboecraft.settings.review_item_scale_hint": "Verandert de afbeelding boven het antwoordveld voor alle voorwerpen. Andere afbeeldingen behouden hun normale grootte.",
   "oboecraft.settings.server": "Instellingen voor singleplayer en LAN-werelden",
   "oboecraft.settings.server_remote": "Serverinstellingen die alleen de eigenaar kan wijzigen",
+  "oboecraft.settings.server_invalid": "Ongeldige server.json: standaardwaarden actief. Zie het spellogboek",
   "oboecraft.settings.intervals": "Intervallen van de niveaus, zoals 10m, 1h, 1d",
   "oboecraft.settings.demotions": "Daling bij een fout antwoord, één waarde per niveau",
   "oboecraft.settings.ban_length": "Blokkering na een fout antwoord",

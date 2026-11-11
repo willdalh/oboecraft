@@ -49,6 +49,7 @@
   "oboecraft.settings.review_item_scale_hint": "Changes the item image above the answer field for all items. Other item images keep their normal size.",
   "oboecraft.settings.server": "Settings for singleplayer and worlds opened to LAN",
   "oboecraft.settings.server_remote": "This server's settings, which only its owner can change",
+  "oboecraft.settings.server_invalid": "Invalid server.json: defaults are used. See the game log",
   "oboecraft.settings.intervals": "Intervals of the levels, like 10m, 1h, 1d",
   "oboecraft.settings.demotions": "Levels a fail drops, one for each level",
   "oboecraft.settings.ban_length": "Ban after a fail",
