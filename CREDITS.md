@@ -42,4 +42,4 @@ The other sounds were made from these recordings, all under [CC0 1.0](https://cr
 
 ## Textures and icons
 
-The tsukumogami's textures (`assets/oboecraft/textures/entity/tsukumogami/` in the mod jar), the mod's icon (`assets/oboecraft/icon.png`) and the reading clip button's icon (`assets/oboecraft/textures/gui/sprites/icon/`) were made for the mod with Claude Code, an AI coding agent, and are under the MIT license, like the code.
+The tsukumogami's textures (`assets/oboecraft/textures/entity/tsukumogami/` in the mod jar) and the reading clip button's icon (`assets/oboecraft/textures/gui/sprites/icon/`) were made for the mod with Claude Code, an AI coding agent. The mod's icon (`assets/oboecraft/icon.png`) was made for the mod with ChatGPT's image generation. All of them are under the MIT license, like the code.
