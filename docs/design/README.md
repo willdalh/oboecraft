@@ -1,6 +1,6 @@
 # Design
 
-These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) and the [implementation plan](../implementation-plan.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
+These docs describe how the mod behaves. They win over [`idea.md`](../idea.md) where they disagree. How the code is structured is in [`docs/architecture/`](../architecture/overview.md).
 
 The foundations were designed in milestone 3a, before any game code, with the whole plan in mind, and milestone 3b built the first parts. Milestone 4 added name parts and full answer checking, milestone 5 the full name list, milestone 6 the lock check for every interaction, milestone 7 item displays, milestone 8 lessons and the word list, milestone 9 punishment, milestone 10 the notification after a pass, milestone 11 the game mode and renaming rules, milestone 12 the settings files, sync and screen, [willdalh/oboecraft#25](https://github.com/willdalh/oboecraft/issues/25) the reading clip after a pass, progress that follows each player to every world and server, and [willdalh/oboecraft#51](https://github.com/willdalh/oboecraft/issues/51) the tsukumogami. Each doc says which milestone builds which part, so the docs never claim more than the mod does.
 
