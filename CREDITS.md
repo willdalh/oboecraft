@@ -4,7 +4,7 @@ Oboecraft's code is under the MIT license, see [`LICENSE`](LICENSE). The mod als
 
 ## Item names
 
-The names in `oboecraft/name_lists/` in the mod jar are from Minecraft's Japanese (`ja_jp`), German (`de_de`), Norwegian Bokmål (`no_no`) and Dutch (`nl_nl`) translations, by Mojang Studios and Minecraft's translation contributors. Minecraft is a trademark of Mojang Synergies AB. Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+The names in `oboecraft/name_lists/` in the mod jar are from Minecraft's Japanese (`ja_jp`), German (`de_de`), Austrian German (`de_at`), Norwegian Bokmål (`no_no`) and Dutch (`nl_nl`) translations, by Mojang Studios and Minecraft's translation contributors. Minecraft is a trademark of Mojang Synergies AB. Oboecraft is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 
 ## Readings
 

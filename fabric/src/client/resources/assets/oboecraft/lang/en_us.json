@@ -79,6 +79,7 @@
   "subtitles.oboecraft.entity.tsukumogami.fade": "Wind chime rings",
   "oboecraft.language.ja_jp": "Japanese",
   "oboecraft.language.de_de": "German",
+  "oboecraft.language.de_at": "Austrian German",
   "oboecraft.language.no_no": "Norwegian Bokmål",
   "oboecraft.language.nl_nl": "Dutch",
   "oboecraft.learning_language.next_join": "You'll learn %s the next time you join. Your answers stay in the current learning language until then.",

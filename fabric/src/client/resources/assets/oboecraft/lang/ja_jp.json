@@ -79,6 +79,7 @@
   "subtitles.oboecraft.entity.tsukumogami.fade": "風鈴が鳴る",
   "oboecraft.language.ja_jp": "日本語",
   "oboecraft.language.de_de": "ドイツ語",
+  "oboecraft.language.de_at": "オーストリアドイツ語",
   "oboecraft.language.no_no": "ノルウェー語（ブークモール）",
   "oboecraft.language.nl_nl": "オランダ語",
   "oboecraft.learning_language.next_join": "次に参加したときから%sを学びます。それまでは現在の学習言語で答えてください。",

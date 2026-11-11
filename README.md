@@ -5,7 +5,7 @@
 <h1 align="center">Oboecraft</h1>
 
 <p align="center">
-  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese, German, Norwegian Bokmål or Dutch.
+  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese, German, Austrian German, Norwegian Bokmål or Dutch.
 </p>
 
 <p align="center">
@@ -56,13 +56,14 @@ Your Minecraft language setting chooses what you learn:
 |---|---|
 | Japanese (`ja_jp`) | Japanese |
 | German (`de_de`) | German |
+| Austrian German (`de_at`) | Austrian German |
 | Norsk bokmål (`no_no`) | Norwegian Bokmål |
 | Dutch (`nl_nl`) | Dutch |
-| Every other language, including `de_at`, `de_ch`, `nn_no` and `nl_be` | Japanese |
+| Every other language, including `de_ch`, `nn_no` and `nl_be` | Japanese |
 
 Each language has separate progress that follows you between worlds. Different players can learn different languages on the same server. Changing the game language in a world takes effect for learning on the next join; a chat message reminds you. Until then, unlocked names follow the new game language but answers stay in the current learning language.
 
-German, Bokmål and Dutch use Minecraft's own item names. Case, spacing and punctuation don't matter; keyboard spellings such as `ae/oe/ue`, `ss` and `ae/oe/aa` work for ä/ö/ü, ß and æ/ø/å. Plain a/o/u do not replace umlauts. The accents é, è, ê, ë and ï may be left out. There is no typo tolerance, and no articles are required. Reading reveals, spoken names and the word list's speaker buttons are Japanese-only. The tsukumogami, temple bell and **あ** button keep their Japanese style in every learning language.
+German, Austrian German, Bokmål and Dutch use Minecraft's own item names. Case, spacing and punctuation don't matter; keyboard spellings such as `ae/oe/ue`, `ss` and `ae/oe/aa` work for ä/ö/ü, ß and æ/ø/å. Plain a/o/u do not replace umlauts. The accents é, è, ê, ë and ï may be left out. There is no typo tolerance, and no articles are required. Reading reveals, spoken names and the word list's speaker buttons are Japanese-only. The tsukumogami, temple bell and **あ** button keep their Japanese style in every learning language.
 
 ## Keys
 

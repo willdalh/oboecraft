@@ -6,7 +6,7 @@ Format 3 stores leveled, known and ignored states, and for a leveled state also 
 
 ## Where the files are
 
-One file per account and learning language on the player's computer, named by the account's UUID: `<game folder>/oboecraft/progress/<language>/<uuid>.json`. The folders are `ja_jp`, `de_de`, `no_no` and `nl_nl`; each has independent file versions, locks and broken-file handling. Servers keep no progress files.
+One file per account and learning language on the player's computer, named by the account's UUID: `<game folder>/oboecraft/progress/<language>/<uuid>.json`. The folders are `ja_jp`, `de_de`, `de_at`, `no_no` and `nl_nl`; each has independent file versions, locks and broken-file handling. Servers keep no progress files.
 
 While the player is in a world, the game holds a lock on `<uuid>.json.lock` next to the file, with Java's `FileChannel.tryLock`, so another game on the same computer can't send the same progress and save over this game's changes. The lock file stays when the game leaves, and holds nothing.
 

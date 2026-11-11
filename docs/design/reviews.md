@@ -2,7 +2,7 @@
 
 A review is one round in the answer menu for a locked item. It ends in a pass, a fail, or is cancelled when the player closes the menu. The server runs every review. The client only shows the answer menu and sends what the player does.
 
-The name and answer placeholder use the active learning language. Japanese reveals have two steps: name, then reading. For German, Bokmål and Dutch, Show answer in a lesson or a fail reveals only the name; there is no Show reading action or button. The review, lesson and punishment rules below are shared by all languages.
+The name and answer placeholder use the active learning language. Japanese reveals have two steps: name, then reading. For German, Austrian German, Bokmål and Dutch, Show answer in a lesson or a fail reveals only the name; there is no Show reading action or button. The review, lesson and punishment rules below are shared by all languages.
 
 ## Starting a review
 
