@@ -47,9 +47,9 @@ public class DisplayGameTest {
             var timed = new FixedProgress(new SrsState.Leveled(1, Optional.of(NOW.plusSeconds(20))), settings);
             var display = (DisplayState.Timed) locks.display(timed, player, stack);
             helper.assertTrue(display.timer().interval().equals(Duration.ofSeconds(100)), "display uses the view's interval");
-            helper.assertTrue(!locks.closeToLocking(timed, player, stack), "marker uses the view's threshold");
+            helper.assertTrue(locks.slotMarker(timed, player, stack) == io.github.willdalh.oboecraft.core.srs.SlotMarker.NONE, "marker uses the view's threshold");
             var timedWithDefaults = new FixedProgress(timed.state(), Settings.DEFAULTS);
-            helper.assertTrue(locks.closeToLocking(timedWithDefaults, player, stack),
+            helper.assertTrue(locks.slotMarker(timedWithDefaults, player, stack) == io.github.willdalh.oboecraft.core.srs.SlotMarker.NEAR_LOCK,
                     "default settings have a different threshold");
             helper.succeed();
         } finally {

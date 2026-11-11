@@ -1,6 +1,7 @@
 package io.github.willdalh.oboecraft.fabric.client.display;
 
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
+import io.github.willdalh.oboecraft.core.srs.SlotMarker;
 import io.github.willdalh.oboecraft.fabric.OboecraftMod;
 import io.github.willdalh.oboecraft.fabric.client.OboecraftClient;
 import io.github.willdalh.oboecraft.fabric.lock.ProgressView;
@@ -43,10 +44,10 @@ public final class ItemDisplay {
                 : OboecraftMod.locks().display(frame.progress(), frame.player(), stack);
     }
 
-    public static boolean closeToLocking(ItemStack stack) {
+    public static SlotMarker slotMarker(ItemStack stack) {
         Frame frame = frame();
-        return frame.player() != null && frame.progress() != null
-                && OboecraftMod.locks().closeToLocking(frame.progress(), frame.player(), stack);
+        return frame.player() == null || frame.progress() == null ? SlotMarker.NONE
+                : OboecraftMod.locks().slotMarker(frame.progress(), frame.player(), stack);
     }
 
     public static Component name(ItemStack stack, Component original) {

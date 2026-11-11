@@ -5,6 +5,7 @@ import io.github.willdalh.oboecraft.core.lock.LockCheck;
 import io.github.willdalh.oboecraft.core.lock.Interaction;
 import io.github.willdalh.oboecraft.core.lock.LockDecision;
 import io.github.willdalh.oboecraft.core.srs.DisplayRules;
+import io.github.willdalh.oboecraft.core.srs.SlotMarker;
 import io.github.willdalh.oboecraft.core.srs.DisplayState;
 import io.github.willdalh.oboecraft.fabric.item.ItemMappings;
 import java.util.List;
@@ -62,10 +63,10 @@ public final class Locks {
     }
 
     /** The hot path for slot decorations: no timer or full display result is built. */
-    public boolean closeToLocking(ProgressView view, Player player, ItemStack stack) {
+    public SlotMarker slotMarker(ProgressView view, Player player, ItemStack stack) {
         return activeEntry(view, player, stack)
-                .map(entry -> DisplayRules.closeToLocking(view.state(player, entry.id()), view.now(), view.settings()))
-                .orElse(false);
+                .map(entry -> DisplayRules.slotMarker(view.state(player, entry.id()), view.now(), view.settings()))
+                .orElse(SlotMarker.NONE);
     }
 
     private Optional<NameListEntry> activeEntry(ProgressView view, Player player, ItemStack stack) {

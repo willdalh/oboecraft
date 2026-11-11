@@ -26,13 +26,21 @@ public final class DisplayRules {
         };
     }
 
-    /** The slot marker needs only this boolean, without constructing a display state or lock timer. */
-    public static boolean closeToLocking(SrsState state, Instant now, Settings settings) {
-        if (!(state instanceof SrsState.Leveled leveled) || leveled.level() >= settings.topLevel()
-                || SrsRules.isLocked(leveled, now, settings)) {
-            return false;
+    /** The hot slot path constructs neither a display state nor a lock timer. */
+    public static SlotMarker slotMarker(SrsState state, Instant now, Settings settings) {
+        if (!(state instanceof SrsState.Leveled leveled)) {
+            return SlotMarker.NONE;
+        }
+        if (leveled.level() == 0) {
+            return SlotMarker.NEW;
+        }
+        if (leveled.level() >= settings.topLevel()) {
+            return SlotMarker.NONE;
+        }
+        if (SrsRules.isLocked(leveled, now, settings)) {
+            return SlotMarker.OVERDUE;
         }
         return LockTimer.closeToLocking(Duration.between(now, leveled.locksAt().orElseThrow()),
-                settings.interval(leveled.level()));
+                settings.interval(leveled.level())) ? SlotMarker.NEAR_LOCK : SlotMarker.NONE;
     }
 }
