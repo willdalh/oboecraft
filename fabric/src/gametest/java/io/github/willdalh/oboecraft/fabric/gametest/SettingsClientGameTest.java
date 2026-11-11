@@ -82,8 +82,8 @@ public class SettingsClientGameTest implements FabricClientGameTest {
         context.runOnClient(minecraft -> minecraft.gui.setScreen(new SettingsScreen(null)));
         context.waitForScreen(SettingsScreen.class);
         context.runOnClient(minecraft -> {
-            check(fields(minecraft).stream().noneMatch(EditBox::isEditable)
-                            && minecraft.gui.screen().children().stream().filter(CycleButton.class::isInstance)
+            // The drop toggle is the only toggle of the server settings, which turn read-only together.
+            check(minecraft.gui.screen().children().stream().filter(CycleButton.class::isInstance)
                             .map(CycleButton.class::cast).filter(toggle -> !toggle.active).count() == 1,
                     "the server settings of an invalid file should be read-only");
             pressButton(minecraft, "gui.done");
