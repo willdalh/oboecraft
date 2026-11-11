@@ -12,7 +12,12 @@
     "homepage": "https://github.com/willdalh/oboecraft",
     "sources": "https://github.com/willdalh/oboecraft"
   },
-  "license": "MIT",
+  "license": [
+    "MIT",
+    "CC-BY-SA-4.0",
+    "CC-BY-2.1-JP",
+    "LicenseRef-VOICEVOX"
+  ],
   "icon": "assets/oboecraft/icon.png",
   "environment": "*",
   "entrypoints": {
