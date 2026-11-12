@@ -5,16 +5,18 @@
 <h1 align="center">Oboecraft</h1>
 
 <p align="center">
-  A vibe-coded Minecraft mod that locks every item until you can name it in Japanese, German, Austrian German, Norwegian Bokmål or Dutch.
+  A vibe-coded Minecraft mod that locks every item until you can name it in the language you are learning.
 </p>
 
 <p align="center">
   <img src="docs/images/answer-menu.jpg" alt="The answer menu over a cherry grove, with さくらのげんぼく typed in" width="800">
 </p>
 
-Punch a tree and you get a log you can't use. To place it, craft with it or put it in a chest, you first type its name from the Japanese version of the game: サクラの原木. A correct answer unlocks every log of that kind for ten minutes. Each correct answer after that keeps it unlocked for longer, from an hour to a day to a month, until the word is mastered and never locks again. This is spaced repetition, and the game is the flashcard deck.
+Oboecraft was made for Japanese, and Japanese gets the most support. Other [learning languages](#learning-languages) use Minecraft's own item names.
 
-- **Any way of writing it counts.** サクラの原木, さくらのげんぼく and `sakura no genboku` all pass. The sound must be right, and so must the kanji: 元木 has the same sound and still fails.
+In Japanese, punch a tree and you get a log you can't use. To place it, craft with it or put it in a chest, you first type its name from the Japanese version of the game: サクラの原木. A correct answer unlocks every log of that kind for ten minutes. Each correct answer after that keeps it unlocked for longer, from an hour to a day to a month, until the word is mastered and never locks again. This is spaced repetition, and the game is the flashcard deck.
+
+- **In Japanese, any way of writing it counts.** サクラの原木, さくらのげんぼく and `sakura no genboku` all pass. The sound must be right, and so must the kanji: 元木 has the same sound and still fails.
 - **Mistakes cost items.** You get two attempts. A fail removes up to half of that item from your inventory, moves it down a level and bans it for five minutes, so it can't be answered until the ban ends. Words you have known for longer lose less.
 - **New items start with a lesson**, where you can see the answer and nothing is lost.
 - **Names stay hidden.** A locked item is called `???` until you answer. A `?` in its slot means new; a `!` means overdue for review. An amber square warns that an unlocked item is near locking.
@@ -46,7 +48,7 @@ You need Minecraft: Java Edition 26.3 with [Fabric Loader](https://fabricmc.net/
 
 On a server, install the mod on the server too. Players need the same version of Oboecraft to join. The server checks every answer. Your progress is kept on your computer and goes with you to all your worlds and to every server.
 
-Set the game language to 日本語 under Options → Language, so the names you learn are the ones you see. Locks only apply in survival and adventure mode.
+Set the game language to the language you want to learn (see [Learning languages](#learning-languages)) under Options → Language, so the names you learn are the ones you see. Locks only apply in survival and adventure mode.
 
 ## Learning languages
 
@@ -63,7 +65,7 @@ Your Minecraft language setting chooses what you learn:
 
 Each language has separate progress that follows you between worlds. Different players can learn different languages on the same server. Changing the game language in a world takes effect for learning on the next join; a chat message reminds you. Until then, unlocked names follow the new game language but answers stay in the current learning language.
 
-German, Austrian German, Bokmål and Dutch use Minecraft's own item names. Case, spacing and punctuation don't matter; keyboard spellings such as `ae/oe/ue`, `ss` and `ae/oe/aa` work for ä/ö/ü, ß and æ/ø/å. Plain a/o/u do not replace umlauts. The accents é, è, ê, ë and ï may be left out. There is no typo tolerance, and no articles are required. Reading reveals, spoken names and the word list's speaker buttons are Japanese-only. The tsukumogami, temple bell and **あ** button keep their Japanese style in every learning language.
+Other learning languages use Minecraft's own item names. Case, spacing and punctuation don't matter; keyboard spellings such as `ae/oe/ue`, `ss` and `ae/oe/aa` work for ä/ö/ü, ß and æ/ø/å. Plain a/o/u do not replace umlauts. The accents é, è, ê, ë and ï may be left out. There is no typo tolerance, and no articles are required. Reading reveals, spoken names and the word list's speaker buttons are Japanese-only. The tsukumogami, temple bell and **あ** button keep their Japanese style in every learning language.
 
 ## Keys
 

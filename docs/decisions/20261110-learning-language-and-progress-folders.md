@@ -4,10 +4,10 @@
 Accepted
 
 ## Context
-Oboecraft now supports Japanese, German, Norwegian Bokmål and Dutch. Their translations group Minecraft keys differently, so their item ids and SRS states cannot share a progress file. Players should see the same item names they answer with, and players learning different languages must coexist on one server. Existing Japanese progress must survive upgrades, interrupted migration and downgrades.
+Oboecraft now supports learning languages other than Japanese. Minecraft's translations group keys differently in each language, so the languages' item ids and SRS states cannot share a progress file. Players should see the same item names they answer with, and players learning different languages must coexist on one server. Existing Japanese progress must survive upgrades, interrupted migration and downgrades.
 
 ## Decision
-The exact game language codes `ja_jp`, `de_de`, `no_no` and `nl_nl` choose the corresponding learning language. Every other code chooses Japanese, including regional variants. The client selects it when uploading progress on joining. The server validates it against the supported languages and holds it for that connection; changing the game language in-world announces the language for the next join. Server settings remain shared.
+The exact game language code of a supported learning language, like `ja_jp`, selects that learning language. Every other code falls back to Japanese, including regional variants of supported languages. Adding a learning language follows this decision and needs no new ADR. The client selects it when uploading progress on joining. The server validates it against the supported languages and holds it for that connection; changing the game language in-world announces the language for the next join. Server settings remain shared.
 
 Each account has independent files under `oboecraft/progress/<language>/<uuid>.json`, with independent locks, broken files and format versions. The server receives and changes only the active language's progress. A language's name list determines grouping and answer checking.
 

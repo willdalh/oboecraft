@@ -1,6 +1,6 @@
 # Name list tool
 
-The name list tool writes the [name list file](name-list-file.md) from Minecraft's Japanese, German, Austrian German, Norwegian Bokmål and Dutch names, and a review list of the entries it generated. An agent reviews every generated entry and corrects the file by hand before it is merged. The tool was built in milestone 5.
+The name list tool writes the [name list file](name-list-file.md) from Minecraft's names in every learning language, and a review list of the entries it generated. An agent reviews every generated entry and corrects the file by hand before it is merged. The tool was built in milestone 5.
 
 ```
 ./gradlew :tools:generateNameList
@@ -16,7 +16,7 @@ The tool is the `tools` Gradle module, package `io.github.willdalh.oboecraft.too
 
 | Source | From | Used for |
 |---|---|---|
-| `ja_jp.json`, `de_de.json`, `de_at.json`, `no_no.json`, `nl_nl.json` | Mojang's asset server, found through the version's asset index | The name of each translation key in that learning language |
+| `<language>.json` for each learning language, like `ja_jp.json` | Mojang's asset server, found through the version's asset index | The name of each translation key in that learning language |
 | `en_us.json` in the client jar | Mojang, from the version’s own file | Flagging untranslated names for review |
 | The server jar | Mojang, from the version's own file | Running Minecraft's data generator, and the game's data |
 | SudachiDict core | PyPI, where it is published as a Python package, at a fixed version with its checksum | Splitting names into words and reading them, with Sudachi |
@@ -60,4 +60,4 @@ Common corrections from the first review, in milestone 5:
 
 The tool's rules have JUnit tests in `tools/src/test`, with small hand-written dictionaries and a stand-in for Sudachi, so they need no downloads, and the file format has its tests in `json/src/test`. `./gradlew build` runs them. The tool itself is only run by hand.
 
-The command-line tool takes `--minecraft-version`, `--name-lists` (the output folder), `--review-list` (the Japanese review file), and `--cache`. The Gradle task supplies them. Generated German, Austrian German, Bokmål and Dutch entries use the same key collection and id retention rules as Japanese.
+The command-line tool takes `--minecraft-version`, `--name-lists` (the output folder), `--review-list` (the Japanese review file), and `--cache`. The Gradle task supplies them. Generated entries of plain-name languages use the same key collection and id retention rules as Japanese.

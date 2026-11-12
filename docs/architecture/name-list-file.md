@@ -1,6 +1,6 @@
 # Name list files
 
-The mod ships `fabric/src/main/resources/oboecraft/name_lists/<language>.json` for `ja_jp`, `de_de`, `de_at`, `no_no` and `nl_nl`. `ItemMappings` loads every list once through `NameListFile`, using Fabric's mod container on both client and dedicated server. `NameListJson` in `json` parses each into a core `NameList`. Each language independently groups keys by its translated names, as described in [Items](../design/items.md).
+The mod ships `fabric/src/main/resources/oboecraft/name_lists/<language>.json` for each learning language, like `ja_jp`. `ItemMappings` loads every list once through `NameListFile`, using Fabric's mod container on both client and dedicated server. `NameListJson` in `json` parses each into a core `NameList`. Each language independently groups keys by its translated names, as described in [Items](../design/items.md).
 
 The lists ship with the mod because Minecraft's language files have no readings, and dedicated servers don't have them. This puts Mojang's names inside the mod, which is a small legal grey area. If that becomes a problem, the server can download the language files at start instead, and only the code that loads the lists changes.
 
@@ -14,7 +14,7 @@ Each file is a JSON array with one entry per line. Japanese `name` values are ar
 ]
 ```
 
-German, Austrian German, Bokmål and Dutch `name` values are strings:
+Plain-name languages' `name` values are strings:
 
 ```json
 [

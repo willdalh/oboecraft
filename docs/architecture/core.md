@@ -133,4 +133,4 @@ Client settings, like clickable buttons, only change what the client shows, so t
 
 Every rule gets JUnit tests in `core/src/test`, with hand-written name list entries and fixed `Instant` values.
 
-`LearningLanguage` holds the four exact language codes and the game-language fallback. Its strict `fromCode` is used to validate uploads; `fromGameLanguage` alone falls back to Japanese. `nameOrder` returns a caller-owned locale collator for alphabetic lists (never shared between threads); Japanese retains its existing text order.
+`LearningLanguage` holds the exact language code of each learning language and the game-language fallback. Its strict `fromCode` is used to validate uploads; `fromGameLanguage` alone falls back to Japanese. `nameOrder` returns a caller-owned locale collator for alphabetic lists (never shared between threads); Japanese retains its existing text order.

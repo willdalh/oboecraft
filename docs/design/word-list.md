@@ -32,4 +32,4 @@ These tabs are ordered by name in the learning language’s alphabetical order. 
 
 Already known and Ignore act on the item in the active review, at any reviewable level. Ignoring drops all matching loose stacks from the main inventory, hotbar, offhand, cursor and personal 2×2 crafting grid onto the ground. Worn armor and stacks already in containers stay in use; nothing is removed from containers. Ignored items cannot be picked up (including arrows and tridents), used, crafted or taken from containers while locks are active. Dropping remains allowed. Creative and spectator mode still bypass locks.
 
-The word list uses only the active learning language’s entries and progress. German and Austrian German sort ä with a; Bokmål sorts æ, ø and å after z. Japanese keeps its existing order. German, Austrian German, Bokmål and Dutch have no speaker column or reading clips.
+The word list uses only the active learning language’s entries and progress. German and Austrian German sort ä with a; Bokmål sorts æ, ø and å after z. Japanese keeps its existing order. Plain-name languages have no speaker column or reading clips.

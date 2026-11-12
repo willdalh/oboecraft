@@ -1,6 +1,6 @@
 # Oboecraft
 
-A Minecraft mod for learning item names in Japanese, German, Austrian German, Norwegian Bokmål or Dutch, using spaced repetition on the items in the game.
+A Minecraft mod for learning item names in Japanese or another learning language, using spaced repetition on the items in the game.
 
 ## Language
 
@@ -112,8 +112,11 @@ The screen where the player answers for a locked item.
 _Avoid_: menu, quiz screen, popup
 
 **Learning language**:
-The language whose item names a player learns: Japanese, German, Austrian German, Norwegian Bokmål or Dutch. It follows the game language and stays the same until the player joins again.
+The language whose item names a player learns. It follows the game language and stays the same until the player joins again.
 _Avoid_: target language, study language
+
+**Plain-name language**:
+A learning language whose names are plain text, with no name parts or readings, like German.
 
 **Game language**:
 The language selected in Minecraft's language setting, used for Minecraft's and the mod's own text.
