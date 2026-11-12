@@ -4,9 +4,7 @@ How the server decides whether a typed answer is correct. The correct answer is 
 
 The general rule: the same sound passes, a different sound fails.
 
-## German, Austrian German, Norwegian Bokmål and Dutch
-
-Austrian German uses the same answer rules as German, with names from its own Minecraft translation.
+## Plain-name languages
 
 Case, spaces, hyphens and punctuation are ignored. Keyboard stand-ins ä/ö/ü → ae/oe/ue, ß → ss and æ/ø/å → ae/oe/aa are accepted. The accents é, è, ê, ë and ï may be omitted. Unicode composed and decomposed spellings agree. Plain a/o/u do not replace umlauts, and plain a/o do not replace å/ø. Any other wrong, missing or extra letter fails, with no typo tolerance. Minecraft's names contain no articles, so none are required. Japanese kana, romaji, long-vowel and particle rules never apply here.
 
