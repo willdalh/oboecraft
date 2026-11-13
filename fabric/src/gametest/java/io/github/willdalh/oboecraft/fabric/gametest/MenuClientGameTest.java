@@ -82,8 +82,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
         context.waitForScreen(InventoryScreen.class);
         context.waitFor(client -> OboecraftClient.notification().shown().isPresent());
         NotificationPixels.assertShown(context, "pass-notification-over-inventory");
-        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
-        context.waitForScreen(null);
+        closeScreen(context, singleplayer);
         context.waitFor(client -> OboecraftClient.notification().shown().isEmpty());
         singleplayer.getServer().runOnServer(server -> player(server).getInventory().setItem(0, ItemStack.EMPTY));
         singleplayer.getConnection().waitForClientboundPackets();
@@ -127,8 +126,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
         check(singleplayer, player -> player.containerMenu.getCarried().getCount() == 4,
                 "the player carries the oak logs after the pass");
         click(context, CHEST_HOTBAR_SLOT, PRIMARY, ContainerInput.PICKUP);
-        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
-        context.waitForScreen(null);
+        closeScreen(context, singleplayer);
     }
 
     private static void takingALockedCraftingResult(
@@ -164,8 +162,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
         if (!context.computeOnClient(MenuClientGameTest::resultIsCraftingTable)) {
             throw new AssertionError("The crafting table should still be the result after the answer menu");
         }
-        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
-        context.waitForScreen(null);
+        closeScreen(context, singleplayer);
     }
 
     /**
@@ -217,8 +214,7 @@ public class MenuClientGameTest implements FabricClientGameTest {
                     .get(DataComponents.CUSTOM_NAME);
             return name != null && name.getString().contains("Pochi");
         }, "the anvil renames a name tag");
-        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
-        context.waitForScreen(null);
+        closeScreen(context, singleplayer);
     }
 
     private static String anvilName(Minecraft client) {
@@ -229,6 +225,16 @@ public class MenuClientGameTest implements FabricClientGameTest {
 
     private static boolean resultIsCraftingTable(Minecraft client) {
         return client.player.inventoryMenu.getSlot(InventoryMenu.RESULT_SLOT).getItem().is(Items.CRAFTING_TABLE);
+    }
+
+    /**
+     * Closes the screen with Escape and waits until the server has closed the menu too. The server closes whatever menu
+     * is open when the close packet arrives, so a menu the next step opens before that would be closed instead.
+     */
+    private static void closeScreen(ClientGameTestContext context, TestSingleplayerContext singleplayer) {
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(null);
+        singleplayer.getConnection().waitForServerboundPackets();
     }
 
     /** Clicks a slot of the open menu, as the menu's screen does it. */

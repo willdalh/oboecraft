@@ -137,6 +137,7 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 
 - **Don't create item stacks in static fields.** Test classes load before the game is ready for `ItemStack` construction. Keep `Item` references in static fields and create fresh stacks inside the test, as `TsukumogamiClientGameTest` does.
 - **Wait on what the client sees.** A `context.waitFor` predicate runs on the client thread. Don't call `computeOnServer` or otherwise ask the server for anything inside it. Do server setup through `runOnServer` or `computeOnServer` outside the wait, then wait for the result in client state, such as a synced entity, progress or the current screen.
+- **Wait for the server to close a menu.** Closing a screen sends a close packet, and the server closes whatever menu is open when the packet arrives, not the one the client closed. After closing a screen with a menu, call `waitForServerboundPackets()` before the server opens the next one, or the late packet closes the new menu, as `MenuClientGameTest`'s `closeScreen` does.
 - **A run includes every client game test.** The current runner can't select a single client test, and `runClientGameTest` is not a JUnit task that accepts `--tests`. Each run takes a few minutes, so allow time for the whole suite.
 
 ## Decisions
