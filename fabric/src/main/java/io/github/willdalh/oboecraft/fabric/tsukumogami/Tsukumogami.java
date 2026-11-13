@@ -24,9 +24,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -54,7 +56,10 @@ public final class Tsukumogami extends PathfinderMob {
     public static final int ATTACK_COOLDOWN_TICKS = 30;
     /** How far it walks between two steps, in blocks. Its walk on the client takes a step as often as it sounds. */
     public static final float STEP_BLOCKS = 1.1F;
-    /** How often it looks for a new path to its owner, in ticks. */
+    /**
+     * How often it looks for a new path to its owner, in ticks. A search for an owner it can't reach is the most
+     * expensive kind, so it waits this long also when it stands at the end of a path that falls short of its owner.
+     */
     private static final int PATH_INTERVAL_TICKS = 10;
     /** How long it may make no progress towards its owner before it counts as stuck, in ticks. */
     private static final int STUCK_TICKS = 60;
@@ -90,6 +95,10 @@ public final class Tsukumogami extends PathfinderMob {
     private int keepUpRetryTicks;
     private int attackCooldownTicks;
     private int fadeTicks;
+    /** How long until it looks for a new path to its owner, in ticks. */
+    private int pathSearchTicks;
+    /** Whether the path it follows leads to its owner, so it looks for a new one as soon as it walked it. */
+    private boolean followsPathToOwner;
     private int ticksSinceProgress;
     private Vec3 progressCheckedAt = Vec3.ZERO;
 
@@ -267,6 +276,9 @@ public final class Tsukumogami extends PathfinderMob {
         if (attackCooldownTicks > 0) {
             attackCooldownTicks--;
         }
+        if (pathSearchTicks > 0) {
+            pathSearchTicks--;
+        }
         if (windUpTicks > 0) {
             getNavigation().stop();
             if (--windUpTicks == 0) {
@@ -292,14 +304,26 @@ public final class Tsukumogami extends PathfinderMob {
             }
             return;
         }
-        if (tickCount % PATH_INTERVAL_TICKS == 0 || getNavigation().isDone()) {
-            getNavigation().moveTo(owner, 1.0);
+        if (pathSearchTicks == 0 || followsPathToOwner && getNavigation().isDone()) {
+            searchPathTo(owner);
         }
         if (keepUpRetryTicks > 0) {
             keepUpRetryTicks--;
         } else if (distanceToSqr(owner) > KEEP_UP_DISTANCE * KEEP_UP_DISTANCE || isStuck()) {
             keepUp(level, owner);
         }
+    }
+
+    /**
+     * Looks for a path to its owner and follows it, or the part of it that gets it as close as it can. It looks again
+     * after {@link #PATH_INTERVAL_TICKS}, or as soon as it walked a path that leads to its owner.
+     */
+    private void searchPathTo(ServerPlayer owner) {
+        PathNavigation navigation = getNavigation();
+        navigation.moveTo(owner, 1.0);
+        Path path = navigation.getPath();
+        followsPathToOwner = navigation.isInProgress() && path != null && path.canReach();
+        pathSearchTicks = PATH_INTERVAL_TICKS;
     }
 
     /**
@@ -311,6 +335,7 @@ public final class Tsukumogami extends PathfinderMob {
         if (spot.isPresent()) {
             teleportTo(spot.get().x, spot.get().y, spot.get().z);
             getNavigation().stop();
+            pathSearchTicks = 0;
         } else {
             keepUpRetryTicks = KEEP_UP_RETRY_TICKS;
         }

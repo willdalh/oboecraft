@@ -61,7 +61,7 @@ fabric/
                             sound events, the tsukumogami's sounds in assets/oboecraft/sounds/tsukumogami, and its
                             textures in assets/oboecraft/textures/entity
   src/gametest/java         Fabric game tests, on a headless server and in a client
-  src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest
+  src/gametest/resources    fabric.mod.json for the test mod oboecraft-gametest, and its mixin configs
 ```
 
 The `fabric` module splits its source sets by side. Code in `src/main` can't use client-only Minecraft classes, which don't exist on a dedicated server, so mistakes show up as compile errors instead of server crashes. Code in `src/client` can use everything in `src/main`.
@@ -75,7 +75,7 @@ The mod has two entrypoints, listed in `fabric.mod.json`:
 
 The game tests are their own small mod, `oboecraft-gametest`, which is only loaded by `runGameTest` and `runClientGameTest` and is not part of the released jar.
 
-Mixins are listed in `oboecraft.mixins.json` (package `fabric.mixin`, both sides) and `oboecraft.client.mixins.json` (package `fabric.client.mixin`, client only).
+Mixins are listed in `oboecraft.mixins.json` (package `fabric.mixin`, both sides) and `oboecraft.client.mixins.json` (package `fabric.client.mixin`, client only). The test mod's mixins, which only observe the game for tests, are in `oboecraft.gametest.mixins.json` (both sides) and `oboecraft.gametest.client.mixins.json` (client only), both in package `fabric.gametest.mixin`.
 
 ## Build
 
@@ -129,6 +129,7 @@ GitHub Actions runs both on every PR and on every push to `main` (`.github/workf
 
 - **Wait for progress-store startup before testing session locks.** Each `ProgressStore` queues legacy migration on its file thread. With two stores in one test, drain both queues with `end(...).join()` before starting either session, then assert the first upload succeeded. Otherwise a startup migration can temporarily hold the lock the first session needs.
 - **Keep queried mobs inside the test structure.** The runner loads the structure's chunks before starting; an entity outside them may be hidden from world queries. The default empty structure is only 8×8×8, so `TsukumogamiGameTest` puts a threat that only needs to be in range 5 blocks from the player, and the 32-block threat-range test uses the larger `oboecraft-gametest:threat_range` structure so all its positions are loaded.
+- **An entity ticked by hand keeps its `tickCount`.** The level counts `tickCount` up, not `Entity.tick`, so a test that calls `tick()` in a loop within one game tick sees it stay the same. Count timers in fields of their own that each AI step counts down, as `Tsukumogami` does.
 - **Test players can't take damage.** No client has loaded the world for a player made by `TestPlayers`, so ordinary damage won't kill them. To exercise death handling, call `player.die(player.damageSources().genericKill())` directly, as `TsukumogamiGameTest` does.
 - **Test players join at the world's origin.** Move them into the test area before anything that needs nearby ground, such as finding a place for a mob to spawn. Use coordinates relative to the test structure, for example `player.snapTo(helper.absoluteVec(new Vec3(1.5, 1, 1.5)))`.
 - **The mod's clock and the world's time are shared by all game tests.** Change them only in a test that completes within one tick, and restore them in `finally`, even if an assertion fails. Don't leave them changed across scheduled ticks. `TsukumogamiGameTest.atMidnight` shows this: it restores the Overworld's previous time through `OverworldTime` and resets `OboecraftMod.clock()` to `InstantSource.system()`.

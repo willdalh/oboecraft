@@ -494,6 +494,32 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
+    public void itGetsAsCloseAsItCanToAnOwnerItCantReachAndLooksForAPathTwiceASecond(GameTestHelper helper) {
+        atMidnight(helper, (player, server) -> {
+            carryOverdue(player, 5);
+            tsukumogami().checkPlayers(server);
+            Tsukumogami tsukumogami = existing(helper, player);
+            // Its owner stands on a pillar it can't climb, out of its reach.
+            for (int y = 1; y <= 3; y++) {
+                helper.setBlock(new BlockPos(4, y, 4), Blocks.STONE);
+            }
+            player.snapTo(helper.absoluteVec(new Vec3(4.5, 4, 4.5)));
+            tsukumogami.snapTo(helper.absoluteVec(new Vec3(4.5, 1, 0.5)));
+            int searchesBefore = PathSearches.of(tsukumogami);
+
+            ticks(tsukumogami, 40);
+            double distance = tsukumogami.position().subtract(player.position()).horizontalDistance();
+            helper.assertTrue(distance < 3, "it should walk as close as it can to the pillar, not stay " + distance
+                    + " blocks away");
+            ticks(tsukumogami, 60);
+            // A search for an owner it can't reach is the most expensive kind, and it did one on every tick before.
+            int searches = PathSearches.of(tsukumogami) - searchesBefore;
+            helper.assertTrue(searches <= 11, "it should look for a path at most twice a second, not " + searches
+                    + " times in 100 ticks");
+        });
+    }
+
+    @GameTest
     public void threatsCancelPendingStrikesAndRestartTheSafetyGrace(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());

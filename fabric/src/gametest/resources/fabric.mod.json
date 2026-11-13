@@ -5,6 +5,7 @@
   "name": "Oboecraft game tests",
   "environment": "*",
   "mixins": [
+    "oboecraft.gametest.mixins.json",
     {
       "config": "oboecraft.gametest.client.mixins.json",
       "environment": "client"
