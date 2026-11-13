@@ -494,7 +494,7 @@ public class TsukumogamiGameTest {
     }
 
     @GameTest
-    public void itGetsAsCloseAsItCanToAnOwnerItCantReachAndLooksForAPathTwiceASecond(GameTestHelper helper) {
+    public void itGetsAsCloseAsItCanToAnOwnerItCantReachWithoutSearchingEveryTick(GameTestHelper helper) {
         atMidnight(helper, (player, server) -> {
             carryOverdue(player, 5);
             tsukumogami().checkPlayers(server);
@@ -507,15 +507,23 @@ public class TsukumogamiGameTest {
             tsukumogami.snapTo(helper.absoluteVec(new Vec3(4.5, 1, 0.5)));
             int searchesBefore = PathSearches.of(tsukumogami);
 
-            ticks(tsukumogami, 40);
+            // A search for an owner it can't reach is the most expensive kind, and it did one on every tick before.
+            int walkTicks = 60;
+            ticks(tsukumogami, walkTicks);
             double distance = tsukumogami.position().subtract(player.position()).horizontalDistance();
             helper.assertTrue(distance < 3, "it should walk as close as it can to the pillar, not stay " + distance
                     + " blocks away");
-            ticks(tsukumogami, 60);
-            // A search for an owner it can't reach is the most expensive kind, and it did one on every tick before.
             int searches = PathSearches.of(tsukumogami) - searchesBefore;
-            helper.assertTrue(searches <= 11, "it should look for a path at most twice a second, not " + searches
-                    + " times in 100 ticks");
+            helper.assertTrue(searches >= 1, "it should look for a path to its owner");
+            helper.assertTrue(searches <= walkTicks / Tsukumogami.PATH_INTERVAL_TICKS + 1,
+                    "it should look for a path at most every " + Tsukumogami.PATH_INTERVAL_TICKS + " ticks, not "
+                            + searches + " times in " + walkTicks + " ticks");
+
+            // Where it stands, a search would fall short again until one of them moves. 40 more ticks stay below the
+            // 120 it needs to count as stuck and keep up, which would move it.
+            ticks(tsukumogami, 40);
+            helper.assertValueEqual(PathSearches.of(tsukumogami) - searchesBefore, searches,
+                    "searches while it and its owner stand still");
         });
     }
 

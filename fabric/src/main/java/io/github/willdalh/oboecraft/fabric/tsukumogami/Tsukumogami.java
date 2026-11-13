@@ -60,7 +60,7 @@ public final class Tsukumogami extends PathfinderMob {
      * How often it looks for a new path to its owner, in ticks. A search for an owner it can't reach is the most
      * expensive kind, so it waits this long also when it stands at the end of a path that falls short of its owner.
      */
-    private static final int PATH_INTERVAL_TICKS = 10;
+    public static final int PATH_INTERVAL_TICKS = 10;
     /** How long it may make no progress towards its owner before it counts as stuck, in ticks. */
     private static final int STUCK_TICKS = 60;
     /** How far it must have moved in {@link #STUCK_TICKS} to not be stuck, squared. */
@@ -99,6 +99,10 @@ public final class Tsukumogami extends PathfinderMob {
     private int pathSearchTicks;
     /** Whether the path it follows leads to its owner, so it looks for a new one as soon as it walked it. */
     private boolean followsPathToOwner;
+    /** Where it was when it last found a path that falls short of its owner, or null when it found none. */
+    private @Nullable BlockPos shortPathStart;
+    /** Where its owner was when it last found a path that falls short of them, or null when it found none. */
+    private @Nullable BlockPos shortPathOwnerPos;
     private int ticksSinceProgress;
     private Vec3 progressCheckedAt = Vec3.ZERO;
 
@@ -304,7 +308,7 @@ public final class Tsukumogami extends PathfinderMob {
             }
             return;
         }
-        if (pathSearchTicks == 0 || followsPathToOwner && getNavigation().isDone()) {
+        if ((pathSearchTicks == 0 || followsPathToOwner && getNavigation().isDone()) && canSearchPathTo(owner)) {
             searchPathTo(owner);
         }
         if (keepUpRetryTicks > 0) {
@@ -312,6 +316,16 @@ public final class Tsukumogami extends PathfinderMob {
         } else if (distanceToSqr(owner) > KEEP_UP_DISTANCE * KEEP_UP_DISTANCE || isStuck()) {
             keepUp(level, owner);
         }
+    }
+
+    /**
+     * Whether a search for a path to its owner can find something new. Minecraft finds no path while it is in the air,
+     * so it searches as soon as it lands. A search from where it stands to where its owner stands that fell short would
+     * only fall short again, so it waits for one of them to move, or for keeping up to move it.
+     */
+    private boolean canSearchPathTo(ServerPlayer owner) {
+        return (onGround() || isInLiquid())
+                && !(blockPosition().equals(shortPathStart) && owner.blockPosition().equals(shortPathOwnerPos));
     }
 
     /**
@@ -323,6 +337,9 @@ public final class Tsukumogami extends PathfinderMob {
         navigation.moveTo(owner, 1.0);
         Path path = navigation.getPath();
         followsPathToOwner = navigation.isInProgress() && path != null && path.canReach();
+        boolean fellShort = path != null && !path.canReach();
+        shortPathStart = fellShort ? blockPosition() : null;
+        shortPathOwnerPos = fellShort ? owner.blockPosition() : null;
         pathSearchTicks = PATH_INTERVAL_TICKS;
     }
 
